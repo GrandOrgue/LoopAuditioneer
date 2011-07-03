@@ -1,0 +1,28 @@
+Install (compilation) instructions for LoopAuditioneer under Linux
+------------------------------------------------------------------
+
+You'll need standard development tools for c++, wxWidgets and ALSA, be sure to
+check the external libraries installation files for more details on what might
+be needed.
+
+Compile and prepare libsndfile:
+
+in lib-src/libsndfile folder:
+	./configure --disable-external-libs
+	make
+in lib-src folder
+	ln -sf libsndfile/src/.libs/libsndfile.a libsndfile.a
+
+
+Compile rtaudio:
+
+in lib-src/rtaudio folder:
+	./configure --with-alsa
+	make
+in lib-src folder
+	ln -sf rtaudio/librtaudio.a .
+
+
+To compile the program in src/ folder:
+
+g++ -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio ../lib-src/libsndfile.a ../lib-src/librtaudio.a -lasound -lpthread `wx-config --cxxflags --libs`
