@@ -22,7 +22,7 @@
 #include "FileHandling.h"
 #include "MyFrame.h"
 
-MySound::MySound() : bufferFrames(512), fmt(RTAUDIO_SINT16), m_audio(NULL), sampleRateToUse(0) {
+MySound::MySound() : m_audio(NULL), fmt(RTAUDIO_SINT16), bufferFrames(512), sampleRateToUse(0) {
   for (int i = 0; i < 3; i++)
     pos[i] = 0;
   
@@ -105,5 +105,9 @@ void MySound::SetLoopPosition(unsigned int currentPos, unsigned int lStart, unsi
   pos[0] = currentPos * n_channels;
   pos[1] = lStart * n_channels;
   pos[2] = lEnd * n_channels + (n_channels - 1);
+}
+
+void MySound::SetStartPosition(unsigned int startPos, int n_channels) {
+  pos[0] = startPos * n_channels;
 }
 

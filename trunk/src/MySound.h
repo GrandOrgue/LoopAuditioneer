@@ -36,6 +36,7 @@ public:
   void StopAudioStream();
   void CloseAudioStream();
   void SetLoopPosition(unsigned int currentPos, unsigned int lStart, unsigned int lEnd, int n_channels);
+  void SetStartPosition(unsigned int startPos, int n_channels);
 
 private:
   RtAudio *m_audio;

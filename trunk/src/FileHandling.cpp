@@ -20,7 +20,7 @@
 
 #include "FileHandling.h"
 
-FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), doubleAudioData(NULL), shortAudioData(NULL), intAudioData(NULL) {
+FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL) {
   m_loops = new LoopMarkers();
   m_cues = new CueMarkers();
   wxString filePath;
