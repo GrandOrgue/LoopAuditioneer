@@ -103,7 +103,7 @@ void MyFrame::OpenAudioFile() {
   }
 
   // populate the wxGrid m_cueGrid in m_panel with the cue data
-  for (int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
+  for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
     CUEPOINT tempCue;
     m_audiofile->m_cues->GetCuePoint(i, tempCue);
     m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwPosition, tempCue.keepThisCue, i);
@@ -207,8 +207,12 @@ void MyFrame::OnStopPlay(wxCommandEvent& event) {
 }
 
 void MyFrame::DoStopPlay() {
-  toolBar->EnableTool(wxID_STOP, false);
+  // if it was a loop reset start position to start of data
+  if (m_panel->m_grid->IsSelection())
+    m_sound->SetStartPosition(0, m_audiofile->m_channels);
+
   m_sound->StopAudioStream();
+  toolBar->EnableTool(wxID_STOP, false);
   toolBar->EnableTool(START_PLAYBACK, true);
 }
 
@@ -335,18 +339,18 @@ int MyFrame::AudioCallback(void *outputBuffer,
 
     // Loop that feeds the outputBuffer with data
     if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
-      for (int i = 0; i < nBufferFrames * 2; i++) {
+      for (unsigned int i = 0; i < nBufferFrames * 2; i++) {
         *buffer++ = ::wxGetApp().frame->m_audiofile->shortAudioData[(position[0])];
         position[0] += 1;
 
-        if (MyFrame::loopPlay) {
+        if (loopPlay) {
           // Check to control loop playback, see MySound.h pos member and MyFrame.h loopPlay member
           if (position[0] > position[2])
-          position[0] = position[1];
+            position[0] = position[1];
         }
 
         // stop if end of file data is reached and reset current position to start of the cue
-        if (position[0] == ::wxGetApp().frame->m_audiofile->ArrayLength) {
+        if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
           ::wxGetApp().frame->DoStopPlay();
           position[0] = position[1];
         }
@@ -365,11 +369,11 @@ int MyFrame::AudioCallback(void *outputBuffer,
 
     // Loop that feeds the outputBuffer with data
     if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
-      for (int i = 0; i < nBufferFrames; i++) {
+      for (unsigned int i = 0; i < nBufferFrames; i++) {
         *buffer++ = ::wxGetApp().frame->m_audiofile->intAudioData[(position[0])];     
         position[0] += 1;
 
-        if (MyFrame::loopPlay) {
+        if (loopPlay) {
           // Check to control loop playback, see MySound.h pos member and MyFrame.h loopPlay member
           if (position[0] > position[2])
           position[0] = position[1];
@@ -395,20 +399,21 @@ int MyFrame::AudioCallback(void *outputBuffer,
 
     // Loop that feeds the outputBuffer with data
     if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
-      for (int i = 0; i < nBufferFrames; i++) {
+      for (unsigned int i = 0; i < nBufferFrames; i++) {
         *buffer++ = ::wxGetApp().frame->m_audiofile->doubleAudioData[(position[0])];
         position[0] += 1;
 
-        if (MyFrame::loopPlay) {
+        if (loopPlay) {
           // Check to control loop playback, see MySound.h pos member and MyFrame.h loopPlay member
           if (position[0] > position[2])
-          position[0] = position[1];
+            position[0] = position[1];
         }
 
         // stop if end of file data is reached and reset current position to start of the cue
-        if (position[0] == ::wxGetApp().frame->m_audiofile->ArrayLength)
+        if (position[0] == ::wxGetApp().frame->m_audiofile->ArrayLength) {
           ::wxGetApp().frame->DoStopPlay();
           position[0] = position[1];
+        }
       }
     }  else {
       ::wxGetApp().frame->DoStopPlay();
@@ -425,8 +430,8 @@ int MyFrame::AudioCallback(void *outputBuffer,
 
 void MyFrame::SetLoopPlayback(bool looping) {
   if (looping)
-    MyFrame::loopPlay = true;
+    loopPlay = true;
   else
-    MyFrame::loopPlay = false;
+    loopPlay = false;
 }
 
