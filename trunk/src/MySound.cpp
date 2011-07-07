@@ -87,11 +87,13 @@ void MySound::StartAudioStream() {
 }
 
 void MySound::StopAudioStream() {
-  try {
-    // Stop the stream
-    m_audio->stopStream();
-  } catch (RtError& e) {
-    e.printMessage();
+  if (m_audio->isStreamRunning()) {
+    try {
+      // Stop the stream
+      m_audio->stopStream();
+    } catch (RtError& e) {
+      e.printMessage();
+    }
   }
 }
 

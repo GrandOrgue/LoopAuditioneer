@@ -25,4 +25,4 @@ in lib-src folder
 
 To compile the program in src/ folder:
 
-g++ -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio ../lib-src/libsndfile.a ../lib-src/librtaudio.a -lasound -lpthread `wx-config --cxxflags --libs`
+g++ -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio ../lib-src/libsndfile.a ../lib-src/librtaudio.a -lasound -lpthread `wx-config --cxxflags --unicode=yes --libs`

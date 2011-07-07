@@ -1,4 +1,4 @@
-This is LoopAuditioneer 0.1
+This is LoopAuditioneer 0.1.1
 Copyright (C) 2011 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
@@ -23,7 +23,7 @@ is available at http://www.small-icons.com/packs/24x24-free-pixel-icons.htm and
 distributed under a Creative Commons 3.0 license.
 
 Basic installation instructions are available in the InstallInstructions.txt
-file. At the moment the program is only developed and tested under Linux
+file. At the moment the program developed and mostly tested under Linux
 (Ubuntu 11.04).
 
 OTHER DEPENDENCIES
@@ -34,4 +34,4 @@ LoopAuditioneer requires wxWidgets, available at http://www.wxwidgets.org/.
 CONTACT THE AUTHOR:
 -------------------
 
-You can contact the author on larspalo AT yahoo DOT com.
+You can contact the author on larspalo AT yahoo DOT se.

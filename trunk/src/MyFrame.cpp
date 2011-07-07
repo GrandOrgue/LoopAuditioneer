@@ -48,8 +48,8 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
   info.SetName(appName);
   info.SetVersion(appVersion);
   info.SetDescription(wxT("This program allows users to listen to and evaluate loops and cues embedded in wav files."));
-  info.SetCopyright(wxT("Copyright (C) 2011 Lars Palo <larspalo AT yahoo DOT com>\nReleased under GNU GPLv3 licence"));
-  info.SetWebSite(wxT("https://sourceforge.net/projects/loopauditioneer/"));
+  info.SetCopyright(wxT("Copyright (C) 2011 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
+  info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
 
   wxAboutBox(info);
 }
@@ -187,7 +187,7 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
       toolBar->EnableTool(wxID_SAVE, true);
     }
   }
-  m_panel->m_cueGrid->SetGridCursor(0, 2); // this is to hide the highlight box
+  m_panel->m_cueGrid->SetGridCursor(event.GetRow(), 2); // this is to hide the highlight box and easily find selected row
   toolBar->EnableTool(START_PLAYBACK, true);
 }
 
@@ -197,6 +197,17 @@ void MyFrame::OnSaveFile(wxCommandEvent& event) {
 }
 
 void MyFrame::OnStartPlay(wxCommandEvent& event) {
+  // if it's a loop make sure start position is set to start of data
+  if (m_panel->m_grid->IsSelection())
+    m_sound->SetStartPosition(0, m_audiofile->m_channels);
+
+  // if it's a cue make sure start position is set to the selected cue's dwPosition
+  if (m_panel->m_cueGrid->IsSelection()) {
+    CUEPOINT currentCue;
+    m_audiofile->m_cues->GetCuePoint(m_panel->m_cueGrid->GetGridCursorRow(), currentCue);
+    m_sound->SetStartPosition(currentCue.dwPosition, m_audiofile->m_channels);
+  }
+
   toolBar->EnableTool(START_PLAYBACK, false);
   toolBar->EnableTool(wxID_STOP, true);
   m_sound->StartAudioStream();
@@ -207,11 +218,8 @@ void MyFrame::OnStopPlay(wxCommandEvent& event) {
 }
 
 void MyFrame::DoStopPlay() {
-  // if it was a loop reset start position to start of data
-  if (m_panel->m_grid->IsSelection())
-    m_sound->SetStartPosition(0, m_audiofile->m_channels);
-
   m_sound->StopAudioStream();
+  
   toolBar->EnableTool(wxID_STOP, false);
   toolBar->EnableTool(START_PLAYBACK, true);
 }
@@ -351,13 +359,12 @@ int MyFrame::AudioCallback(void *outputBuffer,
 
         // stop if end of file data is reached and reset current position to start of the cue
         if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
-          ::wxGetApp().frame->DoStopPlay();
-          position[0] = position[1];
+          wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
+          ::wxGetApp().frame->AddPendingEvent(evt);
         }
       }
     } else {
-      ::wxGetApp().frame->DoStopPlay();
-      position[0] = position[1];
+      // we end up here until buffer is drained?
     }
     
     return 0;
@@ -380,14 +387,13 @@ int MyFrame::AudioCallback(void *outputBuffer,
         }
 
         // stop if end of file data is reached and reset current position to start of the cue
-        if (position[0] == ::wxGetApp().frame->m_audiofile->ArrayLength) {
-          ::wxGetApp().frame->DoStopPlay();
-          position[0] = position[1];
+        if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
+          wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
+          ::wxGetApp().frame->AddPendingEvent(evt);
         }
       }
     } else {
-      ::wxGetApp().frame->DoStopPlay();
-      position[0] = position[1];
+      // we end up here until buffer is drained?
     }
     
     return 0;
@@ -410,14 +416,13 @@ int MyFrame::AudioCallback(void *outputBuffer,
         }
 
         // stop if end of file data is reached and reset current position to start of the cue
-        if (position[0] == ::wxGetApp().frame->m_audiofile->ArrayLength) {
-          ::wxGetApp().frame->DoStopPlay();
-          position[0] = position[1];
+        if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
+          wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
+          ::wxGetApp().frame->AddPendingEvent(evt);
         }
       }
     }  else {
-      ::wxGetApp().frame->DoStopPlay();
-      position[0] = position[1];
+      // we end up here until buffer is drained?
     }
     
     return 0;
