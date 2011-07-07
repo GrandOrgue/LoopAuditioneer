@@ -1,0 +1,31 @@
+Windows install instructions:
+-----------------------------
+
+Requires:
+MinGW / MSYS shell
+wxWidgets (Tested with wx 2.8.12 ansi compiled under MinGW/MSYS)
+
+
+All commands performed in MinGW Shell (MSYS)
+
+Compile libsndfile:
+in lib-src/libsndfile folder
+	./configure --disable-external-libs
+	make
+in lib-src folder
+	ln -sf libsndfile/src/.libs/libsndfile.a libsndfile.a
+
+
+Compile RtAudio:
+in lib-src/rtaudio folder
+	./configure --with-ds
+	make
+in lib-src folder
+	ln -sf rtaudio/librtaudio.a .
+
+
+
+In src folder:
+
+
+g++ -D__WINDOWS_DS__ -static -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/rtaudio/include ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ldsound -lole32 -lwinmm `wx-config --static=yes --cxxflags --libs`
