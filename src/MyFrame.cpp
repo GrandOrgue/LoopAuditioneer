@@ -106,7 +106,7 @@ void MyFrame::OpenAudioFile() {
   for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
     CUEPOINT tempCue;
     m_audiofile->m_cues->GetCuePoint(i, tempCue);
-    m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwPosition, tempCue.keepThisCue, i);
+    m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);
   }
 
   // force redraw of m_grid in m_panel!
@@ -169,7 +169,7 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
   // set the current position for the selected cue
   CUEPOINT currentCue;
   m_audiofile->m_cues->GetCuePoint(event.GetRow(), currentCue);
-  m_sound->SetLoopPosition(currentCue.dwPosition, currentCue.dwPosition, currentCue.dwPosition, m_audiofile->m_channels);
+  m_sound->SetLoopPosition(currentCue.dwSampleOffset, currentCue.dwSampleOffset, currentCue.dwSampleOffset, m_audiofile->m_channels);
 
   SetLoopPlayback(false); // set the playback to not be for loops
 
@@ -205,7 +205,7 @@ void MyFrame::OnStartPlay(wxCommandEvent& event) {
   if (m_panel->m_cueGrid->IsSelection()) {
     CUEPOINT currentCue;
     m_audiofile->m_cues->GetCuePoint(m_panel->m_cueGrid->GetGridCursorRow(), currentCue);
-    m_sound->SetStartPosition(currentCue.dwPosition, m_audiofile->m_channels);
+    m_sound->SetStartPosition(currentCue.dwSampleOffset, m_audiofile->m_channels);
   }
 
   toolBar->EnableTool(START_PLAYBACK, false);
