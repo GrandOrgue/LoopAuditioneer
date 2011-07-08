@@ -22,6 +22,6 @@
 #define LOOPAUDITIONEERDEF_H
 
 const wxString appName = wxT("LoopAuditioneer");
-const wxString appVersion = wxT("0.1.2.0");
+const wxString appVersion = wxT("0.1.2.1");
 
 #endif

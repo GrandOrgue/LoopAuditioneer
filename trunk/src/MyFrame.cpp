@@ -361,6 +361,8 @@ int MyFrame::AudioCallback(void *outputBuffer,
         if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
           wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
           ::wxGetApp().frame->AddPendingEvent(evt);
+
+          return 0;
         }
       }
     } else {
@@ -390,6 +392,8 @@ int MyFrame::AudioCallback(void *outputBuffer,
         if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
           wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
           ::wxGetApp().frame->AddPendingEvent(evt);
+
+          return 0;
         }
       }
     } else {
@@ -419,6 +423,8 @@ int MyFrame::AudioCallback(void *outputBuffer,
         if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
           wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
           ::wxGetApp().frame->AddPendingEvent(evt);
+
+          return 0;
         }
       }
     }  else {
