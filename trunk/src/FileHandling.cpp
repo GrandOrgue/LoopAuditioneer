@@ -49,7 +49,7 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
       LOOPDATA temp;
       temp.dwType = instr.loops[i].mode;
       temp.dwStart = instr.loops[i].start;
-      temp.dwEnd = instr.loops[i].end;
+      temp.dwEnd = instr.loops[i].end - 1; // -1 to compensate for libsndfile behaviour
       temp.dwPlayCount = instr.loops[i].count;
       temp.shouldBeSaved = true;
       m_loops->AddLoop(temp);

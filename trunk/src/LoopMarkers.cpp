@@ -71,7 +71,7 @@ void LoopMarkers::ExportLoops() {
 
       outLoop.dwType = loopsIn[i].dwType;
       outLoop.dwStart = loopsIn[i].dwStart;
-      outLoop.dwEnd = loopsIn[i].dwEnd;
+      outLoop.dwEnd = loopsIn[i].dwEnd + 1; // +1 to compensate for libsndfile behaviour
       outLoop.dwPlayCount = loopsIn[i].dwPlayCount;
       outLoop.shouldBeSaved = loopsIn[i].shouldBeSaved;
 
