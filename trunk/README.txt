@@ -1,4 +1,4 @@
-This is LoopAuditioneer 0.1.2.2
+This is LoopAuditioneer 0.2.0.0
 Copyright (C) 2011 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
@@ -29,7 +29,8 @@ file. At the moment the program developed and mostly tested under Linux
 OTHER DEPENDENCIES
 ------------------
 
-LoopAuditioneer requires wxWidgets, available at http://www.wxwidgets.org/.
+LoopAuditioneer requires wxWidgets, available at http://www.wxwidgets.org/. The
+repository unicode version of wxWidgets that Ubuntu offer should work as well.
 
 CONTACT THE AUTHOR:
 -------------------
