@@ -34,11 +34,14 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_MENU(wxID_EXIT, MyFrame::OnQuit)
   EVT_MENU(FILE_SELECT, MyFrame::OnSelectDir)
   EVT_MENU(wxID_SAVE, MyFrame::OnSaveFile)
+  EVT_MENU(wxID_SAVEAS, MyFrame::OnSaveFileAs)
   EVT_LISTBOX_DCLICK(ID_LISTBOX, MyFrame::OnDblClick)
   EVT_LISTBOX(ID_LISTBOX, MyFrame::OnSelection)
   EVT_TOOL(OPEN_SELECTED, MyFrame::OnDblClick)
   EVT_GRID_CMD_CELL_LEFT_CLICK(M_GRID, MyFrame::OnGridCellClick)
   EVT_GRID_CMD_CELL_LEFT_CLICK(CUE_GRID, MyFrame::OnCueGridCellClick)
+  EVT_GRID_CMD_LABEL_LEFT_CLICK(M_GRID, MyFrame::OnGridCellClick)
+  EVT_GRID_CMD_LABEL_LEFT_CLICK(CUE_GRID, MyFrame::OnCueGridCellClick)
   EVT_TOOL(START_PLAYBACK, MyFrame::OnStartPlay)
   EVT_TOOL(wxID_STOP, MyFrame::OnStopPlay)
 END_EVENT_TABLE()
@@ -77,7 +80,6 @@ void MyFrame::OnDblClick(wxCommandEvent& event) {
   int sel = m_fileListBox->GetSelection();
   if (sel != -1) {
     fileToOpen = m_fileListBox->GetString(sel);
-    m_panel->SetFileNameLabel(fileToOpen);
     OpenAudioFile();
   }
 }
@@ -85,6 +87,8 @@ void MyFrame::OnDblClick(wxCommandEvent& event) {
 void MyFrame::OnSelection(wxCommandEvent& event) {
   if (toolBar->GetToolEnabled(OPEN_SELECTED) == false)
     toolBar->EnableTool(OPEN_SELECTED, true);
+  if (fileMenu->IsEnabled(OPEN_SELECTED) == false)
+    fileMenu->Enable(OPEN_SELECTED, true);
 }
 
 void MyFrame::OpenAudioFile() {
@@ -93,6 +97,7 @@ void MyFrame::OpenAudioFile() {
   m_sound->SetSampleRate(m_audiofile->GetSampleRate());
   m_sound->SetAudioFormat(m_audiofile->GetAudioFormat());
   m_sound->OpenAudioStream();
+  m_panel->SetFileNameLabel(fileToOpen);
   
   // populate the wxGrid in m_panel with the loop data
   int sRate = m_audiofile->GetSampleRate();
@@ -115,16 +120,21 @@ void MyFrame::OpenAudioFile() {
   SetSize(size);
   size.DecBy(1, 1);
   SetSize(size);
+
+  // enable save as...
+  toolBar->EnableTool(wxID_SAVEAS, true);
+  fileMenu->Enable(wxID_SAVEAS, true);
 }
 
 void MyFrame::CloseOpenAudioFile() {
   toolBar->EnableTool(START_PLAYBACK, false);
+  transportMenu->Enable(START_PLAYBACK, false);
   m_sound->CloseAudioStream();
   if (m_audiofile)
     m_panel->EmptyTable();
   delete m_audiofile;
 
-  // force redraw of m_grid in m_panel by jiggling the size of the frame!
+  // force redraw of m_grid in m_panel by jiggling the size of the frame! Ugly hack!
   wxSize size = GetSize();
   size.IncBy(1, 1);
   SetSize(size);
@@ -149,16 +159,19 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
       m_panel->m_grid->SetCellValue(event.GetRow(), event.GetCol(), wxT("0"));
       m_audiofile->m_loops->SetSaveOption(false, event.GetRow());
       toolBar->EnableTool(wxID_SAVE, true);
+      fileMenu->Enable(wxID_SAVE, true);
     } else {
       // The value was false
       m_panel->m_grid->SetCellValue(event.GetRow(), event.GetCol(), wxT("1"));
       m_audiofile->m_loops->SetSaveOption(true, event.GetRow());
       toolBar->EnableTool(wxID_SAVE, true);
+      fileMenu->Enable(wxID_SAVE, true);
     }
   }
   m_panel->m_grid->SetGridCursor(0, 4); // this is to hide the highlight box
   SetLoopPlayback(true); // set the playback to be for loops
   toolBar->EnableTool(START_PLAYBACK, true);
+  transportMenu->Enable(START_PLAYBACK, true);
 }
 
 void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
@@ -180,20 +193,45 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
       m_panel->m_cueGrid->SetCellValue(event.GetRow(), event.GetCol(), wxT("0"));
       m_audiofile->m_cues->SetSaveOption(false, event.GetRow());
       toolBar->EnableTool(wxID_SAVE, true);
+      fileMenu->Enable(wxID_SAVE, true);
     } else {
       // The value was false
       m_panel->m_cueGrid->SetCellValue(event.GetRow(), event.GetCol(), wxT("1"));
       m_audiofile->m_cues->SetSaveOption(true, event.GetRow());
       toolBar->EnableTool(wxID_SAVE, true);
+      fileMenu->Enable(wxID_SAVE, true);
     }
   }
   m_panel->m_cueGrid->SetGridCursor(event.GetRow(), 2); // this is to hide the highlight box and easily find selected row
   toolBar->EnableTool(START_PLAYBACK, true);
+  transportMenu->Enable(START_PLAYBACK, true);
 }
 
 void MyFrame::OnSaveFile(wxCommandEvent& event) {
   m_audiofile->SaveAudioFile(fileToOpen, workingDir);
   toolBar->EnableTool(wxID_SAVE, false);
+  fileMenu->Enable(wxID_SAVE, false);
+}
+
+void MyFrame::OnSaveFileAs(wxCommandEvent& event) {
+  wxFileDialog *saveFileAsDialog = new wxFileDialog(this, wxT("Save file as..."), workingDir, fileToOpen, wxT("WAV files (*.wav)|*.wav"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+  if (saveFileAsDialog->ShowModal() == wxID_OK) {
+    wxString fileName = saveFileAsDialog->GetFilename();
+    wxString folderName = saveFileAsDialog->GetDirectory();
+    m_audiofile->SaveAudioFile(fileName, folderName);
+
+    // switch to the newly created file
+    fileToOpen = fileName;
+    workingDir = folderName;
+    OpenAudioFile();
+
+    // empty and repopulate file list in case user saved into the current directory
+    EmptyListOfFileNames();
+    PopulateListOfFileNames();
+    m_fileListBox->Set(fileNames);
+    SetStatusText(workingDir, 1);
+  }
 }
 
 void MyFrame::OnStartPlay(wxCommandEvent& event) {
@@ -210,6 +248,8 @@ void MyFrame::OnStartPlay(wxCommandEvent& event) {
 
   toolBar->EnableTool(START_PLAYBACK, false);
   toolBar->EnableTool(wxID_STOP, true);
+  transportMenu->Enable(START_PLAYBACK, false);
+  transportMenu->Enable(wxID_STOP, true);
   m_sound->StartAudioStream();
 }
 
@@ -222,6 +262,9 @@ void MyFrame::DoStopPlay() {
   
   toolBar->EnableTool(wxID_STOP, false);
   toolBar->EnableTool(START_PLAYBACK, true);
+
+  transportMenu->Enable(START_PLAYBACK, true);
+  transportMenu->Enable(wxID_STOP, false);
 }
 
 MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title) {
@@ -231,21 +274,39 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title) {
   workingDir = wxEmptyString;
 
   // Create a file menu
-  wxMenu *fileMenu = new wxMenu;
+  fileMenu = new wxMenu;
 
   // Add file menu items
-  fileMenu->Append(FILE_SELECT, wxT("&Select folder"), wxT("Select working folder"));
+  fileMenu->Append(FILE_SELECT, wxT("&Choose folder"), wxT("Select working folder"));
+  fileMenu->Append(OPEN_SELECTED, wxT("&Open file"), wxT("Open selected file"));
+  fileMenu->Append(wxID_SAVE, wxT("&Save"), wxT("Save current file"));
+  fileMenu->Append(wxID_SAVEAS, wxT("Save &as..."), wxT("Save current file with new name"));
   fileMenu->Append(wxID_EXIT, wxT("&Exit\tAlt-X"), wxT("Quit this program"));
 
+  fileMenu->Enable(OPEN_SELECTED, false);
+  fileMenu->Enable(wxID_SAVE, false);
+  fileMenu->Enable(wxID_SAVEAS, false);
+
+  // Create a transport menu
+  transportMenu = new wxMenu;
+
+  // Add transport menu items
+  transportMenu->Append(START_PLAYBACK, wxT("&Play"), wxT("Start playback"));
+  transportMenu->Append(wxID_STOP, wxT("&Stop"), wxT("Stop playback"));
+
+  transportMenu->Enable(START_PLAYBACK, false);
+  transportMenu->Enable(wxID_STOP, false);
+
   // Create a help menu
-  wxMenu *helpMenu = new wxMenu;
+  helpMenu = new wxMenu;
 
   // Add help menu items
   helpMenu->Append(wxID_ABOUT, wxT("&About...\tF1"), wxT("Show about dialog"));
 
   // Create a menu bar and append the menus to it
-  wxMenuBar *menuBar = new wxMenuBar();
+  menuBar = new wxMenuBar();
   menuBar->Append(fileMenu, wxT("&File"));
+  menuBar->Append(transportMenu, wxT("&Transport"));
   menuBar->Append(helpMenu, wxT("&Help"));
 
   // Attach menu bar to frame
@@ -262,16 +323,19 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title) {
   wxBitmap selectFolder(wxT("../icons/24x24/Open_folder.png"), wxBITMAP_TYPE_PNG);
   wxBitmap openSelectedFile(wxT("../icons/24x24/Open_file.png"), wxBITMAP_TYPE_PNG);
   wxBitmap saveFile(wxT("../icons/24x24/Save.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap saveFileAs(wxT("../icons/24x24/Save_as.png"), wxBITMAP_TYPE_PNG);
   wxBitmap startPlayback(wxT("../icons/24x24/Right.png"), wxBITMAP_TYPE_PNG);
   wxBitmap stopPlayback(wxT("../icons/24x24/Stop.png"), wxBITMAP_TYPE_PNG);
   toolBar->AddTool(FILE_SELECT, selectFolder, wxT("Select working folder"), wxT("Select working folder"));
   toolBar->AddTool(OPEN_SELECTED, openSelectedFile, wxT("Open selected file"), wxT("Open selected file"));
   toolBar->AddTool(wxID_SAVE, saveFile, wxT("Save file"), wxT("Save file"));
+  toolBar->AddTool(wxID_SAVEAS, saveFileAs, wxT("Save as..."), wxT("Save file with new name"));
   toolBar->AddTool(START_PLAYBACK, startPlayback, wxT("Play"), wxT("Play"));
   toolBar->AddTool(wxID_STOP, stopPlayback, wxT("Stop"), wxT("Stop"));
   toolBar->Realize();
   toolBar->EnableTool(OPEN_SELECTED, false);
   toolBar->EnableTool(wxID_SAVE, false);
+  toolBar->EnableTool(wxID_SAVEAS, false);
   toolBar->EnableTool(START_PLAYBACK, false);
   toolBar->EnableTool(wxID_STOP, false);
   this->SetToolBar(toolBar);
@@ -324,11 +388,10 @@ void MyFrame::PopulateListOfFileNames() {
   wxString fileName;
 
   bool cont = dir.GetFirst(&fileName, wxT("*.wav"), wxDIR_FILES);
-  while ( cont )
-    {
-        AddFileName(fileName);
-        cont = dir.GetNext(&fileName);
-    }
+  while (cont) {
+    AddFileName(fileName);
+    cont = dir.GetNext(&fileName);
+  }
 }
 
 int MyFrame::AudioCallback(void *outputBuffer, 

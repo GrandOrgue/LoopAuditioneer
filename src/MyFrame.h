@@ -43,6 +43,7 @@ public:
   void OnGridCellClick(wxGridEvent& event);
   void OnCueGridCellClick(wxGridEvent& event);
   void OnSaveFile(wxCommandEvent& event);
+  void OnSaveFileAs(wxCommandEvent& event);
   void OnStartPlay(wxCommandEvent& event);
   void OnStopPlay(wxCommandEvent& event);
   void DoStopPlay();
@@ -50,6 +51,10 @@ public:
   wxListBox *m_fileListBox;
   MyPanel *m_panel;
   wxToolBar *toolBar;
+  wxMenu *fileMenu;
+  wxMenu *transportMenu;
+  wxMenu *helpMenu;
+  wxMenuBar *menuBar;
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
