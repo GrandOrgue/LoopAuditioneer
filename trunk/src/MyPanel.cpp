@@ -21,7 +21,7 @@
 #include "MyPanel.h"
 #include "LoopAuditioneer.h"
 
-MyPanel::MyPanel(wxPanel *parent) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,  wxTAB_TRAVERSAL) {
+MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,  wxFULL_REPAINT_ON_RESIZE | wxVSCROLL) {
   vbox = new wxBoxSizer(wxVERTICAL);
   fileNameLabel = new wxStaticText(this, wxID_STATIC, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
   m_grid = new wxGrid(this, M_GRID, wxDefaultPosition, wxDefaultSize);
@@ -69,6 +69,8 @@ MyPanel::MyPanel(wxPanel *parent) : wxPanel(parent, wxID_ANY, wxDefaultPosition,
   vbox->Add(m_cueGrid, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, 5);
   vbox->SetSizeHints(this);
   SetSizer(vbox);
+  FitInside();
+  SetScrollRate(5, 5);
 }
 
 MyPanel::~MyPanel() {

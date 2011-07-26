@@ -31,13 +31,15 @@ enum {
   M_GRID = wxID_HIGHEST + 3,
   OPEN_SELECTED = wxID_HIGHEST + 4,
   START_PLAYBACK = wxID_HIGHEST + 5,
-  CUE_GRID = wxID_HIGHEST + 6
+  CUE_GRID = wxID_HIGHEST + 6,
+  TIMER_ID = wxID_HIGHEST + 7
 };
 
 class LoopAuditioneerApp : public wxApp {
 public:
   virtual bool OnInit();
   MyFrame *frame;
+  wxIconBundle m_icons;
 };
 
 DECLARE_APP(LoopAuditioneerApp)

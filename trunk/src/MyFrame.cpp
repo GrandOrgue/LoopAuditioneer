@@ -44,6 +44,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_GRID_CMD_LABEL_LEFT_CLICK(CUE_GRID, MyFrame::OnCueGridCellClick)
   EVT_TOOL(START_PLAYBACK, MyFrame::OnStartPlay)
   EVT_TOOL(wxID_STOP, MyFrame::OnStopPlay)
+  EVT_TIMER(TIMER_ID, MyFrame::UpdatePlayPosition)
 END_EVENT_TABLE()
 
 void MyFrame::OnAbout(wxCommandEvent& event) {
@@ -94,32 +95,39 @@ void MyFrame::OnSelection(wxCommandEvent& event) {
 void MyFrame::OpenAudioFile() {
   CloseOpenAudioFile();
   m_audiofile = new FileHandling(fileToOpen, workingDir);
+  wxString filePath;
+  filePath = workingDir.Append(wxT("/"));
+  filePath += fileToOpen;
+  m_waveform = new WaveformDrawer(this, filePath);
+  vbox->Add(m_waveform, 1, wxEXPAND);
+  // vbox->SetSizeHints(this);
+  Fit();
+  // Center();
+
   m_sound->SetSampleRate(m_audiofile->GetSampleRate());
   m_sound->SetAudioFormat(m_audiofile->GetAudioFormat());
   m_sound->OpenAudioStream();
   m_panel->SetFileNameLabel(fileToOpen);
   
-  // populate the wxGrid in m_panel with the loop data
+  // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
   int sRate = m_audiofile->GetSampleRate();
   for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
     LOOPDATA tempData;
     m_audiofile->m_loops->GetLoopData(i, tempData);
     m_panel->FillRowWithLoopData(tempData.dwStart, tempData.dwEnd, sRate, tempData.shouldBeSaved, i);
+    m_waveform->AddLoopPosition(tempData.dwStart, tempData.dwEnd);
   }
 
-  // populate the wxGrid m_cueGrid in m_panel with the cue data
+  // populate the wxGrid m_cueGrid in m_panel with the cue data and add it to the waveform drawer
   for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
     CUEPOINT tempCue;
     m_audiofile->m_cues->GetCuePoint(i, tempCue);
     m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);
+    m_waveform->AddCuePosition(tempCue.dwSampleOffset);
   }
 
   // force redraw of m_grid in m_panel!
-  wxSize size = GetSize();
-  size.IncBy(1, 1);
-  SetSize(size);
-  size.DecBy(1, 1);
-  SetSize(size);
+  SendSizeEvent();
 
   // enable save as...
   toolBar->EnableTool(wxID_SAVEAS, true);
@@ -133,8 +141,9 @@ void MyFrame::CloseOpenAudioFile() {
   if (m_audiofile)
     m_panel->EmptyTable();
   delete m_audiofile;
+  delete m_waveform;
 
-  // force redraw of m_grid in m_panel by jiggling the size of the frame! Ugly hack!
+  // force updates of wxGrids in m_panel by jiggling the size of the frame! Ugly hack necessary for Windows!
   wxSize size = GetSize();
   size.IncBy(1, 1);
   SetSize(size);
@@ -170,8 +179,10 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
   }
   m_panel->m_grid->SetGridCursor(0, 4); // this is to hide the highlight box
   SetLoopPlayback(true); // set the playback to be for loops
-  toolBar->EnableTool(START_PLAYBACK, true);
-  transportMenu->Enable(START_PLAYBACK, true);
+  if (toolBar->GetToolEnabled(wxID_STOP) == false) {
+    toolBar->EnableTool(START_PLAYBACK, true);
+    transportMenu->Enable(START_PLAYBACK, true);
+  }
 }
 
 void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
@@ -203,8 +214,10 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
     }
   }
   m_panel->m_cueGrid->SetGridCursor(event.GetRow(), 2); // this is to hide the highlight box and easily find selected row
-  toolBar->EnableTool(START_PLAYBACK, true);
-  transportMenu->Enable(START_PLAYBACK, true);
+  if (toolBar->GetToolEnabled(wxID_STOP) == false) {
+    toolBar->EnableTool(START_PLAYBACK, true);
+    transportMenu->Enable(START_PLAYBACK, true);
+  }
 }
 
 void MyFrame::OnSaveFile(wxCommandEvent& event) {
@@ -235,15 +248,19 @@ void MyFrame::OnSaveFileAs(wxCommandEvent& event) {
 }
 
 void MyFrame::OnStartPlay(wxCommandEvent& event) {
+  m_timer.Start(50);
   // if it's a loop make sure start position is set to start of data
-  if (m_panel->m_grid->IsSelection())
+  if (m_panel->m_grid->IsSelection()) {
     m_sound->SetStartPosition(0, m_audiofile->m_channels);
+    m_waveform->SetPlayPosition(0);
+  }
 
   // if it's a cue make sure start position is set to the selected cue's dwPosition
   if (m_panel->m_cueGrid->IsSelection()) {
     CUEPOINT currentCue;
     m_audiofile->m_cues->GetCuePoint(m_panel->m_cueGrid->GetGridCursorRow(), currentCue);
     m_sound->SetStartPosition(currentCue.dwSampleOffset, m_audiofile->m_channels);
+    m_waveform->SetPlayPosition(currentCue.dwSampleOffset);
   }
 
   toolBar->EnableTool(START_PLAYBACK, false);
@@ -254,7 +271,10 @@ void MyFrame::OnStartPlay(wxCommandEvent& event) {
 }
 
 void MyFrame::OnStopPlay(wxCommandEvent& event) {
+  m_timer.Stop();
   DoStopPlay();
+  m_waveform->SetPlayPosition(0);
+  m_waveform->paintNow();
 }
 
 void MyFrame::DoStopPlay() {
@@ -267,14 +287,15 @@ void MyFrame::DoStopPlay() {
   transportMenu->Enable(wxID_STOP, false);
 }
 
-MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title) {
+MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_timer(this, TIMER_ID) {
   m_audiofile = NULL;
+  m_waveform = NULL;
   m_sound = new MySound();
 
   workingDir = wxEmptyString;
 
   // Create a file menu
-  fileMenu = new wxMenu;
+  fileMenu = new wxMenu();
 
   // Add file menu items
   fileMenu->Append(FILE_SELECT, wxT("&Choose folder"), wxT("Select working folder"));
@@ -288,7 +309,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title) {
   fileMenu->Enable(wxID_SAVEAS, false);
 
   // Create a transport menu
-  transportMenu = new wxMenu;
+  transportMenu = new wxMenu();
 
   // Add transport menu items
   transportMenu->Append(START_PLAYBACK, wxT("&Play"), wxT("Start playback"));
@@ -298,7 +319,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title) {
   transportMenu->Enable(wxID_STOP, false);
 
   // Create a help menu
-  helpMenu = new wxMenu;
+  helpMenu = new wxMenu();
 
   // Add help menu items
   helpMenu->Append(wxID_ABOUT, wxT("&About...\tF1"), wxT("Show about dialog"));
@@ -340,22 +361,26 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title) {
   toolBar->EnableTool(wxID_STOP, false);
   this->SetToolBar(toolBar);
 
-  // Create a panel for frame content
-  wxPanel *m_ContainerPanel = new wxPanel(this, wxID_ANY);
+  // Create panels for frame content
 
+  vbox = new wxBoxSizer(wxVERTICAL);
   wxBoxSizer *hbox = new wxBoxSizer(wxHORIZONTAL);
 
-  m_fileListBox = new wxListBox(m_ContainerPanel, ID_LISTBOX, wxDefaultPosition, wxSize(150, 200), fileNames, wxLB_SINGLE | wxLB_SORT);
+  m_fileListBox = new wxListBox(this, ID_LISTBOX, wxDefaultPosition, wxSize(200, 200), fileNames, wxLB_SINGLE | wxLB_SORT);
 
   hbox->Add(m_fileListBox, 1, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, 10);
 
-  m_panel = new MyPanel(m_ContainerPanel);
+  m_panel = new MyPanel(this);
 
-  hbox->Add(m_panel, 2, wxEXPAND | wxALL, 10);
+  hbox->Add(m_panel, 3, wxEXPAND | wxALL, 10);
 
-  hbox->SetSizeHints(this);
-  m_ContainerPanel->SetSizer(hbox);
+  vbox->Add(hbox, 1, wxEXPAND);
+  vbox->SetSizeHints(this);
+  SetSizer(vbox);
+  Fit();
   Center();
+
+  SetBackgroundColour(wxT("#f4f2ef"));
 }
 
 MyFrame::~MyFrame() {
@@ -365,6 +390,10 @@ MyFrame::~MyFrame() {
   }
   if (m_sound) {
     delete m_sound;
+    m_sound = 0;
+  }
+  if (m_waveform) {
+    delete m_waveform;
     m_sound = 0;
   }
 }
@@ -431,7 +460,7 @@ int MyFrame::AudioCallback(void *outputBuffer,
     } else {
       // we end up here until buffer is drained?
     }
-    
+
     return 0;
   } else if (::wxGetApp().frame->m_audiofile->intAudioData) {
     int *buffer = static_cast<int*>(outputBuffer);
@@ -507,5 +536,12 @@ void MyFrame::SetLoopPlayback(bool looping) {
     loopPlay = true;
   else
     loopPlay = false;
+}
+
+void MyFrame::UpdatePlayPosition(wxTimerEvent& evt) {
+  if (m_waveform) {
+    m_waveform->SetPlayPosition(m_sound->pos[0] / 2);
+    m_waveform->paintNow();
+  }
 }
 

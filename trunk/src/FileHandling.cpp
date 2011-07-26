@@ -67,10 +67,10 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
       for (int j = 0; j < instr.loop_count; j++) {
         if (cues.cue_points[i].dwPosition == 0 && cues.cue_points[i].dwSampleOffset == instr.loops[j].start)
           toAdd = false;
-
-        if (cues.cue_points[i].dwPosition == 0)
-          cues.cue_points[i].dwPosition = cues.cue_points[i].dwSampleOffset;
       }
+
+      if (cues.cue_points[i].dwPosition == 0)
+        cues.cue_points[i].dwPosition = cues.cue_points[i].dwSampleOffset;
 
       if (toAdd) {
         CUEPOINT tmp;
