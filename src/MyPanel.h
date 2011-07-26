@@ -25,9 +25,9 @@
 #include <wx/stattext.h>
 #include <wx/grid.h>
 
-class MyPanel : public wxPanel {
+class MyPanel : public wxScrolledWindow {
 public:
-  MyPanel(wxPanel *parent);
+  MyPanel(wxFrame *parent);
   ~MyPanel();
 
   wxStaticText *fileNameLabel;

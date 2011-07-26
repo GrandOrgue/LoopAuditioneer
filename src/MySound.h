@@ -37,6 +37,7 @@ public:
   void CloseAudioStream();
   void SetLoopPosition(unsigned int currentPos, unsigned int lStart, unsigned int lEnd, int n_channels);
   void SetStartPosition(unsigned int startPos, int n_channels);
+  unsigned int pos[3]; // Used to keep track of position. [0] = current position, [1] = loop start, [2] = loop end
 
 private:
   RtAudio *m_audio;
@@ -45,7 +46,6 @@ private:
   RtAudioFormat fmt;
   unsigned int bufferFrames;
   unsigned int sampleRateToUse;
-  unsigned int pos[3]; // Used to keep track of position. [0] = current position, [1] = loop start, [2] = loop end
 };
 
 #endif

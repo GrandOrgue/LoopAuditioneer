@@ -27,6 +27,7 @@
 #include "MyPanel.h"
 #include "FileHandling.h"
 #include "MySound.h"
+#include "WaveformDrawer.h"
 
 class MyFrame : public wxFrame {
 public:
@@ -47,6 +48,7 @@ public:
   void OnStartPlay(wxCommandEvent& event);
   void OnStopPlay(wxCommandEvent& event);
   void DoStopPlay();
+  void UpdatePlayPosition(wxTimerEvent& evt);
 
   wxListBox *m_fileListBox;
   MyPanel *m_panel;
@@ -55,6 +57,7 @@ public:
   wxMenu *transportMenu;
   wxMenu *helpMenu;
   wxMenuBar *menuBar;
+  WaveformDrawer *m_waveform;
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
@@ -75,6 +78,8 @@ private:
   wxString fileToOpen;
   FileHandling *m_audiofile;
   MySound *m_sound;
+  wxBoxSizer *vbox;
+  wxTimer m_timer;
 
   void PopulateListOfFileNames();
 

@@ -33,6 +33,14 @@ bool LoopAuditioneerApp::OnInit() {
   fullAppName.Append(appVersion);
   frame = new MyFrame(fullAppName);
 
+  // load icons
+  m_icons = wxIconBundle(wxIcon(wxT("icons/LoopyIcon-16.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(wxT("icons/LoopyIcon-24.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(wxT("icons/LoopyIcon-32.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(wxT("icons/LoopyIcon-48.png"), wxBITMAP_TYPE_PNG));
+
+  frame->SetIcons(m_icons);
+
   // Show the frame
   frame->Show(true);
 
