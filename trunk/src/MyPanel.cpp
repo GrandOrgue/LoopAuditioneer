@@ -19,7 +19,7 @@
  */
 
 #include "MyPanel.h"
-#include "LoopAuditioneer.h"
+#include "LoopAuditioneerDef.h"
 
 MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,  wxFULL_REPAINT_ON_RESIZE | wxVSCROLL) {
   vbox = new wxBoxSizer(wxVERTICAL);
@@ -148,5 +148,12 @@ void MyPanel::EmptyTable() {
 
   int cueGridRows = m_cueGrid->GetNumberRows();
   m_cueGrid->DeleteRows(0, cueGridRows, true);
+}
+
+void MyPanel::ChangeCueData(unsigned int offset, int index) {
+  wxString pos = wxString::Format(wxT("%i"), offset);
+
+  m_cueGrid->SetCellValue(index , 1, pos);
+  m_cueGrid->SetReadOnly(index, 1);
 }
 

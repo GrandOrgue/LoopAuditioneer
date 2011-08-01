@@ -21,7 +21,20 @@
 #ifndef LOOPAUDITIONEERDEF_H
 #define LOOPAUDITIONEERDEF_H
 
+#include <wx/wx.h>
+
+enum {
+  ID_LISTBOX = wxID_HIGHEST + 1,
+  FILE_SELECT = wxID_HIGHEST + 2,
+  M_GRID = wxID_HIGHEST + 3,
+  OPEN_SELECTED = wxID_HIGHEST + 4,
+  START_PLAYBACK = wxID_HIGHEST + 5,
+  CUE_GRID = wxID_HIGHEST + 6,
+  TIMER_ID = wxID_HIGHEST + 7,
+  ADD_CUE = wxID_HIGHEST + 8
+};
+
 const wxString appName = wxT("LoopAuditioneer");
-const wxString appVersion = wxT("0.3.0.0");
+const wxString appVersion = wxT("0.4.0.0");
 
 #endif

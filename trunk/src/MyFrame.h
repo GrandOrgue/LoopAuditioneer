@@ -50,19 +50,12 @@ public:
   void DoStopPlay();
   void UpdatePlayPosition(wxTimerEvent& evt);
 
-  wxListBox *m_fileListBox;
-  MyPanel *m_panel;
-  wxToolBar *toolBar;
-  wxMenu *fileMenu;
-  wxMenu *transportMenu;
-  wxMenu *helpMenu;
-  wxMenuBar *menuBar;
-  WaveformDrawer *m_waveform;
-
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
   void OpenAudioFile();
   void CloseOpenAudioFile();
+  void AddNewCue(unsigned int offset);
+  void ChangeCuePosition(unsigned int offset, int index);
 
   static int AudioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
                     double streamTime, RtAudioStreamStatus status, void *userData );
@@ -80,6 +73,15 @@ private:
   MySound *m_sound;
   wxBoxSizer *vbox;
   wxTimer m_timer;
+  wxListBox *m_fileListBox;
+  MyPanel *m_panel;
+  wxToolBar *toolBar;
+  wxMenu *fileMenu;
+  wxMenu *transportMenu;
+  wxMenu *helpMenu;
+  wxMenuBar *menuBar;
+  WaveformDrawer *m_waveform;
+
 
   void PopulateListOfFileNames();
 

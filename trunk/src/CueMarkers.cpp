@@ -51,11 +51,12 @@ void CueMarkers::SetSaveOption(bool keep, int index) {
 }
 
 void CueMarkers::ExportCues() {
+  unsigned int idx = 0;
   for (unsigned int i = 0; i < dwCuePoints; i++) {
     if (cuePoints[i].keepThisCue) {
       CUEPOINT outCue;
 
-      outCue.dwName = i;
+      outCue.dwName = idx;
       outCue.dwPosition = cuePoints[i].dwPosition;
       outCue.fccChunk = cuePoints[i].fccChunk;
       outCue.dwChunkStart = cuePoints[i].dwChunkStart;
@@ -64,7 +65,13 @@ void CueMarkers::ExportCues() {
       outCue.keepThisCue = cuePoints[i].keepThisCue;
 
       exportedCues.push_back(outCue);
+      idx += 1;
     }
   }
+}
+
+void CueMarkers::ChangePosition(unsigned int offset, int index) {
+  if (index >= 0 && index < dwCuePoints)
+    cuePoints[index].dwSampleOffset = offset;
 }
 

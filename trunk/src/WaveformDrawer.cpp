@@ -21,9 +21,16 @@
 #include "WaveformDrawer.h"
 #include "sndfile.hh"
 #include "icons/PlayPositionMarker.xpm"
+#include <cmath>
+#include <cfloat>
+#include "LoopAuditioneer.h"
+#include "LoopAuditioneerDef.h"
 
 BEGIN_EVENT_TABLE(WaveformDrawer, wxPanel)
   EVT_PAINT(WaveformDrawer::paintEvent)
+  EVT_RIGHT_DOWN(WaveformDrawer::OnRightClick)
+  EVT_MENU(ADD_CUE, WaveformDrawer::OnClickAddCue)
+  EVT_LEFT_DOWN(WaveformDrawer::OnLeftClick)
 END_EVENT_TABLE()
 
 WaveformDrawer::WaveformDrawer(wxFrame *parent, wxString fileName) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE), m_buffer(NULL) {
@@ -47,6 +54,8 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, wxString fileName) : wxPanel(par
   playPositionMarker = wxIcon(PlayPositionMarker_xpm);
   m_background.Set(wxT("#f4f2ef"));
   SetBackgroundColour(m_background);
+  selectedCueIndex = 0;
+  cueIsSelected = false;
  
   SndfileHandle sfHandle;
 
@@ -75,6 +84,10 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, wxString fileName) : wxPanel(par
     CouldOpenFile = true;
   }
   delete[] m_buffer;
+
+  // create the popup menu for the waveform
+  m_popupMenu = new wxMenu();
+  m_popupMenu->Append(ADD_CUE, wxT("&Add cue"), wxT("Create a new cue at this position"));
 }
 
 // Called when the panel needs to be redrawn (if the panel is resized)
@@ -191,6 +204,8 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
           wxSize extent = dc.GetTextExtent(wxString::Format(wxT("M%i"), i + 1));
           dc.DrawLine(xPosition, yPositionLow, xPosition, yPositionHigh + overlap * (extent.GetHeight() + 5));
           dc.DrawRectangle(xPosition, yPositionHigh + overlap * (extent.GetHeight() + 5), extent.GetWidth() + 2, extent.GetHeight());
+          cueLayout[i].flagUpLeft = std::make_pair(xPosition, yPositionHigh + overlap * (extent.GetHeight() + 5)); 
+          cueLayout[i].flagDownRight = std::make_pair(xPosition + extent.GetWidth() + 2, yPositionHigh + overlap * (extent.GetHeight() + 5) + extent.GetHeight());
           dc.DrawText(wxString::Format(wxT("M%i"), i + 1), xPosition + 1, yPositionHigh + overlap * (extent.GetHeight() + 5));
         }
       }
@@ -411,7 +426,179 @@ void WaveformDrawer::CalculateLayout() {
         }
         cueLayout[i].putInRow = unUsedRow;
       }
+    } else {
+      // not within any loop but maybe close to another marker
+      if (cueLayout[i].markerClose.empty() == false) {
+        int unUsedRow = 0;
+
+        for (int k = 0; k < cueLayout[i].markerClose.size(); k++) {
+          if (cueLayout[cueLayout[i].markerClose[k]].putInRow == unUsedRow)
+            unUsedRow++;
+        }
+        cueLayout[i].putInRow = unUsedRow;
+      }
     }
   }
 }
+
+void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
+  m_x = event.GetX(); 
+  m_y = event.GetY();
+
+  if (m_x > leftMargin && m_x < (leftMargin + trackWidth) && m_y > topMargin && m_y <= (topMargin + trackHeight * nrChannels + marginBetweenTracks * nrChannels)) {
+    // user have clicked on the track area
+    int nrOfSamples = waveTracks[0].waveData.size();
+    int samplesPerPixel;
+
+    if (nrOfSamples % trackWidth == 0)
+      samplesPerPixel = nrOfSamples / trackWidth;
+    else
+      samplesPerPixel = (nrOfSamples / trackWidth) + 1;
+
+    if (cueIsSelected) {
+      // a cue was selected so we'll change it's dwSampleOffset to a new position
+      
+      // first check that the pixels are valid
+      if (m_x < leftMargin)
+        m_x = leftMargin;
+      if (m_x > leftMargin + trackWidth)
+        m_x = leftMargin + trackWidth;
+
+      int approximateSampleNumber = samplesPerPixel * (m_x - (leftMargin + 1));
+      int earliestSampleToConsider = approximateSampleNumber - samplesPerPixel;
+      int lastSampleToConsider = approximateSampleNumber + samplesPerPixel;
+
+      if (earliestSampleToConsider < 0)
+        earliestSampleToConsider = 0;
+
+      if (lastSampleToConsider > waveTracks[0].waveData.size())
+        lastSampleToConsider = waveTracks[0].waveData.size() - 1;
+
+      unsigned int bestSample;
+      double lowestRMSPower = DBL_MAX;
+      double currentRMSPower = 0;
+      // the sample values are in waveTracks[0].waveData
+      for (int i = earliestSampleToConsider; i <= lastSampleToConsider; i++) {
+        for (int j = 0; j < waveTracks.size(); j++)
+          currentRMSPower += pow(waveTracks[j].waveData[i], 2);
+
+        if (currentRMSPower < lowestRMSPower) {
+          lowestRMSPower = currentRMSPower;
+          bestSample = i;
+        }
+        currentRMSPower = 0;
+      }
+
+      cueSampleOffset[selectedCueIndex] = bestSample; // change the cues position in this class
+      ::wxGetApp().frame->ChangeCuePosition(bestSample, selectedCueIndex); // send offset value for changed cue
+
+      cueIsSelected = false;
+      ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
+      return;
+    }
+
+    if (!cueIsSelected) {
+      // check if click is in a cue flag and if so select that cue for re-positioning
+      bool inCue = false;
+      for (int i = 0; i < cueSampleOffset.size(); i++) {
+        if (m_x > cueLayout[i].flagUpLeft.first && m_x <= cueLayout[i].flagDownRight.first && 
+            m_y > cueLayout[i].flagUpLeft.second && m_y <= cueLayout[i].flagDownRight.second) {
+          inCue = true;
+          selectedCueIndex = i;
+          break;
+        }
+      } 
+
+      if (inCue) {
+        cueIsSelected = true;
+        wxClientDC dc(this);
+        dc.SetBrush(wxBrush(white, wxBDIAGONAL_HATCH));
+        dc.SetPen(wxPen(green, 1, wxSOLID));
+        dc.DrawRectangle(cueLayout[selectedCueIndex].flagUpLeft.first, cueLayout[selectedCueIndex].flagUpLeft.second,
+                         cueLayout[selectedCueIndex].flagDownRight.first - cueLayout[selectedCueIndex].flagUpLeft.first,
+                         cueLayout[selectedCueIndex].flagDownRight.second - cueLayout[selectedCueIndex].flagUpLeft.second);
+
+        ::wxGetApp().frame->SetStatusText(wxT("Move cue with next left click!"), 0);
+      }
+    }
+
+  } else {
+    cueIsSelected = false;
+    ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
+    wxPaintEvent evt;
+    Refresh();
+    Update();
+    AddPendingEvent(evt);
+  }
+}
+
+void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
+  m_x = event.GetX(); 
+  m_y = event.GetY();
+
+  if (m_x > leftMargin && m_x < (leftMargin + trackWidth) && m_y > topMargin && m_y <= (topMargin + trackHeight * nrChannels + marginBetweenTracks * nrChannels)) {
+    // user have rightclicked on the track area
+    if (cueIsSelected) {
+      cueIsSelected = false;
+      ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
+      wxPaintEvent evt;
+      Refresh();
+      Update();
+      AddPendingEvent(evt);
+    }
+    // draw an indication line approximately where cue will be inserted
+    wxClientDC dc(this);
+    int yPositionHigh = topMargin + 1;
+    int yPositionLow = topMargin + trackHeight * waveTracks.size() + (marginBetweenTracks * (waveTracks.size() - 1) - 1);
+    dc.SetPen(wxPen(green, 1, wxDOT));
+    dc.DrawLine(m_x, yPositionLow, m_x, yPositionHigh);
+
+    PopupMenu(m_popupMenu, event.GetPosition());
+
+    wxPaintEvent evt;
+    Refresh();
+    Update();
+    AddPendingEvent(evt);
+  }
+}
+
+void WaveformDrawer::OnClickAddCue(wxCommandEvent& event) {
+  // we should now calculate what sample have lowest RMS power around current position
+  // so that a good dwSampleOffset value can be sent to the new cue
+  int nrOfSamples = waveTracks[0].waveData.size();
+  int samplesPerPixel;
+
+  if (nrOfSamples % trackWidth == 0)
+    samplesPerPixel = nrOfSamples / trackWidth;
+  else
+    samplesPerPixel = (nrOfSamples / trackWidth) + 1;
+
+  int approximateSampleNumber = samplesPerPixel * (m_x - (leftMargin + 1));
+  int earliestSampleToConsider = approximateSampleNumber - samplesPerPixel;
+  int lastSampleToConsider = approximateSampleNumber + samplesPerPixel;
+
+  if (earliestSampleToConsider < 0)
+    earliestSampleToConsider = 0;
+
+  if (lastSampleToConsider > waveTracks[0].waveData.size())
+    lastSampleToConsider = waveTracks[0].waveData.size() - 1;
+
+  unsigned int bestSample;
+  double lowestRMSPower = DBL_MAX;
+  double currentRMSPower = 0;
+  // the sample values are in waveTracks[0].waveData
+  for (int i = earliestSampleToConsider; i <= lastSampleToConsider; i++) {
+    for (int j = 0; j < waveTracks.size(); j++)
+      currentRMSPower += pow(waveTracks[j].waveData[i], 2);
+
+    if (currentRMSPower < lowestRMSPower) {
+      lowestRMSPower = currentRMSPower;
+      bestSample = i;
+    }
+    currentRMSPower = 0;
+  }
+
+  ::wxGetApp().frame->AddNewCue(bestSample); // send offset value for the new cue creation
+}
+
 
