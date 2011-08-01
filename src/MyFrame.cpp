@@ -100,9 +100,7 @@ void MyFrame::OpenAudioFile() {
   filePath += fileToOpen;
   m_waveform = new WaveformDrawer(this, filePath);
   vbox->Add(m_waveform, 1, wxEXPAND);
-  // vbox->SetSizeHints(this);
   Fit();
-  // Center();
 
   m_sound->SetSampleRate(m_audiofile->GetSampleRate());
   m_sound->SetAudioFormat(m_audiofile->GetAudioFormat());
@@ -126,7 +124,11 @@ void MyFrame::OpenAudioFile() {
     m_waveform->AddCuePosition(tempCue.dwSampleOffset);
   }
 
-  // force redraw of m_grid in m_panel!
+  // force updates of wxGrids in m_panel by jiggling the size of the frame! Ugly hack necessary for Windows!
+  wxSize size = GetSize();
+  size.IncBy(1, 1);
+  SetSize(size);
+  size.DecBy(1, 1);
   SendSizeEvent();
 
   // enable save as...
@@ -137,6 +139,9 @@ void MyFrame::OpenAudioFile() {
 void MyFrame::CloseOpenAudioFile() {
   toolBar->EnableTool(START_PLAYBACK, false);
   transportMenu->Enable(START_PLAYBACK, false);
+  // disable save
+  toolBar->EnableTool(wxID_SAVE, false);
+  fileMenu->Enable(wxID_SAVE, false);
   m_sound->CloseAudioStream();
   if (m_audiofile)
     m_panel->EmptyTable();
@@ -543,5 +548,51 @@ void MyFrame::UpdatePlayPosition(wxTimerEvent& evt) {
     m_waveform->SetPlayPosition(m_sound->pos[0] / 2);
     m_waveform->paintNow();
   }
+}
+
+void MyFrame::AddNewCue(unsigned int offset) {
+  CUEPOINT newCue;
+  newCue.dwName = m_audiofile->m_cues->GetNumberOfCues(); // this should be the new cues index
+  newCue.dwPosition = 0;
+  newCue.fccChunk = 1635017060; // value for data chunk
+  newCue.dwChunkStart = 0;
+  newCue.dwBlockStart = 0;
+  newCue.dwSampleOffset = offset;
+  newCue.keepThisCue = true;
+
+  m_audiofile->m_cues->AddCue(newCue); // add the cue to the file cue vector
+  m_panel->FillRowWithCueData(newCue.dwName, newCue.dwSampleOffset, newCue.keepThisCue, newCue.dwName);
+  m_waveform->AddCuePosition(newCue.dwSampleOffset);
+
+  // force updates of wxGrids in m_panel by jiggling the size of the frame! Ugly hack necessary for Windows!
+  wxSize size = GetSize();
+  size.IncBy(1, 1);
+  SetSize(size);
+  size.DecBy(1, 1);
+  SetSize(size);
+
+  m_waveform->Refresh();
+  m_waveform->Update();
+
+  toolBar->EnableTool(wxID_SAVE, true);
+  fileMenu->Enable(wxID_SAVE, true);
+}
+
+void MyFrame::ChangeCuePosition(unsigned int offset, int index) {
+  m_audiofile->m_cues->ChangePosition(offset, index);
+  m_panel->ChangeCueData(offset, index);
+
+  // force updates of wxGrids in m_panel by jiggling the size of the frame! Ugly hack necessary for Windows!
+  wxSize size = GetSize();
+  size.IncBy(1, 1);
+  SetSize(size);
+  size.DecBy(1, 1);
+  SetSize(size);
+
+  m_waveform->Refresh();
+  m_waveform->Update();
+
+  toolBar->EnableTool(wxID_SAVE, true);
+  fileMenu->Enable(wxID_SAVE, true);
 }
 

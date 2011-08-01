@@ -1,4 +1,4 @@
-This is LoopAuditioneer 0.3.0.0
+This is LoopAuditioneer 0.4.0.0
 Copyright (C) 2011 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
@@ -8,7 +8,8 @@ pipe organs, like GrandOrgue software. LoopAuditioneer does not find any loops
 by itself, you should use another software like Nick Appletons free Autoloop
 for that.
 
-In the src/ directory you'll find the source code for LoopAuditioneer.
+In the src/ directory you'll find the source code for LoopAuditioneer. The
+icons in src/icons are created by the author.
 
 The lib-src/ directory contains the external libraries that LoopAuditioneer is
 dependant on. Libsndfile, originally written by Erik de Castro Lopo and 

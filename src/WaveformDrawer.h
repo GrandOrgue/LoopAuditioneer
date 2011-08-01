@@ -37,6 +37,8 @@ typedef struct {
   int putInRow;
   std::vector<int> withinLoop;
   std::vector<int> markerClose;
+  std::pair<wxCoord, wxCoord> flagUpLeft;
+  std::pair<wxCoord, wxCoord> flagDownRight;
 } CUELAYOUT;
 
 class WaveformDrawer : public wxPanel {
@@ -48,6 +50,8 @@ public:
   bool somethingHasChanged;
 
   void paintEvent(wxPaintEvent & evt);
+  void OnLeftClick(wxMouseEvent& event);
+  void OnRightClick(wxMouseEvent& event);
   void paintNow();
   void OnPaint(wxDC& dc);
   void OnPaintPlayPosition(wxDC& dc);
@@ -82,6 +86,13 @@ private:
   wxIcon playPositionMarker;
   wxColour m_background;
   double *m_buffer;
+  wxMenu *m_popupMenu;
+  wxCoord m_x;
+  wxCoord m_y;
+  int selectedCueIndex;
+  bool cueIsSelected;
+
+  void OnClickAddCue(wxCommandEvent& event);
 
   // This class handles events
   DECLARE_EVENT_TABLE()

@@ -40,6 +40,7 @@ public:
   unsigned int GetNumberOfCues();
   void GetCuePoint(int index, CUEPOINT& cData);
   void SetSaveOption(bool keep, int index);
+  void ChangePosition(unsigned int offset, int index);
   void ExportCues();
 
   std::vector<CUEPOINT> exportedCues;
