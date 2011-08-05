@@ -31,10 +31,11 @@ enum {
   START_PLAYBACK = wxID_HIGHEST + 5,
   CUE_GRID = wxID_HIGHEST + 6,
   TIMER_ID = wxID_HIGHEST + 7,
-  ADD_CUE = wxID_HIGHEST + 8
+  ADD_CUE = wxID_HIGHEST + 8,
+  ADD_LOOP = wxID_HIGHEST + 9
 };
 
 const wxString appName = wxT("LoopAuditioneer");
-const wxString appVersion = wxT("0.4.0.0");
+const wxString appVersion = wxT("0.5.0.0");
 
 #endif

@@ -36,6 +36,7 @@ public:
 
   void AddLoop(LOOPDATA loopData);
   void SetSaveOption(bool toBeSaved, int index);
+  void SetLoopPositions(unsigned int start, unsigned int end, int index);
   void SetMIDIUnityNote(char note);
   void SetMIDIPitchFraction(char pitch);
   char GetMIDIUnityNote();

@@ -601,4 +601,10 @@ void WaveformDrawer::OnClickAddCue(wxCommandEvent& event) {
   ::wxGetApp().frame->AddNewCue(bestSample); // send offset value for the new cue creation
 }
 
+void WaveformDrawer::ChangeLoopPositions(unsigned int start, unsigned int end, int idx) {
+  loopPositions[idx].first = start;
+  loopPositions[idx].second = end;
+  somethingHasChanged = true;
+}
+
 

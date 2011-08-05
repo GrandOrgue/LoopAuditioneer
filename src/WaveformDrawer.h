@@ -58,6 +58,7 @@ public:
   void SetPlayPosition(unsigned int pPos);
   void AddCuePosition(unsigned int cuePos);
   void AddLoopPosition(unsigned int startPos, unsigned int endPos);
+  void ChangeLoopPositions(unsigned int start, unsigned int end, int idx);
   void ClearMetadata();
   void CalculateLayout();
 

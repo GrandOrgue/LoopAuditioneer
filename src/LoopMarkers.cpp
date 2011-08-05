@@ -80,3 +80,8 @@ void LoopMarkers::ExportLoops() {
   }
 }
 
+void LoopMarkers::SetLoopPositions(unsigned int start, unsigned int end, int index) {
+  loopsIn[index].dwStart = start;
+  loopsIn[index].dwEnd = end;
+}
+
