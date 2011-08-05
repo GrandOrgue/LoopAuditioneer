@@ -43,12 +43,14 @@ public:
   void OnSelection(wxCommandEvent& event);
   void OnGridCellClick(wxGridEvent& event);
   void OnCueGridCellClick(wxGridEvent& event);
+  void OnLoopGridRightClick(wxGridEvent& event);
   void OnSaveFile(wxCommandEvent& event);
   void OnSaveFileAs(wxCommandEvent& event);
   void OnStartPlay(wxCommandEvent& event);
   void OnStopPlay(wxCommandEvent& event);
   void DoStopPlay();
   void UpdatePlayPosition(wxTimerEvent& evt);
+  void OnAddLoop(wxCommandEvent& event);
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
@@ -78,12 +80,13 @@ private:
   wxToolBar *toolBar;
   wxMenu *fileMenu;
   wxMenu *transportMenu;
+  wxMenu *toolMenu;
   wxMenu *helpMenu;
   wxMenuBar *menuBar;
   WaveformDrawer *m_waveform;
 
-
   void PopulateListOfFileNames();
+  void UpdateAllViews();
 
   static bool loopPlay;
 };

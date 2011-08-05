@@ -39,6 +39,7 @@ public:
   void FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bool toSave, int index);
   void FillRowWithCueData(unsigned int id, unsigned int position, bool save, int index);
   void ChangeCueData(unsigned int offset, int index);
+  void ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int index);
 
 private:
   

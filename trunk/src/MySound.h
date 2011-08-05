@@ -31,6 +31,7 @@ public:
 
   void SetSampleRate(int sampleRate);
   void SetAudioFormat(int audioFormat);
+  void SetChannels(int channels);
   void OpenAudioStream();
   void StartAudioStream();
   void StopAudioStream();

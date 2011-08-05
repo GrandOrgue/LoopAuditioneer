@@ -157,3 +157,23 @@ void MyPanel::ChangeCueData(unsigned int offset, int index) {
   m_cueGrid->SetReadOnly(index, 1);
 }
 
+void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int index) {
+  // fix values as strings
+  wxString start = wxString::Format(wxT("%i"), loopStart);
+  wxString end = wxString::Format(wxT("%i"), loopEnd);
+  int numbersOfSamples = loopEnd - loopStart;
+  wxString sampleNr = wxString::Format(wxT("%i"), numbersOfSamples);
+  double duration = numbersOfSamples / (sampleRate * 1.0);
+  wxString dur = wxString::Format(wxT("%.3f"), duration);
+
+  // insert values into table row
+  m_grid->SetCellValue(index , 0, start);
+  m_grid->SetReadOnly(index, 0);
+  m_grid->SetCellValue(index , 1, end);
+  m_grid->SetReadOnly(index, 1);
+  m_grid->SetCellValue(index , 2, sampleNr);
+  m_grid->SetReadOnly(index, 2);
+  m_grid->SetCellValue(index , 3, dur);
+  m_grid->SetReadOnly(index, 3);
+}
+

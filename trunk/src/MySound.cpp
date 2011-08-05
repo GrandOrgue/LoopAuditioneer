@@ -22,7 +22,7 @@
 #include "FileHandling.h"
 #include "MyFrame.h"
 
-MySound::MySound() : m_audio(NULL), fmt(RTAUDIO_SINT16), bufferFrames(512), sampleRateToUse(0) {
+MySound::MySound() : m_audio(NULL), fmt(RTAUDIO_SINT16), bufferFrames(1024), sampleRateToUse(0) {
   for (int i = 0; i < 3; i++)
     pos[i] = 0;
   
@@ -50,7 +50,7 @@ void MySound::SetAudioFormat(int audioFormat) {
   else if (audioFormat == 2)
     fmt = RTAUDIO_SINT16;  // Signed 16-bit integer
   else if (audioFormat == 3)
-    fmt = RTAUDIO_SINT24;  // Signed 24-bit integer (lower 3 bytes of 32-bit signed integer.)
+    fmt = RTAUDIO_SINT32;  // Signed 24-bit integer (lower 3 bytes of 32-bit signed integer.)
   else if (audioFormat == 4)
     fmt = RTAUDIO_SINT32;  // Signed 32-bit integer
   else if (audioFormat == 6)
@@ -111,5 +111,9 @@ void MySound::SetLoopPosition(unsigned int currentPos, unsigned int lStart, unsi
 
 void MySound::SetStartPosition(unsigned int startPos, int n_channels) {
   pos[0] = startPos * n_channels;
+}
+
+void MySound::SetChannels(int channels) {
+  parameters.nChannels = channels;
 }
 
