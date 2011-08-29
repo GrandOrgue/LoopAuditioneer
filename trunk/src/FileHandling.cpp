@@ -20,7 +20,7 @@
 
 #include "FileHandling.h"
 
-FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL) {
+FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false) {
   m_loops = new LoopMarkers();
   m_cues = new CueMarkers();
   wxString filePath;
@@ -32,71 +32,86 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
 
   sfHandle = SndfileHandle(((const char*)filePath.mb_str())); // Open file only for read first to get all info
 
-  m_format = sfHandle.format();
-  m_samplerate = sfHandle.samplerate();
-  m_channels = sfHandle.channels();
-  m_minorFormat = sfHandle.format() & SF_FORMAT_SUBMASK;
+  if (sfHandle) { // checking if opening file was succesful or not
 
-  // Try to get loop info from the file
-  if (sfHandle.command(4304, &instr, sizeof(instr)) == SF_TRUE) {
-    // There are loops!
+    m_format = sfHandle.format();
+    m_samplerate = sfHandle.samplerate();
+    m_channels = sfHandle.channels();
+    m_minorFormat = sfHandle.format() & SF_FORMAT_SUBMASK;
 
-    m_loops->SetMIDIUnityNote(instr.basenote);
-    m_loops->SetMIDIPitchFraction(0);
+    // Try to get loop info from the file
+    if (sfHandle.command(4304, &instr, sizeof(instr)) == SF_TRUE) {
+      // There are loops!
 
-    // Stort all the loops into m_loops loopsIn vector
-    for (int i = 0; i < instr.loop_count; i++) {
-      LOOPDATA temp;
-      temp.dwType = instr.loops[i].mode;
-      temp.dwStart = instr.loops[i].start;
-      temp.dwEnd = instr.loops[i].end - 1; // -1 to compensate for libsndfile behaviour
-      temp.dwPlayCount = instr.loops[i].count;
-      temp.shouldBeSaved = true;
-      m_loops->AddLoop(temp);
-    }
-  }
+      m_loops->SetMIDIUnityNote(instr.basenote);
+      m_loops->SetMIDIPitchFraction(0);
 
-  // Try to get cue info from file
-  if (sfHandle.command(4302, &cues, sizeof(cues)) == SF_TRUE) {
-    // There are cues!
-
-    // Check if the cue is a real cue or a label, only keep real cues!
-    for (int i = 0; i < cues.cue_count; i++) {
-      bool toAdd = true;
-
-      for (int j = 0; j < instr.loop_count; j++) {
-        if (cues.cue_points[i].dwSampleOffset == instr.loops[j].start)
-          toAdd = false;
-      }
-
-      if (toAdd) {
-        CUEPOINT tmp;
-        tmp.dwName = cues.cue_points[i].dwName;
-        tmp.dwPosition = cues.cue_points[i].dwPosition;
-        tmp.fccChunk = cues.cue_points[i].fccChunk;
-        tmp.dwChunkStart = cues.cue_points[i].dwChunkStart;
-        tmp.dwBlockStart = cues.cue_points[i].dwBlockStart;
-        tmp.dwSampleOffset = cues.cue_points[i].dwSampleOffset;
-        tmp.keepThisCue = true;
-
-        m_cues->AddCue(tmp);
+      // Stort all the loops into m_loops loopsIn vector
+      for (int i = 0; i < instr.loop_count; i++) {
+        LOOPDATA temp;
+        temp.dwType = instr.loops[i].mode;
+        temp.dwStart = instr.loops[i].start;
+        temp.dwEnd = instr.loops[i].end - 1; // -1 to compensate for libsndfile behaviour
+        temp.dwPlayCount = instr.loops[i].count;
+        temp.shouldBeSaved = true;
+        m_loops->AddLoop(temp);
       }
     }
-  }
 
-  // Decide what format to store audio data as and copy it
-  if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
-    ArrayLength = sfHandle.frames() * sfHandle.channels();
-    doubleAudioData = new double[ArrayLength];
-    sfHandle.read(doubleAudioData, ArrayLength);
-  } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
-    ArrayLength = sfHandle.frames() * sfHandle.channels();
-    shortAudioData = new short[ArrayLength];
-    sfHandle.read(shortAudioData, ArrayLength);
-  } else {
-    ArrayLength = sfHandle.frames() * sfHandle.channels();
-    intAudioData = new int[ArrayLength];
-    sfHandle.read(intAudioData, ArrayLength);
+    // Try to get cue info from file
+    if (sfHandle.command(4302, &cues, sizeof(cues)) == SF_TRUE) {
+      // There are cues!
+
+      // Check if the cue is a real cue or a label, only keep real cues!
+      for (int i = 0; i < cues.cue_count; i++) {
+        bool toAdd = true;
+
+        for (int j = 0; j < instr.loop_count; j++) {
+          if (cues.cue_points[i].dwSampleOffset == instr.loops[j].start)
+            toAdd = false;
+        }
+
+        if (toAdd) {
+          CUEPOINT tmp;
+          tmp.dwName = cues.cue_points[i].dwName;
+          tmp.dwPosition = cues.cue_points[i].dwPosition;
+          tmp.fccChunk = cues.cue_points[i].fccChunk;
+          tmp.dwChunkStart = cues.cue_points[i].dwChunkStart;
+          tmp.dwBlockStart = cues.cue_points[i].dwBlockStart;
+          tmp.dwSampleOffset = cues.cue_points[i].dwSampleOffset;
+          tmp.keepThisCue = true;
+
+          m_cues->AddCue(tmp);
+        }
+      }
+    }
+
+    // Decide what format to store audio data as and copy it
+    if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+      ArrayLength = sfHandle.frames() * sfHandle.channels();
+      doubleAudioData = new double[ArrayLength];
+      sfHandle.read(doubleAudioData, ArrayLength);
+
+      fileOpenWasSuccessful = true;
+    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
+      ArrayLength = sfHandle.frames() * sfHandle.channels();
+      shortAudioData = new short[ArrayLength];
+      sfHandle.read(shortAudioData, ArrayLength);
+
+      fileOpenWasSuccessful = true;
+    } else if ((m_minorFormat == SF_FORMAT_PCM_24) || (m_minorFormat == SF_FORMAT_PCM_32)) {
+      ArrayLength = sfHandle.frames() * sfHandle.channels();
+      intAudioData = new int[ArrayLength];
+      sfHandle.read(intAudioData, ArrayLength);
+
+      fileOpenWasSuccessful = true;
+    } else {
+      // file didn't contain any audio data
+      fileOpenWasSuccessful = false;
+    }
+    
+  } else { // if file open didn't succeed we make a note of that
+    fileOpenWasSuccessful = false;
   }
 }
 
@@ -161,5 +176,12 @@ int FileHandling::GetSampleRate() {
 
 int FileHandling::GetAudioFormat() {
   return m_minorFormat;
+}
+
+bool FileHandling::FileCouldBeOpened() {
+  if (fileOpenWasSuccessful)
+    return true;
+  else
+    return false;
 }
 
