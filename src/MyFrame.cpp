@@ -99,52 +99,81 @@ void MyFrame::OnSelection(wxCommandEvent& event) {
 void MyFrame::OpenAudioFile() {
   CloseOpenAudioFile();
   m_audiofile = new FileHandling(fileToOpen, workingDir);
-  wxString filePath;
-  filePath = workingDir.Append(wxT("/"));
-  filePath += fileToOpen;
-  m_waveform = new WaveformDrawer(this, filePath);
-  vbox->Add(m_waveform, 1, wxEXPAND);
-  Fit();
 
-  m_sound->SetSampleRate(m_audiofile->GetSampleRate());
-  m_sound->SetAudioFormat(m_audiofile->GetAudioFormat());
-  m_sound->SetChannels(m_audiofile->m_channels);
-  m_sound->OpenAudioStream();
-  m_panel->SetFileNameLabel(fileToOpen);
+  if (m_audiofile->FileCouldBeOpened()) {
+    wxString filePath;
+    filePath = workingDir.Append(wxT("/"));
+    filePath += fileToOpen;
+    m_waveform = new WaveformDrawer(this, filePath);
+    vbox->Add(m_waveform, 1, wxEXPAND);
+    Fit();
+
+    m_sound->SetSampleRate(m_audiofile->GetSampleRate());
+    m_sound->SetAudioFormat(m_audiofile->GetAudioFormat());
+    m_sound->SetChannels(m_audiofile->m_channels);
+    m_sound->OpenAudioStream();
+    m_panel->SetFileNameLabel(fileToOpen);
   
-  // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
-  int sRate = m_audiofile->GetSampleRate();
-  for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
-    LOOPDATA tempData;
-    m_audiofile->m_loops->GetLoopData(i, tempData);
-    m_panel->FillRowWithLoopData(tempData.dwStart, tempData.dwEnd, sRate, tempData.shouldBeSaved, i);
-    m_waveform->AddLoopPosition(tempData.dwStart, tempData.dwEnd);
-  }
+    // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
+    int sRate = m_audiofile->GetSampleRate();
+    for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
+      LOOPDATA tempData;
+      m_audiofile->m_loops->GetLoopData(i, tempData);
+      m_panel->FillRowWithLoopData(tempData.dwStart, tempData.dwEnd, sRate, tempData.shouldBeSaved, i);
+      m_waveform->AddLoopPosition(tempData.dwStart, tempData.dwEnd);
+    }
 
-  // populate the wxGrid m_cueGrid in m_panel with the cue data and add it to the waveform drawer
-  for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
-    CUEPOINT tempCue;
-    m_audiofile->m_cues->GetCuePoint(i, tempCue);
-    m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);
-    m_waveform->AddCuePosition(tempCue.dwSampleOffset);
-  }
+    // populate the wxGrid m_cueGrid in m_panel with the cue data and add it to the waveform drawer
+    for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
+      CUEPOINT tempCue;
+      m_audiofile->m_cues->GetCuePoint(i, tempCue);
+      m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);
+      m_waveform->AddCuePosition(tempCue.dwSampleOffset);
+    }
 
-  UpdateAllViews();
+    UpdateAllViews();
 
-  // enable save as...
-  toolBar->EnableTool(wxID_SAVEAS, true);
-  fileMenu->Enable(wxID_SAVEAS, true);
+    // enable save as...
+    toolBar->EnableTool(wxID_SAVEAS, true);
+    fileMenu->Enable(wxID_SAVEAS, true);
 
-  toolBar->EnableTool(ADD_LOOP, true);
-  toolMenu->Enable(ADD_LOOP, true);
+    toolBar->EnableTool(ADD_LOOP, true);
+    toolMenu->Enable(ADD_LOOP, true);
+
+  } else {
+    // libsndfile couldn't open the file or no audio data in file
+    wxString message = wxT("Sorry, libsndfile couldn't open selected file!");
+    wxMessageDialog *dialog = new wxMessageDialog(
+      NULL, 
+      message, 
+      wxT("Error opening file"), 
+      wxOK | wxICON_ERROR
+    );
+    dialog->ShowModal();
+
+    delete m_audiofile;
+    m_audiofile = 0;
+
+    m_panel->SetFileNameLabel(wxEmptyString);
+
+  } // end of if file open was successful checking
 }
 
 void MyFrame::CloseOpenAudioFile() {
   toolBar->EnableTool(START_PLAYBACK, false);
   transportMenu->Enable(START_PLAYBACK, false);
+
   // disable save
   toolBar->EnableTool(wxID_SAVE, false);
   fileMenu->Enable(wxID_SAVE, false);
+
+  // disable save as...
+  toolBar->EnableTool(wxID_SAVEAS, false);
+  fileMenu->Enable(wxID_SAVEAS, false);
+
+  // disable add loop
+  toolBar->EnableTool(ADD_LOOP, false);
+  toolMenu->Enable(ADD_LOOP, false);
 
   m_sound->CloseAudioStream();
 
@@ -155,7 +184,7 @@ void MyFrame::CloseOpenAudioFile() {
   delete m_waveform;
   m_waveform = 0;
 
-  // UpdateAllViews();
+  UpdateAllViews();
 }
 
 void MyFrame::OnGridCellClick(wxGridEvent& event) {
@@ -435,6 +464,7 @@ void MyFrame::PopulateListOfFileNames() {
   if (!dir.IsOpened()) {
     wxMessageDialog *dial = new wxMessageDialog(NULL, wxT("Couldn't open folder"), wxT("Error"), wxOK | wxICON_ERROR);
     dial->ShowModal();
+    return;
   }
 
   wxString fileName;

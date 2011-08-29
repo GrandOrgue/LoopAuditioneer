@@ -39,6 +39,7 @@ public:
   void SaveAudioFile(wxString fileName, wxString path);
   int GetSampleRate();
   int GetAudioFormat();
+  bool FileCouldBeOpened();
 
   short *shortAudioData;
   int *intAudioData;
@@ -56,6 +57,7 @@ private:
   int m_format;
   int m_minorFormat;
   int m_samplerate;
+  bool fileOpenWasSuccessful;
 
 };
 
