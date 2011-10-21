@@ -1,6 +1,6 @@
-/* 
+/*
  * MyFrame.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -119,7 +119,7 @@ void MyFrame::OpenAudioFile() {
     m_sound->SetChannels(m_audiofile->m_channels);
     m_sound->OpenAudioStream();
     m_panel->SetFileNameLabel(fileToOpen);
-  
+
     // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
     int sRate = m_audiofile->GetSampleRate();
     for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
@@ -153,9 +153,9 @@ void MyFrame::OpenAudioFile() {
     // libsndfile couldn't open the file or no audio data in file
     wxString message = wxT("Sorry, libsndfile couldn't open selected file!");
     wxMessageDialog *dialog = new wxMessageDialog(
-      NULL, 
-      message, 
-      wxT("Error opening file"), 
+      NULL,
+      message,
+      wxT("Error opening file"),
       wxOK | wxICON_ERROR
     );
     dialog->ShowModal();
@@ -330,7 +330,7 @@ void MyFrame::OnStopPlay(wxCommandEvent& event) {
 
 void MyFrame::DoStopPlay() {
   m_sound->StopAudioStream();
-  
+
   toolBar->EnableTool(wxID_STOP, false);
   toolBar->EnableTool(START_PLAYBACK, true);
 
@@ -517,13 +517,23 @@ void MyFrame::PopulateListOfFileNames() {
     AddFileName(fileName);
     search = dir.GetNext(&fileName);
   }
+
+  // Remove double entries as Windows is case insensitive...
+  fileNames.Sort();
+  size_t lineCounter = 0;
+  while (lineCounter < fileNames.GetCount() - 1) {
+    if (fileNames[lineCounter] == fileNames[lineCounter + 1])
+      fileNames.RemoveAt(lineCounter + 1);
+    else
+      lineCounter++;
+  }
 }
 
-int MyFrame::AudioCallback(void *outputBuffer, 
-                           void *inputBuffer, 
+int MyFrame::AudioCallback(void *outputBuffer,
+                           void *inputBuffer,
                            unsigned int nBufferFrames,
-                           double streamTime, 
-                           RtAudioStreamStatus status, 
+                           double streamTime,
+                           RtAudioStreamStatus status,
                            void *userData ) {
   int nChannels = ::wxGetApp().frame->m_audiofile->m_channels;
 
@@ -568,7 +578,7 @@ int MyFrame::AudioCallback(void *outputBuffer,
     // Loop that feeds the outputBuffer with data
     if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
       for (unsigned int i = 0; i < nBufferFrames * nChannels; i++) {
-        *buffer++ = ::wxGetApp().frame->m_audiofile->intAudioData[(position[0])];     
+        *buffer++ = ::wxGetApp().frame->m_audiofile->intAudioData[(position[0])];
         position[0] += 1;
 
         if (loopPlay) {
@@ -588,7 +598,7 @@ int MyFrame::AudioCallback(void *outputBuffer,
     } else {
       // we end up here until buffer is drained?
     }
-    
+
     return 0;
   } else if (::wxGetApp().frame->m_audiofile->doubleAudioData) {
     double *buffer = static_cast<double*>(outputBuffer);
@@ -619,7 +629,7 @@ int MyFrame::AudioCallback(void *outputBuffer,
     }  else {
       // we end up here until buffer is drained?
     }
-    
+
     return 0;
   } else {
     // There is no audio data to play!
@@ -674,7 +684,7 @@ void MyFrame::ChangeCuePosition(unsigned int offset, int index) {
 
 void MyFrame::OnAddLoop(wxCommandEvent& event) {
   LoopParametersDialog loopDialog(0, m_audiofile->ArrayLength / m_audiofile->m_channels, m_audiofile->ArrayLength / m_audiofile->m_channels, this);
-  
+
   if (loopDialog.ShowModal() == wxID_OK) {
     unsigned int loopStartSample = loopDialog.GetLoopStart();
     unsigned int loopEndSample = loopDialog.GetLoopEnd();
@@ -718,7 +728,7 @@ void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
     }
 
     LoopParametersDialog loopDialog(currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->ArrayLength / m_audiofile->m_channels, this);
-  
+
     if (loopDialog.ShowModal() == wxID_OK) {
       unsigned int loopStartSample = loopDialog.GetLoopStart();
       unsigned int loopEndSample = loopDialog.GetLoopEnd();
@@ -772,7 +782,7 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > loops;
 
   // get the audio data as doubles from m_waveform
-  double audioData[m_audiofile->ArrayLength];
+  double *audioData = new double[m_audiofile->ArrayLength];
   bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
 
   if (gotData) {
@@ -801,8 +811,8 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
 
         // Add the new loop to the grid
         m_panel->FillRowWithLoopData(
-          newLoop.dwStart, 
-          newLoop.dwEnd, 
+          newLoop.dwStart,
+          newLoop.dwEnd,
           m_audiofile->GetSampleRate(),
           newLoop.shouldBeSaved,
           m_audiofile->m_loops->GetNumberOfLoops() - 1
@@ -811,14 +821,14 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
         // Add the new loop to waveform drawer
         m_waveform->AddLoopPosition(newLoop.dwStart, newLoop.dwEnd);
       }
-      UpdateAllViews(); 
+      UpdateAllViews();
     } else {
       // no loops found!
       wxString message = wxT("Sorry, didn't find any loops!");
       wxMessageDialog *dialog = new wxMessageDialog(
-        NULL, 
-        message, 
-        wxT("No loops found!"), 
+        NULL,
+        message,
+        wxT("No loops found!"),
         wxOK | wxICON_ERROR
       );
       dialog->ShowModal();
@@ -827,13 +837,14 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
     // couldn't get audio data as doubles!
     wxString message = wxT("Sorry, couldn't get the audio data!");
     wxMessageDialog *dialog = new wxMessageDialog(
-      NULL, 
-      message, 
-      wxT("Error getting audio data"), 
+      NULL,
+      message,
+      wxT("Error getting audio data"),
       wxOK | wxICON_ERROR
     );
     dialog->ShowModal();
   }
+  delete[] audioData;
 }
 
 void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
