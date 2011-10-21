@@ -1,6 +1,6 @@
-/* 
+/*
  * FileHandling.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -109,7 +109,7 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
       // file didn't contain any audio data
       fileOpenWasSuccessful = false;
     }
-    
+
   } else { // if file open didn't succeed we make a note of that
     fileOpenWasSuccessful = false;
   }
@@ -190,4 +190,3 @@ bool FileHandling::FileCouldBeOpened() {
   else
     return false;
 }
-

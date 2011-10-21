@@ -1,6 +1,6 @@
-/* 
+/*
  * BatchProcessDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +62,7 @@ void BatchProcessDialog::Init() {
   m_batchProcessesAvailable.Add(wxT("Search for loops"));
 }
 
-bool BatchProcessDialog::Create( 
+bool BatchProcessDialog::Create(
   wxWindow* parent,
   wxWindowID id,
   const wxString& caption,
@@ -97,11 +97,11 @@ void BatchProcessDialog::CreateControls() {
 
   // Label for source
   wxStaticText *m_sourceLabel = new wxStaticText(
-    this, 
+    this,
     wxID_STATIC,
-    wxT("Source: "), 
+    wxT("Source: "),
     wxDefaultPosition,
-    wxSize(100,-1), 
+    wxSize(100,-1),
     0
   );
   m_sourceRow->Add(m_sourceLabel, 0, wxALL, 2);
@@ -119,11 +119,11 @@ void BatchProcessDialog::CreateControls() {
 
   // The select source button
   m_selectSource = new wxButton(
-    this, 
+    this,
     ID_ADD_SOURCE,
-    wxT("Select folder"), 
-    wxDefaultPosition, 
-    wxDefaultSize, 
+    wxT("Select folder"),
+    wxDefaultPosition,
+    wxDefaultSize,
     0
   );
   m_sourceRow->Add(m_selectSource, 0, wxALL, 2);
@@ -134,11 +134,11 @@ void BatchProcessDialog::CreateControls() {
 
   // Label for target
   wxStaticText *m_targetLabel = new wxStaticText(
-    this, 
+    this,
     wxID_STATIC,
-    wxT("Target: "), 
+    wxT("Target: "),
     wxDefaultPosition,
-    wxSize(100,-1), 
+    wxSize(100,-1),
     0
   );
   m_targetRow->Add(m_targetLabel, 0, wxALL, 2);
@@ -156,11 +156,11 @@ void BatchProcessDialog::CreateControls() {
 
   // The select target button
   m_selectTarget = new wxButton(
-    this, 
+    this,
     ID_ADD_TARGET,
-    wxT("Select folder"), 
-    wxDefaultPosition, 
-    wxDefaultSize, 
+    wxT("Select folder"),
+    wxDefaultPosition,
+    wxDefaultSize,
     0
   );
   m_targetRow->Add(m_selectTarget, 0, wxALL, 2);
@@ -171,11 +171,11 @@ void BatchProcessDialog::CreateControls() {
 
   // Label for dropdown
   wxStaticText *m_processLabel = new wxStaticText(
-    this, 
+    this,
     wxID_STATIC,
-    wxT("Process: "), 
+    wxT("Process: "),
     wxDefaultPosition,
-    wxSize(100,-1), 
+    wxSize(100,-1),
     0
   );
   m_processRow->Add(m_processLabel, 0, wxALL, 2);
@@ -196,10 +196,10 @@ void BatchProcessDialog::CreateControls() {
 
   // Grouping of sustainsection options
   wxStaticBox *statusBox = new wxStaticBox(
-    this, 
+    this,
     wxID_STATIC,
-    wxT("Progress status"), 
-    wxDefaultPosition, 
+    wxT("Progress status"),
+    wxDefaultPosition,
     wxDefaultSize
   );
 
@@ -224,11 +224,11 @@ void BatchProcessDialog::CreateControls() {
 
   // The OK button
   m_runButton = new wxButton(
-    this, 
-    ID_RUN_BATCH, 
+    this,
+    ID_RUN_BATCH,
     wxT("&Run batch"),
-    wxDefaultPosition, 
-    wxDefaultSize, 
+    wxDefaultPosition,
+    wxDefaultSize,
     0
   );
   m_runButton->Enable(false);
@@ -236,32 +236,32 @@ void BatchProcessDialog::CreateControls() {
 
   // The Cancel button
   wxButton *m_cancelButton = new wxButton(
-    this, 
+    this,
     wxID_CANCEL,
-    wxT("&Cancel"), 
-    wxDefaultPosition, 
-    wxDefaultSize, 
+    wxT("&Cancel"),
+    wxDefaultPosition,
+    wxDefaultSize,
     0
   );
   m_buttonRow->Add(m_cancelButton, 0, wxALL, 5);
 
   // A horizontal line after the buttons
   wxStaticLine *m_line = new wxStaticLine(
-    this, 
+    this,
     wxID_STATIC,
-    wxDefaultPosition, 
-    wxDefaultSize, 
+    wxDefaultPosition,
+    wxDefaultSize,
     wxLI_HORIZONTAL
   );
   boxSizer->Add(m_line, 0, wxGROW|wxALL, 5);
 
   // Information message at bottom
   wxStaticText *m_info = new wxStaticText(
-    this, 
+    this,
     wxID_STATIC,
-    wxT("Choose source and target folders to process and click OK to run batch on all wav files."), 
+    wxT("Choose source and target folders to process and click OK to run batch on all wav files."),
     wxDefaultPosition,
-    wxDefaultSize, 
+    wxDefaultSize,
     0
   );
   boxSizer->Add(m_info, 0, wxALIGN_LEFT|wxALL, 5);
@@ -353,8 +353,15 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     search = dir.GetNext(&fileName);
   }
 
-  // sort the files
+  // sort the files and remove doubles for windows...
   filesToProcess.Sort();
+  size_t lineCounter = 0;
+  while (lineCounter < filesToProcess.GetCount() - 1) {
+    if (filesToProcess[lineCounter] == filesToProcess[lineCounter + 1])
+      filesToProcess.RemoveAt(lineCounter + 1);
+    else
+      lineCounter++;
+  }
 
   // Depending on selected process do
   switch(m_processChoiceBox->GetSelection()) {
@@ -410,7 +417,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
         m_statusProgress->AppendText(wxT("No wav files to process!\n"));
-      }    
+      }
     break;
 
     case 3:
@@ -461,13 +468,13 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
           if (fh.FileCouldBeOpened()) {
             m_statusProgress->AppendText(wxT("\tFile opened.\n"));
-            
+
             // now we need to search for loops and for that we need data as doubles
             wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
             m_statusProgress->AppendText(wxT("\tRead double data from ") + fullFilePath + wxT("\n"));
             SndfileHandle sfh;
             sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
-            double audioData[sfh.frames() * sfh.channels()];
+            double *audioData = new double[sfh.frames() * sfh.channels()];
             sfh.read(audioData, sfh.frames() * sfh.channels());
             // vector to receive found loops
             std::vector<std::pair<std::pair<unsigned, unsigned>, double> > addLoops;
@@ -482,6 +489,8 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
               autoloopSettings->GetStart(),
               autoloopSettings->GetEnd()
             );
+            // delete the now unneccessary aray of double audio data
+            delete[] audioData;
 
             if (foundLoops) {
               for (int i = 0; i < addLoops.size(); i++) {
@@ -510,7 +519,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
       } else {
         m_statusProgress->AppendText(wxT("No wav files to process!\n"));
       }
-      
+
     break;
 
     default:
