@@ -38,9 +38,9 @@ public:
   void SetSaveOption(bool toBeSaved, int index);
   void SetLoopPositions(unsigned int start, unsigned int end, int index);
   void SetMIDIUnityNote(char note);
-  void SetMIDIPitchFraction(char pitch);
+  void SetMIDIPitchFraction(unsigned int pitch);
   char GetMIDIUnityNote();
-  char GetMIDIPitchFraction();
+  unsigned int GetMIDIPitchFraction();
   int GetNumberOfLoops();
   void GetLoopData(int index, LOOPDATA& lData);
   void ExportLoops();
@@ -49,7 +49,7 @@ public:
 
 private:
   char dwMIDIUnityNote;
-  char dwMIDIPitchFraction;
+  unsigned int dwMIDIPitchFraction;
   int cSampleLoops; // loop_count
 
   std::vector<LOOPDATA> loopsIn;

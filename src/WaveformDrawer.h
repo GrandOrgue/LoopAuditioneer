@@ -62,6 +62,9 @@ public:
   void ClearMetadata();
   void CalculateLayout();
 
+  // Get audio data as doubles
+  bool GetDoubleAudioData(double audio[], unsigned arrayLength);
+
 private:
   std::vector<WAVETRACK> waveTracks;
   std::vector<unsigned int> cueSampleOffset;

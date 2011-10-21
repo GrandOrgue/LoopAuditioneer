@@ -324,6 +324,8 @@ void WaveformDrawer::CalculateLayout() {
         isOverlapping = true;
       else if (loopPositions[i].second > loopPositions[j].first && loopPositions[i].second < loopPositions[j].second)
         isOverlapping = true;
+      else if (loopPositions[i].first < loopPositions[j].first && loopPositions[i].second > loopPositions[j].second)
+        isOverlapping = true;
 
       if (isOverlapping) {
         // if it's overlapping then we add that loop to the loopLayout[i].overlappingLoops vector
@@ -607,4 +609,21 @@ void WaveformDrawer::ChangeLoopPositions(unsigned int start, unsigned int end, i
   somethingHasChanged = true;
 }
 
+bool WaveformDrawer::GetDoubleAudioData(double audio[], unsigned arrayLength) {
+  if (waveTracks.empty() == false) {
+    unsigned length = waveTracks.size() * waveTracks[0].waveData.size();
+
+    if (arrayLength == length) {
+      for (int i = 0; i < waveTracks.size(); i++) {
+        for (int j = 0; j < waveTracks[0].waveData.size(); j++) {
+          audio[i + j * waveTracks.size()] = waveTracks[i].waveData[j];
+        }
+      }
+      return true;
+    }
+    return false;
+  } else {
+    return false;
+  }
+}
 

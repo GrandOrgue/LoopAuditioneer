@@ -28,6 +28,8 @@
 #include "FileHandling.h"
 #include "MySound.h"
 #include "WaveformDrawer.h"
+#include "AutoLoopDialog.h"
+#include "AutoLooping.h"
 
 class MyFrame : public wxFrame {
 public:
@@ -51,6 +53,9 @@ public:
   void DoStopPlay();
   void UpdatePlayPosition(wxTimerEvent& evt);
   void OnAddLoop(wxCommandEvent& event);
+  void OnBatchProcess(wxCommandEvent& event);
+  void OnAutoLoop(wxCommandEvent& event);
+  void OnAutoLoopSettings(wxCommandEvent& event);
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
@@ -84,6 +89,8 @@ private:
   wxMenu *helpMenu;
   wxMenuBar *menuBar;
   WaveformDrawer *m_waveform;
+  AutoLoopDialog *m_autoloopSettings;
+  AutoLooping *m_autoloop;
 
   void PopulateListOfFileNames();
   void UpdateAllViews();

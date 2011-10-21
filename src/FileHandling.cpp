@@ -44,7 +44,7 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
       // There are loops!
 
       m_loops->SetMIDIUnityNote(instr.basenote);
-      m_loops->SetMIDIPitchFraction(0);
+      m_loops->SetMIDIPitchFraction(instr.dwMIDIPitchFraction);
 
       // Stort all the loops into m_loops loopsIn vector
       for (int i = 0; i < instr.loop_count; i++) {
@@ -137,8 +137,12 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
 
   // Deal with the loops first
   m_loops->ExportLoops();
+  instr.basenote = m_loops->GetMIDIUnityNote();
+  instr.dwMIDIPitchFraction = m_loops->GetMIDIPitchFraction();
   instr.loop_count = m_loops->loopsOut.size();
   for (int i = 0; i < instr.loop_count; i++) {
+    if (i > 15)
+      break;
     instr.loops[i].mode = m_loops->loopsOut[i].dwType;
     instr.loops[i].start = m_loops->loopsOut[i].dwStart;
     instr.loops[i].end = m_loops->loopsOut[i].dwEnd;
@@ -150,6 +154,8 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
   m_cues->ExportCues();
   cues.cue_count = m_cues->exportedCues.size();
   for (int i = 0; i < cues.cue_count; i++) {
+    if (i > 99)
+      break;
     cues.cue_points[i].dwName =  m_cues->exportedCues[i].dwName;
     cues.cue_points[i].dwPosition =  m_cues->exportedCues[i].dwPosition;
     cues.cue_points[i].fccChunk =  m_cues->exportedCues[i].fccChunk;
