@@ -26,6 +26,7 @@
 #include <wx/gdicmn.h>
 #include <wx/aboutdlg.h>
 #include "LoopParametersDialog.h"
+#include "BatchProcessDialog.h"
 
 bool MyFrame::loopPlay = true; // default to loop play
 
@@ -48,6 +49,9 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_TOOL(START_PLAYBACK, MyFrame::OnStartPlay)
   EVT_TOOL(wxID_STOP, MyFrame::OnStopPlay)
   EVT_TOOL(ADD_LOOP, MyFrame::OnAddLoop)
+  EVT_TOOL(AUTOSEARCH_LOOPS, MyFrame::OnAutoLoop)
+  EVT_TOOL(AUTOLOOP_SETTINGS, MyFrame::OnAutoLoopSettings)
+  EVT_TOOL(BATCH_PROCESS, MyFrame::OnBatchProcess)
   EVT_TIMER(TIMER_ID, MyFrame::UpdatePlayPosition)
 END_EVENT_TABLE()
 
@@ -77,6 +81,8 @@ void MyFrame::OnSelectDir(wxCommandEvent& event) {
 }
 
 void MyFrame::OnQuit(wxCommandEvent& event) {
+  delete m_autoloopSettings;
+  delete m_autoloop;
   // Destroy the frame
   Close();
 }
@@ -140,6 +146,9 @@ void MyFrame::OpenAudioFile() {
     toolBar->EnableTool(ADD_LOOP, true);
     toolMenu->Enable(ADD_LOOP, true);
 
+    toolBar->EnableTool(AUTOSEARCH_LOOPS, true);
+    toolMenu->Enable(AUTOSEARCH_LOOPS, true);
+
   } else {
     // libsndfile couldn't open the file or no audio data in file
     wxString message = wxT("Sorry, libsndfile couldn't open selected file!");
@@ -174,6 +183,8 @@ void MyFrame::CloseOpenAudioFile() {
   // disable add loop
   toolBar->EnableTool(ADD_LOOP, false);
   toolMenu->Enable(ADD_LOOP, false);
+  toolBar->EnableTool(AUTOSEARCH_LOOPS, false);
+  toolMenu->Enable(AUTOSEARCH_LOOPS, false);
 
   m_sound->CloseAudioStream();
 
@@ -331,6 +342,8 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   m_audiofile = NULL;
   m_waveform = NULL;
   m_sound = new MySound();
+  m_autoloopSettings = new AutoLoopDialog(this);
+  m_autoloop = new AutoLooping();
 
   workingDir = wxEmptyString;
 
@@ -342,6 +355,9 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   fileMenu->Append(OPEN_SELECTED, wxT("&Open file"), wxT("Open selected file"));
   fileMenu->Append(wxID_SAVE, wxT("&Save"), wxT("Save current file"));
   fileMenu->Append(wxID_SAVEAS, wxT("Save &as..."), wxT("Save current file with new name"));
+  fileMenu->AppendSeparator();
+  fileMenu->Append(AUTOLOOP_SETTINGS, wxT("&Autoloop settings"), wxT("Adjust settings for loop searching"));
+  fileMenu->AppendSeparator();
   fileMenu->Append(wxID_EXIT, wxT("&Exit\tAlt-X"), wxT("Quit this program"));
 
   fileMenu->Enable(OPEN_SELECTED, false);
@@ -363,8 +379,11 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
 
   // Add items to the tool menu
   toolMenu->Append(ADD_LOOP, wxT("&New loop"), wxT("Create a new loop"));
+  toolMenu->Append(AUTOSEARCH_LOOPS, wxT("&Autoloop"), wxT("Search for loop(s)"));
+  toolMenu->Append(BATCH_PROCESS, wxT("&Batch processing"), wxT("Batch processing of files"));
 
   toolMenu->Enable(ADD_LOOP, false);
+  toolMenu->Enable(AUTOSEARCH_LOOPS, false);
 
   // Create a help menu
   helpMenu = new wxMenu();
@@ -397,6 +416,9 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   wxBitmap startPlayback(wxT("../icons/24x24/Right.png"), wxBITMAP_TYPE_PNG);
   wxBitmap stopPlayback(wxT("../icons/24x24/Stop.png"), wxBITMAP_TYPE_PNG);
   wxBitmap loopCreation(wxT("../icons/24x24/Refresh.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap autoLoop(wxT("../icons/24x24/Search.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap autoLoopSettings(wxT("../icons/24x24/Yin-Yang.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap batchProcess(wxT("../icons/24x24/Gear.png"), wxBITMAP_TYPE_PNG);
   toolBar->AddTool(FILE_SELECT, selectFolder, wxT("Select working folder"), wxT("Select working folder"));
   toolBar->AddTool(OPEN_SELECTED, openSelectedFile, wxT("Open selected file"), wxT("Open selected file"));
   toolBar->AddTool(wxID_SAVE, saveFile, wxT("Save file"), wxT("Save file"));
@@ -404,6 +426,9 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->AddTool(START_PLAYBACK, startPlayback, wxT("Play"), wxT("Play"));
   toolBar->AddTool(wxID_STOP, stopPlayback, wxT("Stop"), wxT("Stop"));
   toolBar->AddTool(ADD_LOOP, loopCreation, wxT("New loop"), wxT("Create a new loop"));
+  toolBar->AddTool(AUTOSEARCH_LOOPS, autoLoop, wxT("Autoloop"), wxT("Search for loop(s)"));
+  toolBar->AddTool(AUTOLOOP_SETTINGS, autoLoopSettings, wxT("Autoloop settings"), wxT("Change settings for auto loopsearching"));
+  toolBar->AddTool(BATCH_PROCESS, batchProcess, wxT("Batch processing"), wxT("Batch processing of files/folders"));
   toolBar->Realize();
   toolBar->EnableTool(OPEN_SELECTED, false);
   toolBar->EnableTool(wxID_SAVE, false);
@@ -411,6 +436,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->EnableTool(START_PLAYBACK, false);
   toolBar->EnableTool(wxID_STOP, false);
   toolBar->EnableTool(ADD_LOOP, false);
+  toolBar->EnableTool(AUTOSEARCH_LOOPS, false);
   this->SetToolBar(toolBar);
 
   // Create panels for frame content
@@ -418,7 +444,14 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   vbox = new wxBoxSizer(wxVERTICAL);
   wxBoxSizer *hbox = new wxBoxSizer(wxHORIZONTAL);
 
-  m_fileListBox = new wxListBox(this, ID_LISTBOX, wxDefaultPosition, wxSize(200, 200), fileNames, wxLB_SINGLE | wxLB_SORT);
+  m_fileListBox = new wxListBox(
+    this,
+    ID_LISTBOX,
+    wxDefaultPosition,
+    wxSize(200,200),
+    fileNames,
+    wxLB_SINGLE | wxLB_SORT
+  );
 
   hbox->Add(m_fileListBox, 1, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, 10);
 
@@ -429,8 +462,8 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   vbox->Add(hbox, 1, wxEXPAND);
   vbox->SetSizeHints(this);
   SetSizer(vbox);
-  Fit();
-  Center();
+  // Fit();
+  // Center();
 
   SetBackgroundColour(wxT("#f4f2ef"));
 }
@@ -448,6 +481,10 @@ MyFrame::~MyFrame() {
     delete m_waveform;
     m_sound = 0;
   }
+  if (m_autoloopSettings)
+    delete m_autoloopSettings;
+  if (m_autoloop)
+    delete m_autoloop;
 }
 
 void MyFrame::EmptyListOfFileNames() {
@@ -469,10 +506,16 @@ void MyFrame::PopulateListOfFileNames() {
 
   wxString fileName;
 
-  bool cont = dir.GetFirst(&fileName, wxT("*.wav"), wxDIR_FILES);
-  while (cont) {
+  bool search = dir.GetFirst(&fileName, wxT("*.wav"), wxDIR_FILES);
+  while (search) {
     AddFileName(fileName);
-    cont = dir.GetNext(&fileName);
+    search = dir.GetNext(&fileName);
+  }
+
+  search = dir.GetFirst(&fileName, wxT("*.WAV"), wxDIR_FILES);
+  while (search) {
+    AddFileName(fileName);
+    search = dir.GetNext(&fileName);
   }
 }
 
@@ -691,6 +734,9 @@ void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
       // Change loop in waveform drawer
       m_waveform->ChangeLoopPositions(currentLoop.dwStart, currentLoop.dwEnd, index);
 
+      // Set loops positions for playback
+      m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+
       UpdateAllViews();
     }
   }
@@ -707,6 +753,99 @@ void MyFrame::UpdateAllViews() {
   if (m_waveform) {
     m_waveform->Refresh();
     m_waveform->Update();
+  }
+}
+
+void MyFrame::OnBatchProcess(wxCommandEvent& event) {
+  BatchProcessDialog batchDialog(
+    this,
+    wxID_ANY,
+    wxT("Batch processing"),
+    wxDefaultPosition,
+    wxDefaultSize
+  );
+  batchDialog.ShowModal();
+}
+
+void MyFrame::OnAutoLoop(wxCommandEvent& event) {
+  // prepare a vector to receive the loops
+  std::vector<std::pair<std::pair<unsigned, unsigned>, double> > loops;
+
+  // get the audio data as doubles from m_waveform
+  double audioData[m_audiofile->ArrayLength];
+  bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
+
+  if (gotData) {
+    // this is the call to search for loops
+    bool foundSomeLoops = m_autoloop->AutoFindLoops(
+      audioData,
+      m_audiofile->ArrayLength,
+      m_audiofile->m_channels,
+      m_audiofile->GetSampleRate(),
+      loops,
+      m_autoloopSettings->GetAutosearch(),
+      m_autoloopSettings->GetStart(),
+      m_autoloopSettings->GetEnd()
+    );
+
+    if (foundSomeLoops) {
+      for (int i = 0; i < loops.size(); i++) {
+        // Add the new loop to the loop vector
+        LOOPDATA newLoop;
+        newLoop.dwType = SF_LOOP_FORWARD;
+        newLoop.dwStart = loops[i].first.first;
+        newLoop.dwEnd = loops[i].first.second;
+        newLoop.dwPlayCount = 0;
+        newLoop.shouldBeSaved = true;
+        m_audiofile->m_loops->AddLoop(newLoop);
+
+        // Add the new loop to the grid
+        m_panel->FillRowWithLoopData(
+          newLoop.dwStart, 
+          newLoop.dwEnd, 
+          m_audiofile->GetSampleRate(),
+          newLoop.shouldBeSaved,
+          m_audiofile->m_loops->GetNumberOfLoops() - 1
+        );
+
+        // Add the new loop to waveform drawer
+        m_waveform->AddLoopPosition(newLoop.dwStart, newLoop.dwEnd);
+      }
+      UpdateAllViews(); 
+    } else {
+      // no loops found!
+      wxString message = wxT("Sorry, didn't find any loops!");
+      wxMessageDialog *dialog = new wxMessageDialog(
+        NULL, 
+        message, 
+        wxT("No loops found!"), 
+        wxOK | wxICON_ERROR
+      );
+      dialog->ShowModal();
+    }
+  } else {
+    // couldn't get audio data as doubles!
+    wxString message = wxT("Sorry, couldn't get the audio data!");
+    wxMessageDialog *dialog = new wxMessageDialog(
+      NULL, 
+      message, 
+      wxT("Error getting audio data"), 
+      wxOK | wxICON_ERROR
+    );
+    dialog->ShowModal();
+  }
+}
+
+void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
+  if (m_autoloopSettings->ShowModal() == wxID_OK) {
+    // Update AutoLooping object
+    m_autoloop->SetThreshold(m_autoloopSettings->GetThreshold());
+    m_autoloop->SetDuration(m_autoloopSettings->GetDuration());
+    m_autoloop->SetBetween(m_autoloopSettings->GetBetween());
+    m_autoloop->SetQuality(m_autoloopSettings->GetQuality());
+    m_autoloop->SetCandidates(m_autoloopSettings->GetCandidates());
+    m_autoloop->SetLoops(m_autoloopSettings->GetNrLoops());
+    m_autoloop->SetMultiple(m_autoloopSettings->GetMultiple());
   }
 }
 

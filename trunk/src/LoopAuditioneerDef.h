@@ -32,10 +32,13 @@ enum {
   CUE_GRID = wxID_HIGHEST + 6,
   TIMER_ID = wxID_HIGHEST + 7,
   ADD_CUE = wxID_HIGHEST + 8,
-  ADD_LOOP = wxID_HIGHEST + 9
+  ADD_LOOP = wxID_HIGHEST + 9,
+  BATCH_PROCESS = wxID_HIGHEST + 10,
+  AUTOSEARCH_LOOPS = wxID_HIGHEST + 11,
+  AUTOLOOP_SETTINGS = wxID_HIGHEST + 12
 };
 
 const wxString appName = wxT("LoopAuditioneer");
-const wxString appVersion = wxT("0.5.1.0");
+const wxString appVersion = wxT("0.6.0.0");
 
 #endif

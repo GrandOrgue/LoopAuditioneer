@@ -1,12 +1,13 @@
-This is LoopAuditioneer 0.5.1.0
+This is LoopAuditioneer 0.6.0.0
 Copyright (C) 2011 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
 LoopAuditioneer is a software for evaluating loops and cues existing in wav 
 file metadata. It's envisionaged to be useful for sample production for virtual
-pipe organs, like GrandOrgue software. LoopAuditioneer does not find any loops
-by itself, you should use another software like Nick Appletons free Autoloop
-for that.
+pipe organs, like GrandOrgue software. LoopAuditioneer can also now find loops
+by itself automatically from very user configurable settings both in single
+file mode and in batch processing. Of course you can still use another software
+like Nick Appletons free Autoloop independantly for other loop options.
 
 In the src/ directory you'll find the source code for LoopAuditioneer. The
 icons in src/icons are created by the author.
@@ -25,7 +26,7 @@ distributed under a Creative Commons 3.0 license.
 
 Basic installation instructions are available in the InstallInstructions.txt
 file. At the moment the program developed and mostly tested under Linux
-(Ubuntu 11.04).
+(Ubuntu 11.10).
 
 OTHER DEPENDENCIES
 ------------------

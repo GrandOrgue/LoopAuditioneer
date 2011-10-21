@@ -1,0 +1,74 @@
+/* 
+ * AutoLooping.h tries to find natural good loop points in audio
+ * Copyright (C) 2011 Lars Palo 
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * You can contact the author on larspalo(at)yahoo.se
+ */
+
+#ifndef AUTOLOOPING_H
+#define AUTOLOOPING_H
+
+#include <vector>
+
+class AutoLooping {
+public:
+  // the constructor sets up the general settings for loopfinding
+  // default values if not sent with the call to the constructor
+  AutoLooping(
+    double = 0.03,
+    double = 1.0,
+    double = 0.3,
+    double = 6,
+    int = 8000,
+    int = 4,
+    int = 5
+  );
+
+  ~AutoLooping();
+
+  // this is the function that analyse the audio data for loops and will store
+  // the best loops found in the vector sent by reference
+  bool AutoFindLoops(
+    const double data[], // an array of audio data from the file
+    unsigned arrayLength,
+    int numberOfChannels,
+    int samplerate,
+    std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
+    bool autosearchSustainsection,
+    int startPercentage,
+    int endPercentage
+  );
+
+  // Functions for setting private variables
+  void SetThreshold(double th);
+  void SetDuration(double d);
+  void SetBetween(double b);
+  void SetQuality(double q);
+  void SetCandidates(int c);
+  void SetLoops(int l);
+  void SetMultiple(int m);
+
+private:
+  double m_derivativeThreshold;  // 0.03 (3 %)
+  double m_minLoopDuration;      // 1.0 seconds
+  double m_distanceBetweenLoops; // 0.3 seconds
+  double m_qualityFactor;        // value (6) /32767 (0.00006) for float)
+  int m_maxCandidates;           // 8000
+  int m_loopsToReturn;           // 4
+  int m_maxLoopsMultiple;        // 5
+};
+
+#endif

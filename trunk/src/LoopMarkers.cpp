@@ -40,7 +40,7 @@ void LoopMarkers::SetMIDIUnityNote(char note) {
   dwMIDIUnityNote = note;
 }
 
-void LoopMarkers::SetMIDIPitchFraction(char pitch) {
+void LoopMarkers::SetMIDIPitchFraction(unsigned int pitch) {
   dwMIDIPitchFraction = pitch;
 }
 
@@ -48,7 +48,7 @@ char LoopMarkers::GetMIDIUnityNote() {
   return dwMIDIUnityNote;
 }
 
-char LoopMarkers::GetMIDIPitchFraction() {
+unsigned int LoopMarkers::GetMIDIPitchFraction() {
   return dwMIDIPitchFraction;
 }
 
