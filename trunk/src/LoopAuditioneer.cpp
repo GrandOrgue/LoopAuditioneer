@@ -48,3 +48,7 @@ bool LoopAuditioneerApp::OnInit() {
   return true;
 }
 
+int LoopAuditioneerApp::OnExit() {
+  return wxApp::OnExit();
+}
+

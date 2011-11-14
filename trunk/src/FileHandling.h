@@ -40,6 +40,7 @@ public:
   int GetSampleRate();
   int GetAudioFormat();
   bool FileCouldBeOpened();
+  double GetPitch(double data[]);
 
   short *shortAudioData;
   int *intAudioData;
@@ -58,6 +59,9 @@ private:
   int m_minorFormat;
   int m_samplerate;
   bool fileOpenWasSuccessful;
+  double m_pitch;
+
+  bool AutoDetectPitch(double data[]);
 
 };
 

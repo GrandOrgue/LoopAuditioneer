@@ -42,7 +42,7 @@ public:
   void ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int index);
 
 private:
-  
+
 };
 
 #endif

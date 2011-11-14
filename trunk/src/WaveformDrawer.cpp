@@ -56,6 +56,7 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, wxString fileName) : wxPanel(par
   SetBackgroundColour(m_background);
   selectedCueIndex = 0;
   cueIsSelected = false;
+  m_amplitudeZoomLevel = 1;
  
   SndfileHandle sfHandle;
 
@@ -133,6 +134,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
 
     dc.SetBrush(wxBrush(white));
     dc.SetPen(wxPen(black, 1, wxSOLID));
+    dc.SetFont(wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_LIGHT));
 
     // draw playposition rectangle
     dc.DrawRectangle(leftMargin, 0, trackWidth, 10);
@@ -146,9 +148,9 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
         x2 = trackWidth;
         y2 = trackHeight;
         dc.DrawRectangle(x1, y1, x2, y2);
-        dc.DrawText(wxT("1"), 12, topMargin + trackHeight * i + i * marginBetweenTracks);
-        dc.DrawText(wxT("0"), 12, topMargin - 8 + trackHeight * i + i * marginBetweenTracks + (trackHeight / 2));
-        dc.DrawText(wxT("-1"), 9, topMargin - 10 + trackHeight * i + i * marginBetweenTracks + trackHeight - 10);
+        dc.DrawText(wxString::Format(wxT("%.2f"), (double) 1.0 / (double) m_amplitudeZoomLevel), 9, topMargin + trackHeight * i + i * marginBetweenTracks);
+        dc.DrawText(wxT("0"), 16, topMargin - 5 + trackHeight * i + i * marginBetweenTracks + (trackHeight / 2));
+        dc.DrawText(wxString::Format(wxT("-%.2f"), (double) 1.0 / (double) m_amplitudeZoomLevel), 6, topMargin - 2 + trackHeight * i + i * marginBetweenTracks + trackHeight - 10);
       }
     }
 
@@ -167,12 +169,22 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
         for (int i = 0; i < waveTracks[0].waveData.size(); i++) {
           if (i % samplesPerPixel == 0 && i > 0) {
             // we should write the line representing the audio data and start a new count
+            // but first we adjust max and min values with the m_amplitudeZoomLevel
+            maxValue *= m_amplitudeZoomLevel;
+            minValue *= m_amplitudeZoomLevel;
+            if (maxValue > 1)
+              maxValue = 1;
+            if (minValue < -1)
+              minValue = -1;
+
+            // calculate coordinates
             wxCoord x1 = leftMargin + lineToDraw, y1 = topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2) - (maxValue * trackHeight / 2);
             wxCoord x2 = leftMargin + lineToDraw, y2 = topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2) - (minValue * trackHeight / 2);
 
             dc.SetPen(wxPen(blue, 1, wxSOLID));
             dc.DrawLine(x1, y1, x2, y2);
 
+            // proceed with next frame
             maxValue = waveTracks[j].waveData[i];
             minValue = waveTracks[j].waveData[i];
             lineToDraw++;
@@ -191,6 +203,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
         lineToDraw = 0;
       }
       // draw in eventual metadata (loops and cues)
+      dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
       if (cueSampleOffset.size() > 0) {
         int overlap = 0;
         // here we draw the cues from the vector
@@ -320,11 +333,11 @@ void WaveformDrawer::CalculateLayout() {
     loopLayout[i].placedInRow = 0;
     for (int j = 0; j < i; j++) {
       bool isOverlapping = false;
-      if (loopPositions[i].first > loopPositions[j].first && loopPositions[i].first < loopPositions[j].second)
+      if (loopPositions[i].first >= loopPositions[j].first && loopPositions[i].first <= loopPositions[j].second)
         isOverlapping = true;
-      else if (loopPositions[i].second > loopPositions[j].first && loopPositions[i].second < loopPositions[j].second)
+      else if (loopPositions[i].second >= loopPositions[j].first && loopPositions[i].second <= loopPositions[j].second)
         isOverlapping = true;
-      else if (loopPositions[i].first < loopPositions[j].first && loopPositions[i].second > loopPositions[j].second)
+      else if (loopPositions[i].first <= loopPositions[j].first && loopPositions[i].second >= loopPositions[j].second)
         isOverlapping = true;
 
       if (isOverlapping) {
@@ -347,10 +360,21 @@ void WaveformDrawer::CalculateLayout() {
       else {
         int unUsedRow = 0;
         for (int j = 0; j < loopLayout[i].overlappingLoops.size(); j++) {
-          if (loopLayout[loopLayout[i].overlappingLoops[j]].placedInRow == unUsedRow)
+          if (loopLayout[loopLayout[i].overlappingLoops[j]].placedInRow == unUsedRow) {
             unUsedRow++;
-          else
-            break;
+          } else {
+            // first just make sure that the this overlap is not placed in the same row as the
+            // previously overlapping loop, in which case we should just continue with the next
+            if (j > 0) {
+              if (loopLayout[loopLayout[i].overlappingLoops[j]].placedInRow == 
+                  loopLayout[loopLayout[i].overlappingLoops[j - 1]].placedInRow)
+                continue;
+              else
+                break;
+            } else {
+              break;
+            }
+          }
         }
         loopLayout[i].placedInRow = unUsedRow;
       }
@@ -625,5 +649,23 @@ bool WaveformDrawer::GetDoubleAudioData(double audio[], unsigned arrayLength) {
   } else {
     return false;
   }
+}
+
+int WaveformDrawer::GetAmplitudeZoomLevel() {
+  return m_amplitudeZoomLevel;
+}
+
+void WaveformDrawer::ZoomInAmplitude() {
+  if (m_amplitudeZoomLevel < 16)
+    m_amplitudeZoomLevel *= 2;
+
+  somethingHasChanged = true;
+}
+
+void WaveformDrawer::ZoomOutAmplitude() {
+  if (m_amplitudeZoomLevel > 1)
+    m_amplitudeZoomLevel /= 2;
+
+  somethingHasChanged = true;
 }
 
