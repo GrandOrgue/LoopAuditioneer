@@ -28,6 +28,8 @@
 #include <wx/filename.h>
 #include <wx/dir.h>
 #include <vector>
+#include <climits>
+#include <cmath>
 
 IMPLEMENT_CLASS(BatchProcessDialog, wxDialog )
 
@@ -60,6 +62,7 @@ void BatchProcessDialog::Init() {
   m_batchProcessesAvailable.Add(wxT("Kill all cues"));
   m_batchProcessesAvailable.Add(wxT("Kill loops & cues"));
   m_batchProcessesAvailable.Add(wxT("Search for loops"));
+  m_batchProcessesAvailable.Add(wxT("Store pitch info"));
 }
 
 bool BatchProcessDialog::Create(
@@ -489,7 +492,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
               autoloopSettings->GetStart(),
               autoloopSettings->GetEnd()
             );
-            // delete the now unneccessary aray of double audio data
+            // delete the now unneccessary array of double audio data
             delete[] audioData;
 
             if (foundLoops) {
@@ -511,6 +514,51 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
             fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
             m_statusProgress->AppendText(wxT("\tDone!\n"));
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+        }
+        m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 5:
+      // This is for autosearching pitch information and store it in smpl chunk
+      if (filesToProcess.IsEmpty() == false) {
+        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+          m_statusProgress->AppendText(filesToProcess.Item(i));
+          m_statusProgress->AppendText(wxT("\n"));
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            m_statusProgress->AppendText(wxT("\tFile opened.\n"));
+
+            // now we need data as doubles
+            wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
+            SndfileHandle sfh;
+            sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
+            double *audioData = new double[sfh.frames() * sfh.channels()];
+            sfh.read(audioData, sfh.frames() * sfh.channels());
+
+            // autosearch pitch and calculate midi note and pitch fraction
+            double pitch = fh.GetPitch(audioData);
+            int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
+            double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
+            double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
+            unsigned int midi_pitch_fraction = ((double)UINT_MAX * (cent_deviation / 100.0));
+
+            // set midi note and pitch fraction to loopmarkers
+            fh.m_loops->SetMIDIUnityNote((char) midi_note);
+            fh.m_loops->SetMIDIPitchFraction(midi_pitch_fraction);
+            
+            fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+            m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch = %.2f Hz\n"), pitch));
+            m_statusProgress->AppendText(wxT("\tDone!\n"));
+
+            // delete the now unneccessary array of double audio data
+            delete[] audioData;
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }

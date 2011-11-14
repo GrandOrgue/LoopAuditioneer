@@ -65,6 +65,11 @@ public:
   // Get audio data as doubles
   bool GetDoubleAudioData(double audio[], unsigned arrayLength);
 
+  // Methods for dealing with amplitude zoom level
+  int GetAmplitudeZoomLevel();
+  void ZoomInAmplitude();
+  void ZoomOutAmplitude();
+
 private:
   std::vector<WAVETRACK> waveTracks;
   std::vector<unsigned int> cueSampleOffset;
@@ -95,6 +100,7 @@ private:
   wxCoord m_y;
   int selectedCueIndex;
   bool cueIsSelected;
+  int m_amplitudeZoomLevel;
 
   void OnClickAddCue(wxCommandEvent& event);
 

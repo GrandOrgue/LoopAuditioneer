@@ -190,3 +190,256 @@ bool FileHandling::FileCouldBeOpened() {
   else
     return false;
 }
+
+double FileHandling::GetPitch(double data[]) {
+  bool gotPitch = AutoDetectPitch(data);
+  if (gotPitch)
+    return m_pitch;
+  else
+    return 0;
+}
+
+bool FileHandling::AutoDetectPitch(double data[]) {
+  // Find strongest value
+  double maxValue = 0;
+  for (unsigned i = 0; i < ArrayLength; i += m_channels) {
+    for (int j = 0; j < m_channels; j++) {
+      double currentValue = fabs(data[i + j]);
+
+      if (currentValue > maxValue) {
+        maxValue = currentValue;
+      }
+    }
+  }
+
+  // Find a resonable sustainsection in the audio to check
+  unsigned sustainStartIndex, sustainEndIndex;
+
+  // set a windowsize for a 20 Hz frequency in current file
+  int windowSize = m_samplerate / 20 * m_channels;
+
+  // Find sustainstart by scanning from the beginning
+  double maxAmplitudeValue = 0;
+  
+  for (unsigned i = 0; i < ArrayLength - windowSize; i += windowSize) {
+    double maxValueInThisWindow = 0;
+    for (int j = i; j < i + windowSize; j++) {
+      double currentValue = fabs(data[j]);
+
+      if (currentValue > maxValueInThisWindow)
+        maxValueInThisWindow = currentValue;
+    }
+
+    if (maxValueInThisWindow > maxAmplitudeValue)
+      maxAmplitudeValue = maxValueInThisWindow;
+    else {
+      // the max value in the window is not increasing anymore so 
+      // sustainsection is reached
+      sustainStartIndex = i + windowSize;
+      break;
+    }
+  }
+
+  // then we add an offset of 0.25 seconds to allow the tone to stabilize
+  sustainStartIndex += m_samplerate * m_channels / 4;
+
+  // make sure we're on the first channel now
+  sustainStartIndex -= (sustainStartIndex % m_channels);
+
+  // search forward for a zero crossing
+  if (data[sustainStartIndex] > 0) {
+    while (data[sustainStartIndex] > 0) {
+      sustainStartIndex += m_channels;
+    }
+    sustainStartIndex -= m_channels;
+  } else {
+    while (data[sustainStartIndex] < 0) {
+      sustainStartIndex += m_channels;
+    }
+    sustainStartIndex -= m_channels;
+  }
+
+  // now find sustainend by scanning from the end of audio data
+  maxAmplitudeValue = 0;
+  
+  for (unsigned i = ArrayLength; i > 0 + windowSize; i -= windowSize) {
+    double maxValueInThisWindow = 0;
+    for (int j = i; j > i - windowSize; j--) {
+      double currentValue = fabs(data[j]);
+
+      if (currentValue > maxValueInThisWindow)
+        maxValueInThisWindow = currentValue;
+    }
+
+    // if current max is less than one fourth of max value, or 12 dB lower
+    // we just continue searching backwards
+    if (maxValueInThisWindow < maxValue / 4) {
+      maxAmplitudeValue = maxValueInThisWindow;
+      continue;
+    }
+
+    if (maxValueInThisWindow > maxAmplitudeValue) {
+      maxAmplitudeValue = maxValueInThisWindow;
+    } else {
+      // the max value in the window is not increasing anymore so 
+      // sustainsectionend is reached
+      sustainEndIndex = i;
+      break;
+    }
+  }
+
+  sustainEndIndex -= (sustainEndIndex % m_channels);
+
+  if (sustainStartIndex > sustainEndIndex)
+    return false;
+
+  // Find the approximate period of pattern repetition
+  // We search a window with a length of at four times the longest period we
+  // expect to find. A 32' C has 16.35 Herz, so we use 15 for good measure.
+  // one complete period is sampleRate / 15 samples long and we need four
+  // times the length in samples multiplied with numberOfChannels
+  unsigned searchWindow = m_samplerate / 15 * 4 * m_channels;
+  unsigned maxLag = searchWindow / 2;
+  unsigned approximatePeriod = 0;
+
+  std::vector<std::pair<unsigned, double> > possiblePeriod; // store lag and value for all max after start
+  double currentCorr, previousCorr, beforePreviousCorr;
+
+  for (unsigned i = 0; i < maxLag; i += m_channels) {
+    // calculate normalized crosscorrelation
+    double sum1 = 0, sum2 = 0, sum3 = 0;
+    for (unsigned j = sustainStartIndex; j < sustainStartIndex + searchWindow - i - m_channels; j += m_channels) {
+      sum1 += data[j] * data[j + i];
+      sum2 += pow(data[j], 2);
+      sum3 += pow(data[j + i], 2);
+    }
+    currentCorr = sum1 / sqrt(sum2 * sum3);
+
+    if (i == 0)
+      previousCorr = currentCorr;
+
+    if (i == m_channels) {
+      beforePreviousCorr = previousCorr;
+      previousCorr = currentCorr;
+    }
+
+    if (i > m_channels) {
+      if (currentCorr > previousCorr) {
+        // we're going towards a possible max so just continue
+        beforePreviousCorr = previousCorr;
+        previousCorr = currentCorr;
+      } else {
+        // we're going away from a max so check if previous was a max
+        if (previousCorr > beforePreviousCorr) {
+          // previous lag was a max! So we store it in the vector
+          possiblePeriod.push_back(std::make_pair(i - m_channels, previousCorr));
+
+          // then we must continue
+          beforePreviousCorr = previousCorr;
+          previousCorr = currentCorr;
+        } else {
+          // no, we are just moving away from a max so just continue
+          beforePreviousCorr = previousCorr;
+          previousCorr = currentCorr;
+        }
+      }
+    }
+  }
+
+  double derivativeAtZero = (data[sustainStartIndex + m_channels] - data[sustainStartIndex - m_channels]) / 2.0;
+  // Then we look at the possiblePeriod vector and find the first value that is
+  // above the threshold which "should" be the repetitionperiod...
+  if (possiblePeriod.empty() == false) {
+    // first we find the highest value in the maxima vector which we then will 
+    // use to create a threshold of say max 5% lower
+    double thresholdValue = 0;
+    for (int i = 0; i < possiblePeriod.size(); i++) {
+      if (possiblePeriod[i].second > thresholdValue)
+        thresholdValue = possiblePeriod[i].second;
+    }
+    thresholdValue *= 0.95;
+
+    for (int i = 0; i < possiblePeriod.size(); i++) {
+      if (possiblePeriod[i].second > thresholdValue) {
+        // this could be the period, we should double check that the derivative
+        // of the first channel will actually match at start and this point then
+        double derivativeAtThis = (data[sustainStartIndex + possiblePeriod[i].first + m_channels] - data[sustainStartIndex + possiblePeriod[i].first - m_channels]) / 2.0;
+
+        if (derivativeAtZero < 0 == derivativeAtThis < 0) {
+          approximatePeriod = possiblePeriod[i].first;
+          break;
+        }
+      }
+    }
+  } else {
+    return false;
+  }
+
+  if (approximatePeriod == 0)
+    return false;
+
+  // Now we know the approximate period so that we can search more efficently
+  // and add the distance between every period within the sustainsection to
+  // the pitch vector and then we calculate the average of them to get the
+  // average pitch.
+  std::vector<unsigned> repetitionPeriods;
+  unsigned jumpThisManyIndexes = approximatePeriod - 2 * m_channels;
+  unsigned lastMinIndex = sustainStartIndex;
+  for (unsigned i = sustainStartIndex; i < sustainEndIndex - approximatePeriod; i += m_channels) {
+    if (i < lastMinIndex + jumpThisManyIndexes)
+      continue;
+
+    double sum = 0;
+
+    for (int j = 0; j < approximatePeriod; j++) {
+      sum += pow(data[i] - data[j + i], 2);
+    }
+    currentCorr = sqrt(sum / (double) approximatePeriod);
+
+    if (i > sustainStartIndex + m_channels) {
+      if (currentCorr < previousCorr) {
+        // we're going towards a possible min so just continue
+        beforePreviousCorr = previousCorr;
+        previousCorr = currentCorr;
+      } else {
+        // we're going away from a min so check if previous was a min
+        if (previousCorr < beforePreviousCorr) {
+          // previous lag was a min! So we store it in the vector
+          repetitionPeriods.push_back(i - m_channels - lastMinIndex);
+          lastMinIndex = i - m_channels;
+
+          // then we must continue
+          beforePreviousCorr = 1;
+          previousCorr = 1;
+        } else {
+          // no, we are just moving away from a min so just continue
+          beforePreviousCorr = previousCorr;
+          previousCorr = currentCorr;
+        }
+      }
+    }
+
+    if (i == sustainStartIndex) {
+      previousCorr = currentCorr;
+    }
+
+    if (i == sustainStartIndex + m_channels) {
+      beforePreviousCorr = previousCorr;
+      previousCorr = currentCorr;
+    }
+  }
+
+  // calculate average pitch
+  if (repetitionPeriods.empty() == false) {
+    unsigned periodSum = 0;
+    for (int i = 0; i < repetitionPeriods.size(); i++) {
+      periodSum += repetitionPeriods[i];
+    }
+    double averagePeriod = (double) periodSum / (double) repetitionPeriods.size();
+    m_pitch = m_samplerate * m_channels / averagePeriod;
+    return true;
+  }
+
+  return false;
+}
+

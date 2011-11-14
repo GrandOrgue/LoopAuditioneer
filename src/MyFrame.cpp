@@ -27,6 +27,8 @@
 #include <wx/aboutdlg.h>
 #include "LoopParametersDialog.h"
 #include "BatchProcessDialog.h"
+#include <climits>
+#include "PitchDialog.h"
 
 bool MyFrame::loopPlay = true; // default to loop play
 
@@ -52,6 +54,9 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_TOOL(AUTOSEARCH_LOOPS, MyFrame::OnAutoLoop)
   EVT_TOOL(AUTOLOOP_SETTINGS, MyFrame::OnAutoLoopSettings)
   EVT_TOOL(BATCH_PROCESS, MyFrame::OnBatchProcess)
+  EVT_TOOL(PITCH_SETTINGS, MyFrame::OnPitchSettings)
+  EVT_TOOL(ZOOM_IN_AMP, MyFrame::OnZoomInAmplitude)
+  EVT_TOOL(ZOOM_OUT_AMP, MyFrame::OnZoomOutAmplitude)
   EVT_TIMER(TIMER_ID, MyFrame::UpdatePlayPosition)
 END_EVENT_TABLE()
 
@@ -76,13 +81,12 @@ void MyFrame::OnSelectDir(wxCommandEvent& event) {
     EmptyListOfFileNames();
     PopulateListOfFileNames();
     m_fileListBox->Set(fileNames);
-    SetStatusText(workingDir, 1);
+    SetStatusText(workingDir, 2);
   }
 }
 
+
 void MyFrame::OnQuit(wxCommandEvent& event) {
-  delete m_autoloopSettings;
-  delete m_autoloop;
   // Destroy the frame
   Close();
 }
@@ -111,14 +115,16 @@ void MyFrame::OpenAudioFile() {
     filePath = workingDir.Append(wxT("/"));
     filePath += fileToOpen;
     m_waveform = new WaveformDrawer(this, filePath);
-    vbox->Add(m_waveform, 1, wxEXPAND);
-    Fit();
+    vbox->Add(m_waveform, 1, wxEXPAND, 0);
+    vbox->SetSizeHints(this);
 
     m_sound->SetSampleRate(m_audiofile->GetSampleRate());
     m_sound->SetAudioFormat(m_audiofile->GetAudioFormat());
     m_sound->SetChannels(m_audiofile->m_channels);
     m_sound->OpenAudioStream();
     m_panel->SetFileNameLabel(fileToOpen);
+
+    SetStatusText(wxString::Format(wxT("Zoom level: x %i"), m_waveform->GetAmplitudeZoomLevel()), 1);
 
     // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
     int sRate = m_audiofile->GetSampleRate();
@@ -149,6 +155,14 @@ void MyFrame::OpenAudioFile() {
     toolBar->EnableTool(AUTOSEARCH_LOOPS, true);
     toolMenu->Enable(AUTOSEARCH_LOOPS, true);
 
+    toolBar->EnableTool(PITCH_SETTINGS, true);
+    toolMenu->Enable(PITCH_SETTINGS, true);
+
+    toolBar->EnableTool(ZOOM_IN_AMP, true);
+    toolBar->EnableTool(ZOOM_OUT_AMP, true);
+    viewMenu->Enable(ZOOM_IN_AMP, true);
+    viewMenu->Enable(ZOOM_OUT_AMP, true);
+
   } else {
     // libsndfile couldn't open the file or no audio data in file
     wxString message = wxT("Sorry, libsndfile couldn't open selected file!");
@@ -165,6 +179,8 @@ void MyFrame::OpenAudioFile() {
 
     m_panel->SetFileNameLabel(wxEmptyString);
 
+    SetStatusText(wxEmptyString, 1);
+
   } // end of if file open was successful checking
 }
 
@@ -180,11 +196,17 @@ void MyFrame::CloseOpenAudioFile() {
   toolBar->EnableTool(wxID_SAVEAS, false);
   fileMenu->Enable(wxID_SAVEAS, false);
 
-  // disable add loop
+  // disable tools
   toolBar->EnableTool(ADD_LOOP, false);
   toolMenu->Enable(ADD_LOOP, false);
   toolBar->EnableTool(AUTOSEARCH_LOOPS, false);
   toolMenu->Enable(AUTOSEARCH_LOOPS, false);
+  toolBar->EnableTool(PITCH_SETTINGS, false);
+  toolMenu->Enable(PITCH_SETTINGS, false);
+  toolBar->EnableTool(ZOOM_IN_AMP, false);
+  toolBar->EnableTool(ZOOM_OUT_AMP, false);
+  viewMenu->Enable(ZOOM_IN_AMP, false);
+  viewMenu->Enable(ZOOM_OUT_AMP, false);
 
   m_sound->CloseAudioStream();
 
@@ -194,6 +216,8 @@ void MyFrame::CloseOpenAudioFile() {
   delete m_audiofile;
   delete m_waveform;
   m_waveform = 0;
+
+  SetStatusText(wxEmptyString, 1);
 
   UpdateAllViews();
 }
@@ -351,12 +375,12 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   fileMenu = new wxMenu();
 
   // Add file menu items
-  fileMenu->Append(FILE_SELECT, wxT("&Choose folder"), wxT("Select working folder"));
-  fileMenu->Append(OPEN_SELECTED, wxT("&Open file"), wxT("Open selected file"));
-  fileMenu->Append(wxID_SAVE, wxT("&Save"), wxT("Save current file"));
-  fileMenu->Append(wxID_SAVEAS, wxT("Save &as..."), wxT("Save current file with new name"));
+  fileMenu->Append(FILE_SELECT, wxT("&Choose folder\tCtrl+F"), wxT("Select working folder"));
+  fileMenu->Append(OPEN_SELECTED, wxT("&Open file\tCtrl+O"), wxT("Open selected file"));
+  fileMenu->Append(wxID_SAVE, wxT("&Save\tCtrl+S"), wxT("Save current file"));
+  fileMenu->Append(wxID_SAVEAS, wxT("Save &as...\tShift+Ctrl+S"), wxT("Save current file with new name"));
   fileMenu->AppendSeparator();
-  fileMenu->Append(AUTOLOOP_SETTINGS, wxT("&Autoloop settings"), wxT("Adjust settings for loop searching"));
+  fileMenu->Append(AUTOLOOP_SETTINGS, wxT("&Autoloop settings\tCtrl+A"), wxT("Adjust settings for loop searching"));
   fileMenu->AppendSeparator();
   fileMenu->Append(wxID_EXIT, wxT("&Exit\tAlt-X"), wxT("Quit this program"));
 
@@ -364,12 +388,22 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   fileMenu->Enable(wxID_SAVE, false);
   fileMenu->Enable(wxID_SAVEAS, false);
 
+  // Create a view menu
+  viewMenu = new wxMenu();
+
+  // Add view menu items
+  viewMenu->Append(ZOOM_IN_AMP, wxT("&Zoom in\tCtrl++"), wxT("Zoom in on amplitude"));
+  viewMenu->Append(ZOOM_OUT_AMP, wxT("&Zoom out\tCtrl+-"), wxT("Zoom out on amplitude"));
+
+  viewMenu->Enable(ZOOM_IN_AMP, false);
+  viewMenu->Enable(ZOOM_OUT_AMP, false);
+
   // Create a transport menu
   transportMenu = new wxMenu();
 
   // Add transport menu items
-  transportMenu->Append(START_PLAYBACK, wxT("&Play"), wxT("Start playback"));
-  transportMenu->Append(wxID_STOP, wxT("&Stop"), wxT("Stop playback"));
+  transportMenu->Append(START_PLAYBACK, wxT("&Play\tSpace"), wxT("Start playback"));
+  transportMenu->Append(wxID_STOP, wxT("&Stop\tBack"), wxT("Stop playback"));
 
   transportMenu->Enable(START_PLAYBACK, false);
   transportMenu->Enable(wxID_STOP, false);
@@ -378,12 +412,14 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolMenu = new wxMenu();
 
   // Add items to the tool menu
-  toolMenu->Append(ADD_LOOP, wxT("&New loop"), wxT("Create a new loop"));
-  toolMenu->Append(AUTOSEARCH_LOOPS, wxT("&Autoloop"), wxT("Search for loop(s)"));
-  toolMenu->Append(BATCH_PROCESS, wxT("&Batch processing"), wxT("Batch processing of files"));
+  toolMenu->Append(ADD_LOOP, wxT("&New loop\tCtrl+N"), wxT("Create a new loop"));
+  toolMenu->Append(AUTOSEARCH_LOOPS, wxT("&Autoloop\tCtrl+L"), wxT("Search for loop(s)"));
+  toolMenu->Append(BATCH_PROCESS, wxT("&Batch processing\tCtrl+B"), wxT("Batch processing of files"));
+  toolMenu->Append(PITCH_SETTINGS, wxT("&Pitch info\tCtrl+P"), wxT("Find/set info about pitch"));
 
   toolMenu->Enable(ADD_LOOP, false);
   toolMenu->Enable(AUTOSEARCH_LOOPS, false);
+  toolMenu->Enable(PITCH_SETTINGS, false);
 
   // Create a help menu
   helpMenu = new wxMenu();
@@ -394,6 +430,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   // Create a menu bar and append the menus to it
   menuBar = new wxMenuBar();
   menuBar->Append(fileMenu, wxT("&File"));
+  menuBar->Append(viewMenu, wxT("&View"));
   menuBar->Append(transportMenu, wxT("&Transport"));
   menuBar->Append(toolMenu, wxT("T&ools"));
   menuBar->Append(helpMenu, wxT("&Help"));
@@ -402,7 +439,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   SetMenuBar(menuBar);
 
   // Create Status bar
-  CreateStatusBar(2);
+  CreateStatusBar(3);
   SetStatusText(wxT("Ready"), 0);
 
   // Create toolbar
@@ -419,6 +456,9 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   wxBitmap autoLoop(wxT("../icons/24x24/Search.png"), wxBITMAP_TYPE_PNG);
   wxBitmap autoLoopSettings(wxT("../icons/24x24/Yin-Yang.png"), wxBITMAP_TYPE_PNG);
   wxBitmap batchProcess(wxT("../icons/24x24/Gear.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap pitchInfo(wxT("../icons/24x24/Bell.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap zoomInAmp(wxT("../icons/24x24/Zoom_in.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap zoomOutAmp(wxT("../icons/24x24/Zoom_out.png"), wxBITMAP_TYPE_PNG);
   toolBar->AddTool(FILE_SELECT, selectFolder, wxT("Select working folder"), wxT("Select working folder"));
   toolBar->AddTool(OPEN_SELECTED, openSelectedFile, wxT("Open selected file"), wxT("Open selected file"));
   toolBar->AddTool(wxID_SAVE, saveFile, wxT("Save file"), wxT("Save file"));
@@ -429,6 +469,9 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->AddTool(AUTOSEARCH_LOOPS, autoLoop, wxT("Autoloop"), wxT("Search for loop(s)"));
   toolBar->AddTool(AUTOLOOP_SETTINGS, autoLoopSettings, wxT("Autoloop settings"), wxT("Change settings for auto loopsearching"));
   toolBar->AddTool(BATCH_PROCESS, batchProcess, wxT("Batch processing"), wxT("Batch processing of files/folders"));
+  toolBar->AddTool(PITCH_SETTINGS, pitchInfo, wxT("Pitch settings"), wxT("Find/set information about pitch"));
+  toolBar->AddTool(ZOOM_IN_AMP, zoomInAmp, wxT("Zoom in"), wxT("Zoom in on amplitude"));
+  toolBar->AddTool(ZOOM_OUT_AMP, zoomOutAmp, wxT("Zoom out"), wxT("Zoom out on amplitude"));
   toolBar->Realize();
   toolBar->EnableTool(OPEN_SELECTED, false);
   toolBar->EnableTool(wxID_SAVE, false);
@@ -437,10 +480,12 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->EnableTool(wxID_STOP, false);
   toolBar->EnableTool(ADD_LOOP, false);
   toolBar->EnableTool(AUTOSEARCH_LOOPS, false);
+  toolBar->EnableTool(PITCH_SETTINGS, false);
+  toolBar->EnableTool(ZOOM_IN_AMP, false);
+  toolBar->EnableTool(ZOOM_OUT_AMP, false);
   this->SetToolBar(toolBar);
 
-  // Create panels for frame content
-
+  // Create sizers for frame content
   vbox = new wxBoxSizer(wxVERTICAL);
   wxBoxSizer *hbox = new wxBoxSizer(wxHORIZONTAL);
 
@@ -448,7 +493,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
     this,
     ID_LISTBOX,
     wxDefaultPosition,
-    wxSize(200,200),
+    wxDefaultSize,
     fileNames,
     wxLB_SINGLE | wxLB_SORT
   );
@@ -458,14 +503,11 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   m_panel = new MyPanel(this);
 
   hbox->Add(m_panel, 3, wxEXPAND | wxALL, 10);
-
-  vbox->Add(hbox, 1, wxEXPAND);
-  vbox->SetSizeHints(this);
+  vbox->Add(hbox, 1, wxEXPAND, 0);
   SetSizer(vbox);
-  // Fit();
-  // Center();
-
+  vbox->SetSizeHints(this);
   SetBackgroundColour(wxT("#f4f2ef"));
+  SetMinSize(wxSize(600, 280));
 }
 
 MyFrame::~MyFrame() {
@@ -705,6 +747,10 @@ void MyFrame::OnAddLoop(wxCommandEvent& event) {
     // Add the new loop to waveform drawer
     m_waveform->AddLoopPosition(newLoop.dwStart, newLoop.dwEnd);
 
+    // Enable save icon and menu
+    toolBar->EnableTool(wxID_SAVE, true);
+    fileMenu->Enable(wxID_SAVE, true);
+
     UpdateAllViews();
   }
 }
@@ -747,18 +793,24 @@ void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
       // Set loops positions for playback
       m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
 
+      // Enable save icon and menu
+      toolBar->EnableTool(wxID_SAVE, true);
+      fileMenu->Enable(wxID_SAVE, true);
+
       UpdateAllViews();
     }
   }
 }
 
 void MyFrame::UpdateAllViews() {
-  // force updates of wxGrids in m_panel by jiggling the size of the frame! Ugly hack necessary for Windows!
+  // force updates of wxGrids in m_panel by jiggling the size of the frame!
   wxSize size = GetSize();
   size.IncBy(1, 1);
   SetSize(size);
   size.DecBy(1, 1);
   SetSize(size);
+
+  m_panel->Layout();
 
   if (m_waveform) {
     m_waveform->Refresh();
@@ -800,13 +852,15 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
 
     if (foundSomeLoops) {
       for (int i = 0; i < loops.size(); i++) {
-        // Add the new loop to the loop vector
+        // Prepare loop data for insertion into loop vector
         LOOPDATA newLoop;
         newLoop.dwType = SF_LOOP_FORWARD;
         newLoop.dwStart = loops[i].first.first;
         newLoop.dwEnd = loops[i].first.second;
         newLoop.dwPlayCount = 0;
         newLoop.shouldBeSaved = true;
+
+        // Add the loop to the audio files loop vector
         m_audiofile->m_loops->AddLoop(newLoop);
 
         // Add the new loop to the grid
@@ -821,7 +875,13 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
         // Add the new loop to waveform drawer
         m_waveform->AddLoopPosition(newLoop.dwStart, newLoop.dwEnd);
       }
+
+      // Enable save icon and menu
+      toolBar->EnableTool(wxID_SAVE, true);
+      fileMenu->Enable(wxID_SAVE, true);
+
       UpdateAllViews();
+
     } else {
       // no loops found!
       wxString message = wxT("Sorry, didn't find any loops!");
@@ -858,5 +918,54 @@ void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
     m_autoloop->SetLoops(m_autoloopSettings->GetNrLoops());
     m_autoloop->SetMultiple(m_autoloopSettings->GetMultiple());
   }
+}
+
+void MyFrame::OnPitchSettings(wxCommandEvent& event) {
+  // get the audio data as doubles from m_waveform
+  double *audioData = new double[m_audiofile->ArrayLength];
+  bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
+
+  double pitch = m_audiofile->GetPitch(audioData);
+  int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
+  double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
+  double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
+  unsigned int midi_pitch_fraction = ((double)UINT_MAX * (cent_deviation / 100.0));
+  double cent_from_file = (double) m_audiofile->m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
+
+  PitchDialog dialog(
+    pitch,
+    midi_note,
+    cent_deviation,
+    (int) m_audiofile->m_loops->GetMIDIUnityNote(),
+    cent_from_file,
+    this
+  );
+
+  if (dialog.ShowModal() == wxID_OK) {
+    if (dialog.GetUseAutoDetected()) {
+      m_audiofile->m_loops->SetMIDIUnityNote((char) midi_note);
+      m_audiofile->m_loops->SetMIDIPitchFraction(midi_pitch_fraction);
+    } else {
+      m_audiofile->m_loops->SetMIDIUnityNote((char) dialog.GetMIDINote());
+      m_audiofile->m_loops->SetMIDIPitchFraction((unsigned)((double)UINT_MAX * (dialog.GetPitchFraction() / 100.0)));
+    }
+    // enable save icon and menu
+    toolBar->EnableTool(wxID_SAVE, true);
+    fileMenu->Enable(wxID_SAVE, true);
+  }
+
+  delete[] audioData;
+}
+
+void MyFrame::OnZoomInAmplitude(wxCommandEvent& event) {
+  m_waveform->ZoomInAmplitude();
+  SetStatusText(wxString::Format(wxT("Zoom level: x %i"), m_waveform->GetAmplitudeZoomLevel()), 1);
+  UpdateAllViews();
+}
+
+void MyFrame::OnZoomOutAmplitude(wxCommandEvent& event) {
+  m_waveform->ZoomOutAmplitude();
+  SetStatusText(wxString::Format(wxT("Zoom level: x %i"), m_waveform->GetAmplitudeZoomLevel()), 1);
+  UpdateAllViews();
 }
 

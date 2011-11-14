@@ -28,12 +28,12 @@ in lib-src folder
 In src folder:
 
 
-g++ -D__WINDOWS_DS__ -static -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/rtaudio/include ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ldsound -lole32 -lwinmm `wx-config --static=yes --cxxflags --libs`
+g++ -D__WINDOWS_DS__ -static -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/rtaudio/include ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ldsound -lole32 -lwinmm `wx-config --static=yes --cxxflags --libs`
 
 
 with optimisations used for 0.6 release:
 
-g++ -D__WINDOWS_DS__ -static -O2 -mtune=core2 -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/rtaudio/include ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ldsound -lole32 -lwinmm `wx-config --static=yes --cxxflags --libs`
+g++ -D__WINDOWS_DS__ -static -O2 -mtune=core2 -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/rtaudio/include ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ldsound -lole32 -lwinmm `wx-config --static=yes --cxxflags --libs`
 
 
 reduce size of binary:

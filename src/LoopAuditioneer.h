@@ -28,6 +28,7 @@
 class LoopAuditioneerApp : public wxApp {
 public:
   virtual bool OnInit();
+  int OnExit();
   MyFrame *frame;
   wxIconBundle m_icons;
 };

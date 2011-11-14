@@ -111,8 +111,6 @@ void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bo
   m_grid->SetCellValue(index , 3, dur);
   m_grid->SetReadOnly(index, 3);
   m_grid->SetCellValue(index, 4, boolValue);
-
-  m_grid->ForceRefresh(); // not really working...
 }
 
 void MyPanel::FillRowWithCueData(unsigned int id, unsigned int position, bool save, int index) {
@@ -138,8 +136,6 @@ void MyPanel::FillRowWithCueData(unsigned int id, unsigned int position, bool sa
   m_cueGrid->SetReadOnly(index, 1);
  
   m_cueGrid->SetCellValue(index, 2, boolValue);
-
-  m_cueGrid->ForceRefresh(); // not really working...
 }
 
 void MyPanel::EmptyTable() {

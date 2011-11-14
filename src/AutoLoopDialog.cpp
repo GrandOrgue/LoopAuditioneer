@@ -31,9 +31,6 @@ BEGIN_EVENT_TABLE(AutoLoopDialog, wxDialog)
   EVT_SLIDER(ID_DURATION, AutoLoopDialog::OnDurationSlider)
   EVT_SLIDER(ID_BETWEEN, AutoLoopDialog::OnBetweenSlider)
   EVT_SLIDER(ID_QUALITY, AutoLoopDialog::OnQuality)
-/*  EVT_SLIDER(ID_CANDIDATES, AutoLoopDialog::)
-  EVT_SLIDER(ID_NR_LOOPS, AutoLoopDialog::)
-  EVT_SLIDER(ID_LOOP_MULTIPLE, AutoLoopDialog::) */
 END_EVENT_TABLE()
 
 AutoLoopDialog::AutoLoopDialog() {
@@ -93,21 +90,7 @@ void AutoLoopDialog::CreateControls() {
   // Second box sizer to get nice margins
   wxBoxSizer *boxSizer = new wxBoxSizer(wxVERTICAL);
   topSizer->Add(boxSizer, 1, wxEXPAND|wxALL, 5);
-/*
-  // Information message at top
-  wxStaticText* info = new wxStaticText(
-    this, 
-    wxID_STATIC,
-    wxT("Set loopsearching parameters."), 
-    wxDefaultPosition,
-    wxDefaultSize, 
-    0
-  );
-  boxSizer->Add(info, 0, wxALIGN_LEFT|wxALL, 5);
 
-  // Spacer
-  boxSizer->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
-*/
   // Horizontal sizer for first row
   wxBoxSizer *firstRow = new wxBoxSizer(wxHORIZONTAL);
   boxSizer->Add(firstRow, 0, wxGROW|wxALL, 5);
@@ -628,5 +611,4 @@ void AutoLoopDialog::OnQuality(wxCommandEvent& event) {
 
   m_qualityLabel->SetLabel(wxString::Format(wxT("Quality factor: %.1f"), m_quality));
 }
-
 

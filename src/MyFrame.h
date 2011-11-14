@@ -56,6 +56,9 @@ public:
   void OnBatchProcess(wxCommandEvent& event);
   void OnAutoLoop(wxCommandEvent& event);
   void OnAutoLoopSettings(wxCommandEvent& event);
+  void OnPitchSettings(wxCommandEvent& event);
+  void OnZoomInAmplitude(wxCommandEvent& event);
+  void OnZoomOutAmplitude(wxCommandEvent& event);
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
@@ -84,6 +87,7 @@ private:
   MyPanel *m_panel;
   wxToolBar *toolBar;
   wxMenu *fileMenu;
+  wxMenu *viewMenu;
   wxMenu *transportMenu;
   wxMenu *toolMenu;
   wxMenu *helpMenu;
