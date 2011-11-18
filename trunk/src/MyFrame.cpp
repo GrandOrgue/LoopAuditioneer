@@ -115,8 +115,8 @@ void MyFrame::OpenAudioFile() {
     filePath = workingDir.Append(wxT("/"));
     filePath += fileToOpen;
     m_waveform = new WaveformDrawer(this, filePath);
-    vbox->Add(m_waveform, 1, wxEXPAND, 0);
-    vbox->SetSizeHints(this);
+    lowerBox->Add(m_waveform, 1, wxEXPAND, 0);
+    vbox->Layout();
 
     m_sound->SetSampleRate(m_audiofile->GetSampleRate());
     m_sound->SetAudioFormat(m_audiofile->GetAudioFormat());
@@ -488,6 +488,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   // Create sizers for frame content
   vbox = new wxBoxSizer(wxVERTICAL);
   wxBoxSizer *hbox = new wxBoxSizer(wxHORIZONTAL);
+  vbox->Add(hbox, 1, wxEXPAND, 0);
 
   m_fileListBox = new wxListBox(
     this,
@@ -497,17 +498,20 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
     fileNames,
     wxLB_SINGLE | wxLB_SORT
   );
-
   hbox->Add(m_fileListBox, 1, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, 10);
 
   m_panel = new MyPanel(this);
-
+  m_panel->SetMinSize(wxSize(600,150));
   hbox->Add(m_panel, 3, wxEXPAND | wxALL, 10);
-  vbox->Add(hbox, 1, wxEXPAND, 0);
+
+  lowerBox = new wxBoxSizer(wxHORIZONTAL);
+  vbox->Add(lowerBox, 1, wxEXPAND, 0);
+  
   SetSizer(vbox);
   vbox->SetSizeHints(this);
+  // Layout();
+  SetMinSize(wxSize(740,480));
   SetBackgroundColour(wxT("#f4f2ef"));
-  SetMinSize(wxSize(600, 280));
 }
 
 MyFrame::~MyFrame() {
@@ -805,12 +809,14 @@ void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
 void MyFrame::UpdateAllViews() {
   // force updates of wxGrids in m_panel by jiggling the size of the frame!
   wxSize size = GetSize();
-  size.IncBy(1, 1);
-  SetSize(size);
   size.DecBy(1, 1);
   SetSize(size);
+  size.IncBy(1, 1);
+  SetSize(size);
 
-  m_panel->Layout();
+  // try to make sure cue grid don't disappear in msw
+  m_panel->m_cueGrid->ForceRefresh();
+  m_panel->m_cueGrid->Update();
 
   if (m_waveform) {
     m_waveform->Refresh();
