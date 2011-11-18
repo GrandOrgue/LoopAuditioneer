@@ -64,11 +64,11 @@ MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefault
   m_cueGrid->SetColFormatBool(2);
   m_cueGrid->SetDefaultCellAlignment(wxALIGN_CENTRE, wxALIGN_CENTRE);
   m_cueGrid->SetCellHighlightPenWidth(0);
-  vbox->Add(fileNameLabel, 0, wxALIGN_LEFT, 0);
+  vbox->Add(fileNameLabel, 0, wxALIGN_CENTER, 0);
   vbox->Add(m_grid, 0, wxALIGN_CENTER | wxTOP| wxBOTTOM, 5);
   vbox->Add(m_cueGrid, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, 5);
-  vbox->SetSizeHints(this);
   SetSizer(vbox);
+  vbox->SetSizeHints(this);
   FitInside();
   SetScrollRate(5, 5);
 }

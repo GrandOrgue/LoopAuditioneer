@@ -82,6 +82,7 @@ private:
   FileHandling *m_audiofile;
   MySound *m_sound;
   wxBoxSizer *vbox;
+  wxBoxSizer *lowerBox;
   wxTimer m_timer;
   wxListBox *m_fileListBox;
   MyPanel *m_panel;

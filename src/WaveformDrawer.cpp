@@ -351,31 +351,37 @@ void WaveformDrawer::CalculateLayout() {
   for (int i = 0; i < loopLayout.size(); i++) {
     // loopLayout[i].overlappingLoops[some valid index] contains the index of one overlapping loop
     // IF not the vector is empty...
-    // IF last overlapping loop is in row 0 THEN this must be in row 1
+    // IF last overlapping loop is in row 0 THEN this must be in row 1 (if there's only one)
     // ELSE we start at row 0 and check all the overlapping loops for a match
     // IF so THEN we continue with next row until we find one that's not matching (is unused)
     if (loopLayout[i].overlappingLoops.empty() == false) {
-      if (loopLayout[loopLayout[i].overlappingLoops.back()].placedInRow == 0)
+      if (loopLayout[loopLayout[i].overlappingLoops.back()].placedInRow == 0 && 
+          loopLayout[i].overlappingLoops.size() == 1)
         loopLayout[i].placedInRow = 1;
       else {
         int unUsedRow = 0;
         for (int j = 0; j < loopLayout[i].overlappingLoops.size(); j++) {
+          bool alreadyTaken = false;
           if (loopLayout[loopLayout[i].overlappingLoops[j]].placedInRow == unUsedRow) {
-            unUsedRow++;
-          } else {
-            // first just make sure that the this overlap is not placed in the same row as the
-            // previously overlapping loop, in which case we should just continue with the next
-            if (j > 0) {
-              if (loopLayout[loopLayout[i].overlappingLoops[j]].placedInRow == 
-                  loopLayout[loopLayout[i].overlappingLoops[j - 1]].placedInRow)
-                continue;
-              else
-                break;
-            } else {
-              break;
+            alreadyTaken = true;
+          }
+
+          // we should check if any of the overlapped loops already got this
+          // row, in which case we must continue looking for an unused one
+          for (int k = 0; k < loopLayout[i].overlappingLoops.size(); k++) {
+            if (loopLayout[loopLayout[i].overlappingLoops[k]].placedInRow ==
+                unUsedRow) {
+              alreadyTaken = true;
             }
           }
-        }
+
+          if (alreadyTaken) {
+            unUsedRow++;
+            continue;
+          } else {
+            break;
+          }
+        } 
         loopLayout[i].placedInRow = unUsedRow;
       }
     }
