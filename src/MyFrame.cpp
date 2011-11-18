@@ -565,13 +565,16 @@ void MyFrame::PopulateListOfFileNames() {
   }
 
   // Remove double entries as Windows is case insensitive...
-  fileNames.Sort();
-  size_t lineCounter = 0;
-  while (lineCounter < fileNames.GetCount() - 1) {
-    if (fileNames[lineCounter] == fileNames[lineCounter + 1])
-      fileNames.RemoveAt(lineCounter + 1);
-    else
-      lineCounter++;
+  // But only do it if wxArrayString not is empty!
+  if (fileNames.IsEmpty() == false) {
+    fileNames.Sort();
+    size_t lineCounter = 0;
+    while (lineCounter < fileNames.GetCount() - 1) {
+      if (fileNames[lineCounter] == fileNames[lineCounter + 1])
+        fileNames.RemoveAt(lineCounter + 1);
+      else
+        lineCounter++;
+    }
   }
 }
 
