@@ -45,6 +45,8 @@ MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefault
   m_grid->SetColFormatBool(4);
   m_grid->SetDefaultCellAlignment(wxALIGN_CENTRE, wxALIGN_CENTRE);
   m_grid->SetCellHighlightPenWidth(0);
+  m_grid->SetDefaultCellBackgroundColour(wxColour(wxT("#f4f2ef")));
+  m_grid->SetLabelBackgroundColour(wxColour(wxT("#f4f2ef")));
   m_cueGrid = new wxGrid(this, CUE_GRID, wxDefaultPosition, wxDefaultSize);
   m_cueGrid->CreateGrid(0,3);
   m_cueGrid->SetRowLabelSize(90);
@@ -64,9 +66,11 @@ MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefault
   m_cueGrid->SetColFormatBool(2);
   m_cueGrid->SetDefaultCellAlignment(wxALIGN_CENTRE, wxALIGN_CENTRE);
   m_cueGrid->SetCellHighlightPenWidth(0);
-  vbox->Add(fileNameLabel, 0, wxALIGN_CENTER, 0);
-  vbox->Add(m_grid, 0, wxALIGN_CENTER | wxTOP| wxBOTTOM, 5);
-  vbox->Add(m_cueGrid, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, 5);
+  m_cueGrid->SetDefaultCellBackgroundColour(wxColour(wxT("#f4f2ef")));
+  m_cueGrid->SetLabelBackgroundColour(wxColour(wxT("#f4f2ef")));
+  vbox->Add(fileNameLabel, 0, wxALIGN_CENTER|wxTOP|wxBOTTOM, 5);
+  vbox->Add(m_grid, 1, wxALIGN_CENTER | wxTOP| wxBOTTOM, 5);
+  vbox->Add(m_cueGrid, 1, wxALIGN_CENTER | wxTOP | wxBOTTOM, 5);
   SetSizer(vbox);
   vbox->SetSizeHints(this);
   FitInside();

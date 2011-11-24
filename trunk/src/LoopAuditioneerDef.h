@@ -42,6 +42,6 @@ enum {
 };
 
 const wxString appName = wxT("LoopAuditioneer");
-const wxString appVersion = wxT("0.6.3.0");
+const wxString appVersion = wxT("0.6.4.0");
 
 #endif
