@@ -817,10 +817,6 @@ void MyFrame::UpdateAllViews() {
   size.IncBy(1, 1);
   SetSize(size);
 
-  // try to make sure cue grid don't disappear in msw
-  m_panel->m_cueGrid->ForceRefresh();
-  m_panel->m_cueGrid->Update();
-
   if (m_waveform) {
     m_waveform->Refresh();
     m_waveform->Update();
