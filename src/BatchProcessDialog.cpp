@@ -1,6 +1,6 @@
 /*
  * BatchProcessDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo
+ * Copyright (C) 2011-2012 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,7 +62,8 @@ void BatchProcessDialog::Init() {
   m_batchProcessesAvailable.Add(wxT("Kill all cues"));
   m_batchProcessesAvailable.Add(wxT("Kill loops & cues"));
   m_batchProcessesAvailable.Add(wxT("Search for loops"));
-  m_batchProcessesAvailable.Add(wxT("Store pitch info"));
+  m_batchProcessesAvailable.Add(wxT("Search/store pitch info"));
+  m_batchProcessesAvailable.Add(wxT("List pitch deviation"));
 }
 
 bool BatchProcessDialog::Create(
@@ -543,7 +544,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             sfh.read(audioData, sfh.frames() * sfh.channels());
 
             // autosearch pitch and calculate midi note and pitch fraction
-            double pitch = fh.GetPitch(audioData);
+            double pitch = fh.GetFFTPitch(audioData);
             int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
             double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
             double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
@@ -556,6 +557,49 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch = %.2f Hz\n"), pitch));
             m_statusProgress->AppendText(wxT("\tDone!\n"));
+
+            // delete the now unneccessary array of double audio data
+            delete[] audioData;
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+        }
+        m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 6:
+      // This is for autosearching pitch information and list deviations in cent
+      if (filesToProcess.IsEmpty() == false) {
+        m_statusProgress->AppendText(m_sourceField->GetValue());
+        m_statusProgress->AppendText(wxT("\n"));
+        m_statusProgress->AppendText(wxT("\n"));
+        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+          m_statusProgress->AppendText(filesToProcess.Item(i));
+          m_statusProgress->AppendText(wxT("\n"));
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            // now we need data as doubles
+            wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
+            SndfileHandle sfh;
+            sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
+            double *audioData = new double[sfh.frames() * sfh.channels()];
+            sfh.read(audioData, sfh.frames() * sfh.channels());
+
+            // autosearch pitch and calculate midi note and pitch fraction
+            double pitch = fh.GetFFTPitch(audioData);
+            int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
+            double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
+            double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
+            double deviationToRaise = 100.0 - cent_deviation;
+            double deviationToLower = -cent_deviation;
+
+            m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch = %.2f Hz\n"), pitch));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tCents to tune up = %.2f \n"), deviationToRaise));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tCents to tune down = %.2f \n"), deviationToLower));
 
             // delete the now unneccessary array of double audio data
             delete[] audioData;

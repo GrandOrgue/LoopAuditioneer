@@ -38,10 +38,11 @@ enum {
   AUTOLOOP_SETTINGS = wxID_HIGHEST + 12,
   PITCH_SETTINGS = wxID_HIGHEST + 13,
   ZOOM_IN_AMP = wxID_HIGHEST + 14,
-  ZOOM_OUT_AMP = wxID_HIGHEST + 15
+  ZOOM_OUT_AMP = wxID_HIGHEST + 15,
+  ID_VOLUME_SLIDER = wxID_HIGHEST + 16
 };
 
 const wxString appName = wxT("LoopAuditioneer");
-const wxString appVersion = wxT("0.6.4.0");
+const wxString appVersion = wxT("0.6.5.0");
 
 #endif

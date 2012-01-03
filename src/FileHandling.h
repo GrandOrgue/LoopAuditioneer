@@ -1,6 +1,6 @@
 /*
  * FileHandling.h is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo
+ * Copyright (C) 2011-12 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ public:
   int GetSampleRate();
   int GetAudioFormat();
   bool FileCouldBeOpened();
-  double GetPitch(double data[]);
+  double GetFFTPitch(double data[]);
 
   short *shortAudioData;
   int *intAudioData;
@@ -59,9 +59,9 @@ private:
   int m_minorFormat;
   int m_samplerate;
   bool fileOpenWasSuccessful;
-  double m_pitch;
+  double m_fftPitch;
 
-  bool AutoDetectPitch(double data[]);
+  bool DetectPitchByFFT(double data[]);
 
 };
 

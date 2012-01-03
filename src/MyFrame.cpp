@@ -1,6 +1,6 @@
 /*
  * MyFrame.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo
+ * Copyright (C) 2011-2012 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include "PitchDialog.h"
 
 bool MyFrame::loopPlay = true; // default to loop play
+int MyFrame::volumeMultiplier = 1; // default value
 
 // Event table
 BEGIN_EVENT_TABLE(MyFrame, wxFrame)
@@ -58,6 +59,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_TOOL(ZOOM_IN_AMP, MyFrame::OnZoomInAmplitude)
   EVT_TOOL(ZOOM_OUT_AMP, MyFrame::OnZoomOutAmplitude)
   EVT_TIMER(TIMER_ID, MyFrame::UpdatePlayPosition)
+  EVT_SLIDER(ID_VOLUME_SLIDER, MyFrame::OnVolumeSlider)
 END_EVENT_TABLE()
 
 void MyFrame::OnAbout(wxCommandEvent& event) {
@@ -472,6 +474,30 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->AddTool(PITCH_SETTINGS, pitchInfo, wxT("Pitch settings"), wxT("Find/set information about pitch"));
   toolBar->AddTool(ZOOM_IN_AMP, zoomInAmp, wxT("Zoom in"), wxT("Zoom in on amplitude"));
   toolBar->AddTool(ZOOM_OUT_AMP, zoomOutAmp, wxT("Zoom out"), wxT("Zoom out on amplitude"));
+
+  // Text label for volume slider
+  wxStaticText *volumeLabel = new wxStaticText (
+    toolBar,
+    wxID_ANY,
+    wxT(" Volume boost: "),
+    wxDefaultPosition,
+    wxDefaultSize
+  );
+
+  // Slider for volume (0 to 4)
+  wxSlider *volumeSlider = new wxSlider ( 
+    toolBar, 
+    ID_VOLUME_SLIDER,
+    0,
+    0,
+    4,
+    wxDefaultPosition, 
+    wxSize(100, -1), 
+    wxSL_HORIZONTAL
+  );
+
+  toolBar->AddControl(volumeLabel);
+  toolBar->AddControl(volumeSlider);
   toolBar->Realize();
   toolBar->EnableTool(OPEN_SELECTED, false);
   toolBar->EnableTool(wxID_SAVE, false);
@@ -596,7 +622,7 @@ int MyFrame::AudioCallback(void *outputBuffer,
     // Loop that feeds the outputBuffer with data
     if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
       for (unsigned int i = 0; i < nBufferFrames * nChannels; i++) {
-        *buffer++ = ::wxGetApp().frame->m_audiofile->shortAudioData[(position[0])];
+        *buffer++ = ::wxGetApp().frame->m_audiofile->shortAudioData[(position[0])] * volumeMultiplier;
         position[0] += 1;
 
         if (loopPlay) {
@@ -627,7 +653,7 @@ int MyFrame::AudioCallback(void *outputBuffer,
     // Loop that feeds the outputBuffer with data
     if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
       for (unsigned int i = 0; i < nBufferFrames * nChannels; i++) {
-        *buffer++ = ::wxGetApp().frame->m_audiofile->intAudioData[(position[0])];
+        *buffer++ = ::wxGetApp().frame->m_audiofile->intAudioData[(position[0])] * volumeMultiplier;
         position[0] += 1;
 
         if (loopPlay) {
@@ -658,7 +684,7 @@ int MyFrame::AudioCallback(void *outputBuffer,
     // Loop that feeds the outputBuffer with data
     if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
       for (unsigned int i = 0; i < nBufferFrames * nChannels; i++) {
-        *buffer++ = ::wxGetApp().frame->m_audiofile->doubleAudioData[(position[0])];
+        *buffer++ = ::wxGetApp().frame->m_audiofile->doubleAudioData[(position[0])] * volumeMultiplier;
         position[0] += 1;
 
         if (loopPlay) {
@@ -930,7 +956,7 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
   double *audioData = new double[m_audiofile->ArrayLength];
   bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
 
-  double pitch = m_audiofile->GetPitch(audioData);
+  double pitch = m_audiofile->GetFFTPitch(audioData);
   int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
   double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
   double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
@@ -972,5 +998,12 @@ void MyFrame::OnZoomOutAmplitude(wxCommandEvent& event) {
   m_waveform->ZoomOutAmplitude();
   SetStatusText(wxString::Format(wxT("Zoom level: x %i"), m_waveform->GetAmplitudeZoomLevel()), 1);
   UpdateAllViews();
+}
+
+void MyFrame::OnVolumeSlider(wxCommandEvent& event) {
+  wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
+  int value = volumeSl->GetValue();
+
+  volumeMultiplier = (int) (pow(2, (double) value));
 }
 

@@ -1,6 +1,6 @@
 /*
  * FileHandling.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo
+ * Copyright (C) 2011-2012 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
  */
 
 #include "FileHandling.h"
+#include "FFT.h"
 
 FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false) {
   m_loops = new LoopMarkers();
@@ -191,255 +192,219 @@ bool FileHandling::FileCouldBeOpened() {
     return false;
 }
 
-double FileHandling::GetPitch(double data[]) {
-  bool gotPitch = AutoDetectPitch(data);
+double FileHandling::GetFFTPitch(double data[]) {
+  bool gotPitch = DetectPitchByFFT(data);
   if (gotPitch)
-    return m_pitch;
+    return m_fftPitch;
   else
     return 0;
 }
 
-bool FileHandling::AutoDetectPitch(double data[]) {
-  // Find strongest value
-  double maxValue = 0;
-  for (unsigned i = 0; i < ArrayLength; i += m_channels) {
-    for (int j = 0; j < m_channels; j++) {
-      double currentValue = fabs(data[i + j]);
-
-      if (currentValue > maxValue) {
-        maxValue = currentValue;
-      }
-    }
-  }
-
-  // Find a resonable sustainsection in the audio to check
+bool FileHandling::DetectPitchByFFT(double data[]) {
+  std::vector<double> detectedPitches;
+  unsigned numberOfSamples = ArrayLength / m_channels;
   unsigned sustainStartIndex, sustainEndIndex;
+  double *channel_data = new double[numberOfSamples];
 
-  // set a windowsize for a 20 Hz frequency in current file
-  int windowSize = m_samplerate / 20 * m_channels;
+  for (int i = 0; i < m_channels; i++) {
+    // fill channel_data array with values from data[]
+    int channel_idx = 0;
+    for (int data_idx = i; data_idx < ArrayLength; data_idx += m_channels) {
+      channel_data[channel_idx] = data[data_idx];
+      channel_idx++;
+    }
 
-  // Find sustainstart by scanning from the beginning
-  double maxAmplitudeValue = 0;
+    // Find strongest value
+    double maxValue = 0;
+    for (unsigned idx = 0; idx < numberOfSamples; idx++) {
+      double currentValue = fabs(channel_data[idx]);
+
+      if (currentValue > maxValue)
+        maxValue = currentValue;
+    }
+
+    // now detect sustain section
+    // set a windowsize for a 20 Hz frequency in current file (mono now!)
+    int windowSize = m_samplerate / 20;
+
+    // Find sustainstart by scanning from the beginning
+    double maxAmplitudeValue = 0;
   
-  for (unsigned i = 0; i < ArrayLength - windowSize; i += windowSize) {
-    double maxValueInThisWindow = 0;
-    for (int j = i; j < i + windowSize; j++) {
-      double currentValue = fabs(data[j]);
+    for (unsigned idx = 0; idx < numberOfSamples - windowSize; idx += windowSize) {
+      double maxValueInThisWindow = 0;
+      for (int j = idx; j < idx + windowSize; j++) {
+        double currentValue = fabs(channel_data[j]);
 
-      if (currentValue > maxValueInThisWindow)
-        maxValueInThisWindow = currentValue;
+        if (currentValue > maxValueInThisWindow)
+          maxValueInThisWindow = currentValue;
+      }
+
+      if (maxValueInThisWindow > maxAmplitudeValue)
+        maxAmplitudeValue = maxValueInThisWindow;
+      else {
+        // the max value in the window is not increasing anymore so 
+        // sustainsection is reached
+        sustainStartIndex = idx + windowSize;
+        break;
+      }
     }
 
-    if (maxValueInThisWindow > maxAmplitudeValue)
-      maxAmplitudeValue = maxValueInThisWindow;
-    else {
-      // the max value in the window is not increasing anymore so 
-      // sustainsection is reached
-      sustainStartIndex = i + windowSize;
-      break;
-    }
-  }
+    // then we add an offset of 0.25 seconds to allow the tone to stabilize
+    sustainStartIndex += m_samplerate / 4;
 
-  // then we add an offset of 0.25 seconds to allow the tone to stabilize
-  sustainStartIndex += m_samplerate * m_channels / 4;
-
-  // make sure we're on the first channel now
-  sustainStartIndex -= (sustainStartIndex % m_channels);
-
-  // search forward for a zero crossing
-  if (data[sustainStartIndex] > 0) {
-    while (data[sustainStartIndex] > 0) {
-      sustainStartIndex += m_channels;
-    }
-    sustainStartIndex -= m_channels;
-  } else {
-    while (data[sustainStartIndex] < 0) {
-      sustainStartIndex += m_channels;
-    }
-    sustainStartIndex -= m_channels;
-  }
-
-  // now find sustainend by scanning from the end of audio data
-  maxAmplitudeValue = 0;
+    // now find sustainend by scanning from the end of audio data
+    maxAmplitudeValue = 0;
   
-  for (unsigned i = ArrayLength; i > 0 + windowSize; i -= windowSize) {
-    double maxValueInThisWindow = 0;
-    for (int j = i; j > i - windowSize; j--) {
-      double currentValue = fabs(data[j]);
+    for (unsigned idx = numberOfSamples - 1; idx > windowSize; idx -= windowSize) {
+      double maxValueInThisWindow = 0;
+      for (int j = idx; j > idx - windowSize; j--) {
+        double currentValue = fabs(channel_data[j]);
 
-      if (currentValue > maxValueInThisWindow)
-        maxValueInThisWindow = currentValue;
-    }
+        if (currentValue > maxValueInThisWindow)
+          maxValueInThisWindow = currentValue;
+      }
 
-    // if current max is less than one fourth of max value, or 12 dB lower
-    // we just continue searching backwards
-    if (maxValueInThisWindow < maxValue / 4) {
-      maxAmplitudeValue = maxValueInThisWindow;
-      continue;
-    }
+      // if current max is less than one fourth of max value, or 12 dB lower
+      // we just continue searching backwards
+      if (maxValueInThisWindow < maxValue / 4) {
+        maxAmplitudeValue = maxValueInThisWindow;
+        continue;
+      }
 
-    if (maxValueInThisWindow > maxAmplitudeValue) {
-      maxAmplitudeValue = maxValueInThisWindow;
-    } else {
-      // the max value in the window is not increasing anymore so 
-      // sustainsectionend is reached
-      sustainEndIndex = i;
-      break;
-    }
-  }
-
-  sustainEndIndex -= (sustainEndIndex % m_channels);
-
-  if (sustainStartIndex > sustainEndIndex)
-    return false;
-
-  // Find the approximate period of pattern repetition
-  // We search a window with a length of at four times the longest period we
-  // expect to find. A 32' C has 16.35 Herz, so we use 15 for good measure.
-  // one complete period is sampleRate / 15 samples long and we need four
-  // times the length in samples multiplied with numberOfChannels
-  unsigned searchWindow = m_samplerate / 15 * 4 * m_channels;
-  unsigned maxLag = searchWindow / 2;
-  unsigned approximatePeriod = 0;
-
-  std::vector<std::pair<unsigned, double> > possiblePeriod; // store lag and value for all max after start
-  double currentCorr, previousCorr, beforePreviousCorr;
-
-  for (unsigned i = 0; i < maxLag; i += m_channels) {
-    // calculate normalized crosscorrelation
-    double sum1 = 0, sum2 = 0, sum3 = 0;
-    for (unsigned j = sustainStartIndex; j < sustainStartIndex + searchWindow - i - m_channels; j += m_channels) {
-      sum1 += data[j] * data[j + i];
-      sum2 += pow(data[j], 2);
-      sum3 += pow(data[j + i], 2);
-    }
-    currentCorr = sum1 / sqrt(sum2 * sum3);
-
-    if (i == 0)
-      previousCorr = currentCorr;
-
-    if (i == m_channels) {
-      beforePreviousCorr = previousCorr;
-      previousCorr = currentCorr;
-    }
-
-    if (i > m_channels) {
-      if (currentCorr > previousCorr) {
-        // we're going towards a possible max so just continue
-        beforePreviousCorr = previousCorr;
-        previousCorr = currentCorr;
+      if (maxValueInThisWindow > maxAmplitudeValue) {
+        maxAmplitudeValue = maxValueInThisWindow;
       } else {
-        // we're going away from a max so check if previous was a max
-        if (previousCorr > beforePreviousCorr) {
-          // previous lag was a max! So we store it in the vector
-          possiblePeriod.push_back(std::make_pair(i - m_channels, previousCorr));
+        // the max value in the window is not increasing anymore so 
+        // sustainsectionend should be reached
+        sustainEndIndex = idx;
+        break;
+      }
+    }
 
-          // then we must continue
-          beforePreviousCorr = previousCorr;
-          previousCorr = currentCorr;
+    // then we remove an offset of 0.25 seconds to be sure
+    sustainEndIndex -= m_samplerate / 4;
+
+    if (sustainStartIndex > sustainEndIndex) {
+      // this is an error situation where no sustainsection could be found
+      delete[] channel_data;
+      return false;
+    }
+
+    // find out how large the analyze window can be
+    int analyzeWindowSize = 2;
+    bool keepIncreasing = true;
+    while (keepIncreasing) {
+      if (analyzeWindowSize < sustainEndIndex - sustainStartIndex) {
+        if (analyzeWindowSize < m_samplerate) {
+          if (analyzeWindowSize < 16384)
+            analyzeWindowSize *= 2;
+          else
+            keepIncreasing = false;
         } else {
-          // no, we are just moving away from a max so just continue
-          beforePreviousCorr = previousCorr;
-          previousCorr = currentCorr;
+          keepIncreasing = false;
         }
-      }
-    }
-  }
-
-  double derivativeAtZero = (data[sustainStartIndex + m_channels] - data[sustainStartIndex - m_channels]) / 2.0;
-  // Then we look at the possiblePeriod vector and find the first value that is
-  // above the threshold which "should" be the repetitionperiod...
-  if (possiblePeriod.empty() == false) {
-    // first we find the highest value in the maxima vector which we then will 
-    // use to create a threshold of say max 5% lower
-    double thresholdValue = 0;
-    for (int i = 0; i < possiblePeriod.size(); i++) {
-      if (possiblePeriod[i].second > thresholdValue)
-        thresholdValue = possiblePeriod[i].second;
-    }
-    thresholdValue *= 0.95;
-
-    for (int i = 0; i < possiblePeriod.size(); i++) {
-      if (possiblePeriod[i].second > thresholdValue) {
-        // this could be the period, we should double check that the derivative
-        // of the first channel will actually match at start and this point then
-        double derivativeAtThis = (data[sustainStartIndex + possiblePeriod[i].first + m_channels] - data[sustainStartIndex + possiblePeriod[i].first - m_channels]) / 2.0;
-
-        if (derivativeAtZero < 0 == derivativeAtThis < 0) {
-          approximatePeriod = possiblePeriod[i].first;
-          break;
-        }
-      }
-    }
-  } else {
-    return false;
-  }
-
-  if (approximatePeriod == 0)
-    return false;
-
-  // Now we know the approximate period so that we can search more efficently
-  // and add the distance between every period within the sustainsection to
-  // the pitch vector and then we calculate the average of them to get the
-  // average pitch.
-  std::vector<unsigned> repetitionPeriods;
-  unsigned jumpThisManyIndexes = approximatePeriod - 2 * m_channels;
-  unsigned lastMinIndex = sustainStartIndex;
-  for (unsigned i = sustainStartIndex; i < sustainEndIndex - approximatePeriod; i += m_channels) {
-    if (i < lastMinIndex + jumpThisManyIndexes)
-      continue;
-
-    double sum = 0;
-
-    for (int j = 0; j < approximatePeriod; j++) {
-      sum += pow(data[i] - data[j + i], 2);
-    }
-    currentCorr = sqrt(sum / (double) approximatePeriod);
-
-    if (i > sustainStartIndex + m_channels) {
-      if (currentCorr < previousCorr) {
-        // we're going towards a possible min so just continue
-        beforePreviousCorr = previousCorr;
-        previousCorr = currentCorr;
       } else {
-        // we're going away from a min so check if previous was a min
-        if (previousCorr < beforePreviousCorr) {
-          // previous lag was a min! So we store it in the vector
-          repetitionPeriods.push_back(i - m_channels - lastMinIndex);
-          lastMinIndex = i - m_channels;
-
-          // then we must continue
-          beforePreviousCorr = 1;
-          previousCorr = 1;
-        } else {
-          // no, we are just moving away from a min so just continue
-          beforePreviousCorr = previousCorr;
-          previousCorr = currentCorr;
-        }
+        keepIncreasing = false;
       }
     }
 
-    if (i == sustainStartIndex) {
-      previousCorr = currentCorr;
+    double *in = new double[analyzeWindowSize];
+    double *out = new double[analyzeWindowSize / 2];
+   
+    unsigned current_idx = sustainStartIndex;
+
+    while (current_idx < sustainEndIndex - analyzeWindowSize) {
+      // fill in array
+      int index = 0;
+      for (unsigned x = current_idx; x < current_idx + analyzeWindowSize; x++) {
+        in[index] = channel_data[x];
+        index++;
+      }
+
+      // Apply a Gaussian window to the data
+      WindowFunc(9, analyzeWindowSize, in);
+
+      // Perform the FFT
+      PowerSpectrum(analyzeWindowSize, in, out);
+
+      // now we should find the first peak above the average value which should
+      // indicate what frequency is the fundamental
+      double sum = 0, averageValue;
+      for (int x = 0; x < (analyzeWindowSize / 2); x++)
+        sum += out[x];
+
+      averageValue = sum / (double) (analyzeWindowSize / 2);
+
+      int peakIndex = 0;
+      double current, before, beforeBefore;
+      for (int x = 0; x < (analyzeWindowSize / 2); x++) {
+        current = out[x];
+
+        if (x > 1) {
+          if (current > before) {
+            // we're going towards a possible peak so just continue
+            beforeBefore = before;
+            before = current;
+          } else {
+            // we're going away from a max so check if previous was a max
+            if (before > beforeBefore) {
+              // previous index was a max! check if we're above average
+              if (before > averageValue) {
+                // Yes! we store before index as peakIndex
+                peakIndex = x - 1;
+                break;
+              } else {
+                // No! Then we must continue
+                beforeBefore = before;
+                before = current;
+              }
+            } else {
+              // no, we are just moving away from a max so just continue
+              beforeBefore = before;
+              before = current;
+            }
+          }
+        }
+
+        if (x == 0)
+          before = current;
+
+        if (x == 1) {
+          beforeBefore = before;
+          before = current;
+        }
+      }
+
+      // translate peakIndex to a frequency
+      double centerPeakBin; 
+      double valueBeforePeak = out[peakIndex - 1];
+      double valueAtPeak = out[peakIndex];
+      double valueAfterPeak = out[peakIndex + 1]; 
+
+      centerPeakBin = 0.5 * (valueBeforePeak - valueAfterPeak) / (valueBeforePeak - 2 * valueAtPeak + valueAfterPeak);
+      double peakFrequency = (peakIndex + centerPeakBin) * m_samplerate / (double) analyzeWindowSize;
+      detectedPitches.push_back(peakFrequency);
+
+      // proceed to next window
+      current_idx += analyzeWindowSize;
     }
 
-    if (i == sustainStartIndex + m_channels) {
-      beforePreviousCorr = previousCorr;
-      previousCorr = currentCorr;
-    }
+    delete[] in;
+    delete[] out;
+
   }
 
-  // calculate average pitch
-  if (repetitionPeriods.empty() == false) {
-    unsigned periodSum = 0;
-    for (int i = 0; i < repetitionPeriods.size(); i++) {
-      periodSum += repetitionPeriods[i];
-    }
-    double averagePeriod = (double) periodSum / (double) repetitionPeriods.size();
-    m_pitch = m_samplerate * m_channels / averagePeriod;
+  delete[] channel_data;
+
+  if (detectedPitches.empty() == false) {
+    double pitchSum;
+    for (int i = 0; i < detectedPitches.size(); i++)
+      pitchSum += detectedPitches[i];
+
+    m_fftPitch = pitchSum / (double) detectedPitches.size();
     return true;
+  } else {
+    return false;
   }
-
-  return false;
 }
 

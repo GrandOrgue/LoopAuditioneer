@@ -1,4 +1,4 @@
-This is LoopAuditioneer 0.6.4.0
+This is LoopAuditioneer 0.6.5.0
 Copyright (C) 2011 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
@@ -10,7 +10,9 @@ file mode and in batch processing. Of course you can still use another software
 like Nick Appletons free Autoloop independantly for other loop options.
 
 In the src/ directory you'll find the source code for LoopAuditioneer. The
-icons in src/icons are created by the author.
+icons in src/icons are created by the author. The only code in the src/ folder
+that's not written by the author is the FFT.h and FFT.cpp files that are
+slightly modified versions of those in Audacity source code.
 
 The lib-src/ directory contains the external libraries that LoopAuditioneer is
 dependant on. Libsndfile, originally written by Erik de Castro Lopo and 
