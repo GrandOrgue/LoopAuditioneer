@@ -1,6 +1,6 @@
 /* 
  * PitchDialog.h is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2012 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -100,9 +100,13 @@ private:
   double m_fileMIDIPitchFraction;
   double m_detectedPitch;
   bool m_useAutoDetection;
+  double m_resultingPitch;
 
   wxArrayString m_notenumbers;
   wxStaticText *fractionLabel;
+  wxStaticText *resultingPitchLabel;
+
+  void CalculatingResultingPitch();
 };
 
 #endif

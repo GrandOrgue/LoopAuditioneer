@@ -59,6 +59,7 @@ public:
   void OnPitchSettings(wxCommandEvent& event);
   void OnZoomInAmplitude(wxCommandEvent& event);
   void OnZoomOutAmplitude(wxCommandEvent& event);
+  void OnVolumeSlider(wxCommandEvent& event);
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
@@ -101,6 +102,7 @@ private:
   void UpdateAllViews();
 
   static bool loopPlay;
+  static int volumeMultiplier;
 };
 
 #endif

@@ -1,6 +1,6 @@
 /* 
  * PitchDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2012 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,6 +65,7 @@ void PitchDialog::Init(
   m_detectedMIDIPitchFraction = pitchFraction;
   m_fileMIDIUnityNote = fileMidiNote;
   m_fileMIDIPitchFraction = filePitchFraction;
+  CalculatingResultingPitch();
   m_detectedPitch = pitch;
   m_useAutoDetection = true;
 
@@ -242,6 +243,22 @@ void PitchDialog::CreateControls() {
   pitchFractionSlider->Enable(false);
   fractionRow->Add(pitchFractionSlider, 2, wxGROW|wxALL, 5);
 
+  // A horizontal box sizer for displaying resulting pitch
+  wxBoxSizer* pitchRow = new wxBoxSizer(wxHORIZONTAL);
+  filePitchContainer->Add(pitchRow, 1, wxGROW|wxALL, 5);
+
+  // Label for the resulting pitch
+  resultingPitchLabel = new wxStaticText ( 
+    this, 
+    wxID_STATIC,
+    wxEmptyString, 
+    wxDefaultPosition, 
+    wxDefaultSize, 
+    0
+  );
+  resultingPitchLabel->SetLabel(wxString::Format(wxT("Resulting pitch: %.2f Hz"), m_resultingPitch));
+  pitchRow->Add(resultingPitchLabel, 1, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+
   // A horizontal box sizer for the third row
   wxBoxSizer* thirdRow = new wxBoxSizer(wxHORIZONTAL);
   boxSizer->Add(thirdRow, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
@@ -318,12 +335,18 @@ void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& event) {
 void PitchDialog::OnNoteChange(wxCommandEvent& event) {
   wxComboBox *midinote = (wxComboBox*) FindWindow(ID_NOTECOMBO);
   m_fileMIDIUnityNote = wxAtoi(midinote->GetValue());
+
+  CalculatingResultingPitch();
+  resultingPitchLabel->SetLabel(wxString::Format(wxT("Resulting pitch: %.2f Hz"), m_resultingPitch));
 }
 
 void PitchDialog::OnFractionChange(wxCommandEvent& event) {
   wxSlider *pitchFract = (wxSlider*) FindWindow(ID_PITCHFRACTION);
   m_fileMIDIPitchFraction = (double) pitchFract->GetValue() / 100.0;
   fractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_fileMIDIPitchFraction));
+
+  CalculatingResultingPitch();
+  resultingPitchLabel->SetLabel(wxString::Format(wxT("Resulting pitch: %.2f Hz"), m_resultingPitch));
 }
 
 int PitchDialog::GetMIDINote() {
@@ -332,5 +355,10 @@ int PitchDialog::GetMIDINote() {
 
 double PitchDialog::GetPitchFraction() {
   return m_fileMIDIPitchFraction;
+}
+
+void PitchDialog::CalculatingResultingPitch() {
+  double midi_note_pitch = 440.0 * pow(2, ((double)(m_fileMIDIUnityNote - 69) / 12.0));
+  m_resultingPitch = midi_note_pitch * pow(2, (m_fileMIDIPitchFraction / 1200.0));
 }
 
