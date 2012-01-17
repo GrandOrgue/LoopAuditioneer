@@ -66,7 +66,7 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
   wxAboutDialogInfo info;
   info.SetName(appName);
   info.SetVersion(appVersion);
-  info.SetDescription(wxT("This program allows users to listen to and evaluate loops and cues embedded in wav files."));
+  info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files."));
   info.SetCopyright(wxT("Copyright (C) 2011 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
   info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
 
@@ -956,27 +956,62 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
   double *audioData = new double[m_audiofile->ArrayLength];
   bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
 
+  int midi_note;
+  int td_midi_note;
+  double midi_note_pitch;
+  double td_midi_note_pitch;
+  double cent_deviation;
+  double td_cent_deviation;
+  unsigned int midi_pitch_fraction;
+  unsigned int td_midi_pitch_fraction;
+
   double pitch = m_audiofile->GetFFTPitch(audioData);
-  int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
-  double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
-  double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
-  unsigned int midi_pitch_fraction = ((double)UINT_MAX * (cent_deviation / 100.0));
+  double td_pitch = m_audiofile->GetTDPitch();
+  if (pitch != 0) {
+    // FFT detection
+    midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
+    midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
+    cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
+    midi_pitch_fraction = ((double)UINT_MAX * (cent_deviation / 100.0));
+
+    // TD detection
+    td_midi_note = (69 + 12 * (log10(td_pitch / 440.0) / log10(2)));
+    td_midi_note_pitch = 440.0 * pow(2, ((double)(td_midi_note - 69) / 12.0));
+    td_cent_deviation = 1200 * (log10(td_pitch / td_midi_note_pitch) / log10(2));
+    td_midi_pitch_fraction = ((double)UINT_MAX * (td_cent_deviation / 100.0));
+  } else {
+    midi_note = 0;
+    midi_note_pitch = 0;
+    cent_deviation = 0;
+    midi_pitch_fraction = 0;
+    td_midi_note = 0;
+    td_midi_note_pitch = 0;
+    td_cent_deviation = 0;
+    td_midi_pitch_fraction = 0;
+  }
   double cent_from_file = (double) m_audiofile->m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
 
   PitchDialog dialog(
     pitch,
     midi_note,
     cent_deviation,
+    td_pitch,
+    td_midi_note,
+    td_cent_deviation,
     (int) m_audiofile->m_loops->GetMIDIUnityNote(),
     cent_from_file,
     this
   );
 
   if (dialog.ShowModal() == wxID_OK) {
-    if (dialog.GetUseAutoDetected()) {
+    int selectedMethod = dialog.GetMethodUsed();
+    if (selectedMethod == 0) {
       m_audiofile->m_loops->SetMIDIUnityNote((char) midi_note);
       m_audiofile->m_loops->SetMIDIPitchFraction(midi_pitch_fraction);
-    } else {
+    } else if (selectedMethod == 1) {
+      m_audiofile->m_loops->SetMIDIUnityNote((char) td_midi_note);
+      m_audiofile->m_loops->SetMIDIPitchFraction(td_midi_pitch_fraction);
+    } else if (selectedMethod == 2) {
       m_audiofile->m_loops->SetMIDIUnityNote((char) dialog.GetMIDINote());
       m_audiofile->m_loops->SetMIDIPitchFraction((unsigned)((double)UINT_MAX * (dialog.GetPitchFraction() / 100.0)));
     }

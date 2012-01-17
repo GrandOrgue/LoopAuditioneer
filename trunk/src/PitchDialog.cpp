@@ -23,7 +23,7 @@
 IMPLEMENT_CLASS(PitchDialog, wxDialog )
 
 BEGIN_EVENT_TABLE(PitchDialog, wxDialog)
-  EVT_CHECKBOX(ID_PITCH_CHECK, PitchDialog::OnAutoDetectionCheck)
+  EVT_RADIOBOX(ID_PITCH_METHOD, PitchDialog::OnAutoDetectionCheck)
   EVT_COMBOBOX(ID_NOTECOMBO, PitchDialog::OnNoteChange)
   EVT_SLIDER(ID_PITCHFRACTION, PitchDialog::OnFractionChange)
 END_EVENT_TABLE()
@@ -32,16 +32,22 @@ PitchDialog::PitchDialog(
   double pitch,
   int midiNote,
   double pitchFraction,
+  double td_pitch,
+  int td_midiNote,
+  double td_pitchFraction,
   int fileMidiNote,
   double filePitchFraction
 ) {
-  Init(pitch, midiNote, pitchFraction, fileMidiNote, filePitchFraction);
+  Init(pitch, midiNote, pitchFraction, td_pitch, td_midiNote, td_pitchFraction, fileMidiNote, filePitchFraction);
 }
 
 PitchDialog::PitchDialog(
   double pitch,
   int midiNote,
   double pitchFraction,
+  double td_pitch,
+  int td_midiNote,
+  double td_pitchFraction,
   int fileMidiNote,
   double filePitchFraction,
   wxWindow* parent,
@@ -51,13 +57,17 @@ PitchDialog::PitchDialog(
   const wxSize& size,
   long style
 ) {
-  Init(pitch, midiNote, pitchFraction, fileMidiNote, filePitchFraction);
+  Init(pitch, midiNote, pitchFraction, td_pitch, td_midiNote, td_pitchFraction, fileMidiNote, filePitchFraction);
   Create(parent, id, caption, pos, size, style);
 }
  
 void PitchDialog::Init(
-  double pitch, int midiNote,
+  double pitch,
+  int midiNote,
   double pitchFraction,
+  double td_pitch,
+  int td_midiNote,
+  double td_pitchFraction,
   int fileMidiNote,
   double filePitchFraction
 ) {
@@ -67,7 +77,16 @@ void PitchDialog::Init(
   m_fileMIDIPitchFraction = filePitchFraction;
   CalculatingResultingPitch();
   m_detectedPitch = pitch;
-  m_useAutoDetection = true;
+  m_TDdetectedMIDIUnityNote = td_midiNote;
+  m_TDdetectedMIDIPitchFraction = td_pitchFraction;
+  m_TDdetectedPitch = td_pitch;
+  m_useFFTDetection = true;
+  m_useTDDetection = false;
+  m_useManual = false;
+
+  pitchMethods.Add(wxT("FFT pitch"));
+  pitchMethods.Add(wxT("Timedomain pitch"));
+  pitchMethods.Add(wxT("Existing/manual pitch"));
 
   for (int i = 0; i < 128; i++)
     m_notenumbers.Add(wxString::Format(wxT("%d"), i));
@@ -106,17 +125,17 @@ void PitchDialog::CreateControls() {
   wxBoxSizer* firstRow = new wxBoxSizer(wxHORIZONTAL);
   boxSizer->Add(firstRow, 1, wxGROW|wxALL, 5);
 
-  // Grouping of auto pitch detection information
-  wxStaticBox *autoPitchBox = new wxStaticBox(
+  // Grouping of FFT pitch detection information
+  wxStaticBox *FFTPitchBox = new wxStaticBox(
     this, 
     wxID_STATIC,
-    wxT("Autodetected pitch information"), 
+    wxT("FFT-based pitch detection"), 
     wxDefaultPosition, 
     wxDefaultSize
   );
 
   // Vertical sizer for auto pitch subsections
-  wxStaticBoxSizer *autoPitchContainer = new wxStaticBoxSizer(autoPitchBox, wxVERTICAL);
+  wxStaticBoxSizer *autoPitchContainer = new wxStaticBoxSizer(FFTPitchBox, wxVERTICAL);
   firstRow->Add(autoPitchContainer, 1, wxGROW|wxALL, 5);
 
   // Label for the autodetected pitch frequency
@@ -155,16 +174,72 @@ void PitchDialog::CreateControls() {
   pitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_detectedMIDIPitchFraction));
   autoPitchContainer->Add(pitchFractionLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
 
-  // Checkbox for using autosearched pitch information
-  wxCheckBox *autoPitchCheck = new wxCheckBox(
-    this,
-    ID_PITCH_CHECK,
-    wxT("Use autodetected pitch information?"),
-    wxDefaultPosition,
+  // Grouping of TimeDomain pitch detection information
+  wxStaticBox *TDPitchBox = new wxStaticBox(
+    this, 
+    wxID_STATIC,
+    wxT("Timedomain-based pitch detection "), 
+    wxDefaultPosition, 
     wxDefaultSize
   );
-  autoPitchCheck->SetValue(m_useAutoDetection);
-  autoPitchContainer->Add(autoPitchCheck, 1, wxGROW|wxALL, 2);
+
+  // Vertical sizer for auto pitch subsections
+  wxStaticBoxSizer *TDPitchContainer = new wxStaticBoxSizer(TDPitchBox, wxVERTICAL);
+  firstRow->Add(TDPitchContainer, 1, wxGROW|wxALL, 5);
+
+  // Label for the autodetected pitch frequency
+  wxStaticText *td_pitchLabel = new wxStaticText ( 
+    this, 
+    wxID_STATIC,
+    wxEmptyString, 
+    wxDefaultPosition, 
+    wxDefaultSize, 
+    0
+  );
+  td_pitchLabel->SetLabel(wxString::Format(wxT("Detected pitch: %.2f Hz"), m_TDdetectedPitch));
+  TDPitchContainer->Add(td_pitchLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+
+  // Label for the calculated MIDIUnityNote
+  wxStaticText *td_midiNoteLabel = new wxStaticText ( 
+    this, 
+    wxID_STATIC,
+    wxEmptyString, 
+    wxDefaultPosition, 
+    wxDefaultSize, 
+    0
+  );
+  td_midiNoteLabel->SetLabel(wxString::Format(wxT("MIDIUnityNote: %d"), m_TDdetectedMIDIUnityNote));
+  TDPitchContainer->Add(td_midiNoteLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+
+  // Label for the calculated MIDIPitchFraction
+  wxStaticText *td_pitchFractionLabel = new wxStaticText ( 
+    this, 
+    wxID_STATIC,
+    wxEmptyString, 
+    wxDefaultPosition, 
+    wxDefaultSize, 
+    0
+  );
+  td_pitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_TDdetectedMIDIPitchFraction));
+  TDPitchContainer->Add(td_pitchFractionLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+
+  // Horizontal sizer for selection row
+  wxBoxSizer* selectionRow = new wxBoxSizer(wxHORIZONTAL);
+  boxSizer->Add(selectionRow, 0, wxGROW|wxALL, 5);
+
+  // Checkbox for using FFT pitch information
+  wxRadioBox *pitchMethod = new wxRadioBox(
+    this,
+    ID_PITCH_METHOD,
+    wxT("Pitch method to use"),
+    wxDefaultPosition,
+    wxDefaultSize,
+    pitchMethods,
+    1,
+    wxRA_SPECIFY_ROWS
+  );
+  pitchMethod->Enable(0, true);
+  selectionRow->Add(pitchMethod, 1, wxGROW|wxALL, 2);
 
   // Horizontal sizer for second row
   wxBoxSizer *secondRow = new wxBoxSizer(wxHORIZONTAL);
@@ -290,11 +365,9 @@ void PitchDialog::CreateControls() {
 bool PitchDialog::TransferDataToWindow() {
   wxComboBox *midinote = (wxComboBox*) FindWindow(ID_NOTECOMBO);
   wxSlider *pitchFract = (wxSlider*) FindWindow(ID_PITCHFRACTION);
-  wxCheckBox *autoCheck = (wxCheckBox*) FindWindow(ID_PITCH_CHECK);
 
   midinote->SetValue(wxString::Format(wxT("%i"), m_fileMIDIUnityNote));
   pitchFract->SetValue((int) m_fileMIDIPitchFraction * 100);
-  autoCheck->SetValue(m_useAutoDetection);
 
   return true;
 }
@@ -303,30 +376,46 @@ bool PitchDialog::TransferDataToWindow() {
 bool PitchDialog::TransferDataFromWindow() {
   wxComboBox *midinote = (wxComboBox*) FindWindow(ID_NOTECOMBO);
   wxSlider *pitchFract = (wxSlider*) FindWindow(ID_PITCHFRACTION);
-  wxCheckBox *autoCheck = (wxCheckBox*) FindWindow(ID_PITCH_CHECK);
 
   m_fileMIDIUnityNote = wxAtoi(midinote->GetValue());
   m_fileMIDIPitchFraction = (double) pitchFract->GetValue() / 100.0;
-  m_useAutoDetection = autoCheck->GetValue();
 
   return true;
 }
 
-bool PitchDialog::GetUseAutoDetected() {
-  return m_useAutoDetection;
+int PitchDialog::GetMethodUsed() {
+  if (m_useFFTDetection)
+    return 0;
+  if (m_useTDDetection)
+    return 1;
+  if (m_useManual)
+    return 2;
 }
 
 void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& event) {
-  wxCheckBox *autoCheck = (wxCheckBox*) FindWindow(ID_PITCH_CHECK);
+  wxRadioBox *radioBox = (wxRadioBox*) FindWindow(ID_PITCH_METHOD);
   wxComboBox *midinote = (wxComboBox*) FindWindow(ID_NOTECOMBO);
   wxSlider *pitchFract = (wxSlider*) FindWindow(ID_PITCHFRACTION);
 
-  m_useAutoDetection = autoCheck->GetValue();
-  
-  if (m_useAutoDetection) {
+  if (radioBox->GetSelection() == 0) {
+    // FFT method chosen
+    m_useFFTDetection = true;
+    m_useTDDetection = false;
+    m_useManual = false;
+    midinote->Enable(false);
+    pitchFract->Enable(false);
+  } else if (radioBox->GetSelection() == 1) {
+    // Timedomain method chosen
+    m_useFFTDetection = false;
+    m_useTDDetection = true;
+    m_useManual = false;
     midinote->Enable(false);
     pitchFract->Enable(false);
   } else {
+    // Existing/manual method chosen
+    m_useFFTDetection = false;
+    m_useTDDetection = false;
+    m_useManual = true;
     midinote->Enable(true);
     pitchFract->Enable(true);
   }

@@ -662,7 +662,7 @@ int WaveformDrawer::GetAmplitudeZoomLevel() {
 }
 
 void WaveformDrawer::ZoomInAmplitude() {
-  if (m_amplitudeZoomLevel < 16)
+  if (m_amplitudeZoomLevel < 64)
     m_amplitudeZoomLevel *= 2;
 
   somethingHasChanged = true;

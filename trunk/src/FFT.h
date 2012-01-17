@@ -23,8 +23,8 @@
   double-to-double conversions, and I added the routines to
   calculate a real FFT and a real power spectrum.
 
-  Note: all of these routines use single-precision doubles.
-  I have found that in practice, doubles work well until you
+  Note: all of these routines use single-precision float.
+  I have found that in practice, float work well until you
   get above 8192 samples.  If you need to do a larger FFT,
   you need to use doubles.
 
@@ -44,7 +44,7 @@
   Lars Palo - December 2011 Modifications to original file from
   Audacity projects sources
 
-  Changed all doubles to double, removed unneccessary
+  Changed all float to double, removed unneccessary
   experimental functions to fit better with LoopAuditioneers
   fft needs.
 */
