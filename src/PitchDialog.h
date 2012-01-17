@@ -25,7 +25,7 @@
 
 // Identifiers
 enum {
-  ID_PITCH_CHECK = wxID_HIGHEST + 400,
+  ID_PITCH_METHOD = wxID_HIGHEST + 400,
   ID_NOTECOMBO = wxID_HIGHEST + 401,
   ID_PITCHFRACTION = wxID_HIGHEST + 402
 };
@@ -40,6 +40,9 @@ public:
     double pitch,
     int midiNote,
     double pitchFraction,
+    double td_pitch,
+    int td_midiNote,
+    double td_pitchFraction,
     int fileMidiNote,
     double filePitchFraction
   );
@@ -47,6 +50,9 @@ public:
     double pitch, 
     int midiNote,
     double pitchFraction,
+    double td_pitch,
+    int td_midiNote,
+    double td_pitchFraction,
     int fileMidiNote,
     double filePitchFraction,
     wxWindow* parent,
@@ -62,6 +68,9 @@ public:
     double pitch,
     int midiNote,
     double pitchFraction,
+    double td_pitch,
+    int td_midiNote,
+    double td_pitchFraction,
     int fileMidiNote,
     double filePitchFraction
   );
@@ -80,7 +89,7 @@ public:
   void CreateControls();
 
   // Accessing functions
-  bool GetUseAutoDetected();
+  int GetMethodUsed();
   int GetMIDINote();
   double GetPitchFraction();
 
@@ -99,8 +108,14 @@ private:
   int m_fileMIDIUnityNote;
   double m_fileMIDIPitchFraction;
   double m_detectedPitch;
-  bool m_useAutoDetection;
+  bool m_useFFTDetection;
+  bool m_useTDDetection;
+  bool m_useManual;
   double m_resultingPitch;
+  int m_TDdetectedMIDIUnityNote;
+  double m_TDdetectedMIDIPitchFraction;
+  double m_TDdetectedPitch;
+  wxArrayString pitchMethods;
 
   wxArrayString m_notenumbers;
   wxStaticText *fractionLabel;

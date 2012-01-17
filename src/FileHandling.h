@@ -41,6 +41,7 @@ public:
   int GetAudioFormat();
   bool FileCouldBeOpened();
   double GetFFTPitch(double data[]);
+  double GetTDPitch();
 
   short *shortAudioData;
   int *intAudioData;
@@ -60,8 +61,10 @@ private:
   int m_samplerate;
   bool fileOpenWasSuccessful;
   double m_fftPitch;
+  double m_timeDomainPitch;
 
   bool DetectPitchByFFT(double data[]);
+  double DetectedPitchInTimeDomain(double audio[], unsigned start, unsigned end);
 
 };
 
