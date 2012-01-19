@@ -32,9 +32,9 @@ public:
     double = 1.0,
     double = 0.3,
     double = 6,
-    int = 8000,
-    int = 4,
-    int = 5
+    unsigned = 8000,
+    unsigned = 4,
+    unsigned = 5
   );
 
   ~AutoLooping();
@@ -45,7 +45,7 @@ public:
     const double data[], // an array of audio data from the file
     unsigned arrayLength,
     int numberOfChannels,
-    int samplerate,
+    unsigned samplerate,
     std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
     bool autosearchSustainsection,
     int startPercentage,
@@ -66,9 +66,9 @@ private:
   double m_minLoopDuration;      // 1.0 seconds
   double m_distanceBetweenLoops; // 0.3 seconds
   double m_qualityFactor;        // value (6) /32767 (0.00006) for float)
-  int m_maxCandidates;           // 8000
-  int m_loopsToReturn;           // 4
-  int m_maxLoopsMultiple;        // 5
+  unsigned m_maxCandidates;      // 8000
+  unsigned m_loopsToReturn;      // 4
+  unsigned m_maxLoopsMultiple;   // 5
 };
 
 #endif

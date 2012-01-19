@@ -31,7 +31,7 @@ void LoopMarkers::AddLoop(LOOPDATA loopData) {
   cSampleLoops = loopsIn.size();
 }
 
-void LoopMarkers::SetSaveOption(bool toBeSaved, int index) {
+void LoopMarkers::SetSaveOption(bool toBeSaved, unsigned index) {
   if (index >= 0 && index < loopsIn.size())
     loopsIn[index].shouldBeSaved = toBeSaved;
 }

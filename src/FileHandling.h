@@ -58,7 +58,7 @@ private:
 
   int m_format;
   int m_minorFormat;
-  int m_samplerate;
+  unsigned m_samplerate;
   bool fileOpenWasSuccessful;
   double m_fftPitch;
   double m_timeDomainPitch;

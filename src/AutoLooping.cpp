@@ -26,9 +26,9 @@ AutoLooping::AutoLooping(
     double minLoopDuration,
     double distanceBetweenLoops,
     double quality,
-    int maxCandidates,
-    int loopsToReturn,
-    int maxLoopsMultiple) {
+    unsigned maxCandidates,
+    unsigned loopsToReturn,
+    unsigned maxLoopsMultiple) {
   m_derivativeThreshold = threshold;
   m_minLoopDuration = minLoopDuration;
   m_distanceBetweenLoops = distanceBetweenLoops;
@@ -45,14 +45,14 @@ bool AutoLooping::AutoFindLoops(
   const double data[],
   unsigned arrayLength,
   int numberOfChannels,
-  int samplerate,
+  unsigned samplerate,
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
   bool autosearchSustainsection,
   int startPercentage,
   int endPercentage) {
 
   // find out which channel is strongest
-  int strongestChannel;
+  int strongestChannel = 0;
   double maxValue = 0;
   for (unsigned i = 0; i < arrayLength; i += numberOfChannels) {
     for (int j = 0; j < numberOfChannels; j++) {
@@ -65,17 +65,17 @@ bool AutoLooping::AutoFindLoops(
     }
   }
 
-  unsigned sustainStartIndex, sustainEndIndex;
+  unsigned sustainStartIndex = 0, sustainEndIndex = 0;
   if (autosearchSustainsection) {
     // set a windowsize for a 20 Hz frequency in current file
-    int windowSize = samplerate / 20 * numberOfChannels;
+    unsigned windowSize = samplerate / 20 * numberOfChannels;
 
     // Find sustainstart by scanning from the beginning
     double maxAmplitudeValue = 0;
   
     for (unsigned i = 0; i < arrayLength - windowSize; i += windowSize) {
       double maxValueInThisWindow = 0;
-      for (int j = i; j < i + windowSize; j++) {
+      for (unsigned j = i; j < i + windowSize; j++) {
         double currentValue = fabs(data[j]);
 
         if (currentValue > maxValueInThisWindow)
@@ -102,7 +102,7 @@ bool AutoLooping::AutoFindLoops(
   
     for (unsigned i = arrayLength; i > 0 + windowSize; i -= windowSize) {
       double maxValueInThisWindow = 0;
-      for (int j = i; j > i - windowSize; j--) {
+      for (unsigned j = i; j > i - windowSize; j--) {
         double currentValue = fabs(data[j]);
 
         if (currentValue > maxValueInThisWindow)
@@ -173,7 +173,7 @@ bool AutoLooping::AutoFindLoops(
   if (everyLoopCandidates.size() > m_maxCandidates) {
     int totalAmountOfCandidates = everyLoopCandidates.size();
     double increment = (double) totalAmountOfCandidates / (double) m_maxCandidates;
-    for (int i = 0; i < m_maxCandidates; i++) {
+    for (unsigned i = 0; i < m_maxCandidates; i++) {
       int indexToUse = i * increment;
       if (indexToUse < totalAmountOfCandidates - 1)
         loopCandidates.push_back(everyLoopCandidates[indexToUse]);
@@ -182,7 +182,7 @@ bool AutoLooping::AutoFindLoops(
     everyLoopCandidates.clear();
   } else {
     // just copy the content of every loop candidates vector and get rid of it
-    for (int i = 0; i < everyLoopCandidates.size(); i++)
+    for (unsigned i = 0; i < everyLoopCandidates.size(); i++)
       loopCandidates.push_back(everyLoopCandidates[i]);
 
     everyLoopCandidates.clear();
@@ -199,7 +199,7 @@ bool AutoLooping::AutoFindLoops(
   std::vector<std::pair<std::pair<unsigned, unsigned>, double > > foundLoops;
   if (loopCandidates.empty() == true)
     return false;
-  for (int i = 0; i < loopCandidates.size() - 1; i++) {
+  for (unsigned i = 0; i < loopCandidates.size() - 1; i++) {
     // this is for the start point
     unsigned loopStartIndex = loopCandidates[i] - strongestChannel;
     unsigned compareStartIndex = loopStartIndex - 2 * numberOfChannels;
@@ -215,7 +215,7 @@ bool AutoLooping::AutoFindLoops(
     }
 
     // and now compare to end point candidates
-    for (int j = i + 1; j < loopCandidates.size(); j++) {
+    for (unsigned j = i + 1; j < loopCandidates.size(); j++) {
       unsigned loopEndIndex = loopCandidates[j] - strongestChannel;
       
       // check if the endpoint is too close to startpoint
@@ -225,7 +225,7 @@ bool AutoLooping::AutoFindLoops(
       unsigned compareEndIndex = loopEndIndex - 2 * numberOfChannels;
 
       // now comes the actual cross correlation of the candidates
-      double sum = 0, correlationValue;
+      double sum = 0, correlationValue = 0;
       for (int k = 0; k < 5 * numberOfChannels; k++) {
         sum += pow( (data[compareStartIndex + k] - data[compareEndIndex + k]), 2);
   
@@ -255,10 +255,10 @@ bool AutoLooping::AutoFindLoops(
   // for easy handling the found loops vector should be sorted by quality
   // which will be done by searching for the best and exchange places so that
   // the best will be first in the vector
-  for (int i = 0; i < foundLoops.size(); i++) {
+  for (unsigned i = 0; i < foundLoops.size(); i++) {
     // find smallest (best) quality among i to foundLoops.size() - 1
     int best = i;
-    for (int j = i + 1; j < foundLoops.size(); j++) {
+    for (unsigned j = i + 1; j < foundLoops.size(); j++) {
       if (foundLoops[j].second < foundLoops[best].second)
         best = j;
     }
@@ -278,12 +278,12 @@ bool AutoLooping::AutoFindLoops(
   // the wished number of loops will be pushed back into the loops vector
   // selected from the best quality loops in the foundLoops vector
   if (foundLoops.size() > m_loopsToReturn) {
-    for (int i = 0; i < m_loopsToReturn; i++)
+    for (unsigned i = 0; i < m_loopsToReturn; i++)
       loops.push_back(foundLoops[i]);
 
     return true;
   } else if (foundLoops.empty() != true) {
-    for (int i = 0; i < foundLoops.size(); i++)
+    for (unsigned i = 0; i < foundLoops.size(); i++)
       loops.push_back(foundLoops[i]);
 
     return true;

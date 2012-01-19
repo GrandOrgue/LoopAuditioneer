@@ -882,7 +882,7 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
     );
 
     if (foundSomeLoops) {
-      for (int i = 0; i < loops.size(); i++) {
+      for (unsigned i = 0; i < loops.size(); i++) {
         // Prepare loop data for insertion into loop vector
         LOOPDATA newLoop;
         newLoop.dwType = SF_LOOP_FORWARD;
@@ -955,6 +955,10 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
   // get the audio data as doubles from m_waveform
   double *audioData = new double[m_audiofile->ArrayLength];
   bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
+  if (!gotData) {
+    delete[] audioData;
+    return;
+  }
 
   int midi_note;
   int td_midi_note;

@@ -35,7 +35,7 @@ public:
   ~LoopMarkers();
 
   void AddLoop(LOOPDATA loopData);
-  void SetSaveOption(bool toBeSaved, int index);
+  void SetSaveOption(bool toBeSaved, unsigned index);
   void SetLoopPositions(unsigned int start, unsigned int end, int index);
   void SetMIDIUnityNote(char note);
   void SetMIDIPitchFraction(unsigned int pitch);

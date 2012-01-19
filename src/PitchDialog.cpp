@@ -390,6 +390,8 @@ int PitchDialog::GetMethodUsed() {
     return 1;
   if (m_useManual)
     return 2;
+  else 
+    return 0;
 }
 
 void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& event) {
