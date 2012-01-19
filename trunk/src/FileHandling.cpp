@@ -203,9 +203,9 @@ double FileHandling::GetFFTPitch(double data[]) {
 bool FileHandling::DetectPitchByFFT(double data[]) {
   std::vector<double> detectedPitches;
   unsigned numberOfSamples = ArrayLength / m_channels;
-  unsigned sustainStartIndex, sustainEndIndex;
+  unsigned sustainStartIndex = 0, sustainEndIndex = 0;
   double *channel_data = new double[numberOfSamples];
-  int channel_idx;
+  unsigned channel_idx = 0;
 
   // detect strongest channel
   if (m_channels > 1) {
@@ -223,8 +223,8 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
   }
  
   // fill channel_data array with values from data[]
-  int ch_idx = 0;
-  for (int data_idx = channel_idx; data_idx < ArrayLength; data_idx += m_channels) {
+  unsigned ch_idx = 0;
+  for (unsigned data_idx = channel_idx; data_idx < ArrayLength; data_idx += m_channels) {
     channel_data[ch_idx] = data[data_idx];
     ch_idx++;
   }
@@ -240,14 +240,14 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
 
   // now detect sustain section
   // set a windowsize for a 20 Hz frequency in current file (mono now!)
-  int windowSize = m_samplerate / 20;
+  unsigned windowSize = m_samplerate / 20;
 
   // Find sustainstart by scanning from the beginning
   double maxAmplitudeValue = 0;
   
   for (unsigned idx = 0; idx < numberOfSamples - windowSize; idx += windowSize) {
     double maxValueInThisWindow = 0;
-    for (int j = idx; j < idx + windowSize; j++) {
+    for (unsigned j = idx; j < idx + windowSize; j++) {
       double currentValue = fabs(channel_data[j]);
 
       if (currentValue > maxValueInThisWindow)
@@ -272,7 +272,7 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
   
   for (unsigned idx = numberOfSamples - 1; idx > windowSize; idx -= windowSize) {
     double maxValueInThisWindow = 0;
-    for (int j = idx; j > idx - windowSize; j--) {
+    for (unsigned j = idx; j > idx - windowSize; j--) {
       double currentValue = fabs(channel_data[j]);
 
       if (currentValue > maxValueInThisWindow)
@@ -306,7 +306,7 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
   }
 
   // find out how large the analyze window can be
-  int analyzeWindowSize = 2;
+  unsigned analyzeWindowSize = 2;
   bool keepIncreasing = true;
   while (keepIncreasing) {
     if (analyzeWindowSize * 2 < sustainEndIndex - sustainStartIndex) {
@@ -432,8 +432,8 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
   delete[] channel_data;
 
   if (detectedPitches.empty() == false) {
-    double pitchSum;
-    for (int i = 0; i < detectedPitches.size(); i++)
+    double pitchSum = 0;
+    for (unsigned i = 0; i < detectedPitches.size(); i++)
       pitchSum += detectedPitches[i];
 
     m_fftPitch = pitchSum / (double) detectedPitches.size();
@@ -498,7 +498,7 @@ double FileHandling::DetectedPitchInTimeDomain(double audio[], unsigned start, u
 
   if (allDetectedPitches.empty() == false) {
     double pitchSum = 0.0;
-    for (int i = 0; i < allDetectedPitches.size(); i++)
+    for (unsigned i = 0; i < allDetectedPitches.size(); i++)
       pitchSum += allDetectedPitches[i];
 
     return pitchSum / allDetectedPitches.size();

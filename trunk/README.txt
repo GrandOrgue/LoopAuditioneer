@@ -14,6 +14,9 @@ icons in src/icons are created by the author. The only code in the src/ folder
 that's not written by the author is the FFT.h and FFT.cpp files that are
 slightly modified versions of those in Audacity source code.
 
+The pitch detection algorithm for the time domain is taken and adapted from a
+discussion on the GrandOrgue mailing list.
+
 The lib-src/ directory contains the external libraries that LoopAuditioneer is
 dependant on. Libsndfile, originally written by Erik de Castro Lopo and 
 avaiable at http://www.mega-nerd.com/libsndfile/, is provided here locally as

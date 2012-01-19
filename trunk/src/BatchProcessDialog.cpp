@@ -379,7 +379,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     case 1:
       // This removes all loops from the wav files!
       if (filesToProcess.IsEmpty() == false) {
-        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -404,14 +404,14 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     case 2:
       // This removes all cues from the wav files!
       if (filesToProcess.IsEmpty() == false) {
-        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
           if (fh.FileCouldBeOpened()) {
             m_statusProgress->AppendText(wxT("\tFile opened.\n"));
             if (fh.m_cues->GetNumberOfCues() > 0) {
-              for (int j = 0; j < fh.m_cues->GetNumberOfCues(); j++)
+              for (unsigned j = 0; j < fh.m_cues->GetNumberOfCues(); j++)
                 fh.m_cues->SetSaveOption(false, j);
             }
             fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
@@ -429,7 +429,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     case 3:
       // This removes both loops and cues from the wav files!
       if (filesToProcess.IsEmpty() == false) {
-        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -440,7 +440,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
                 fh.m_loops->SetSaveOption(false, j);
             }
             if (fh.m_cues->GetNumberOfCues() > 0) {
-              for (int j = 0; j < fh.m_cues->GetNumberOfCues(); j++)
+              for (unsigned j = 0; j < fh.m_cues->GetNumberOfCues(); j++)
                 fh.m_cues->SetSaveOption(false, j);
             }
             fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
@@ -468,7 +468,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
         autoloop->SetMultiple(autoloopSettings->GetMultiple());
       }
       if (filesToProcess.IsEmpty() == false) {
-        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -499,7 +499,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             delete[] audioData;
 
             if (foundLoops) {
-              for (int i = 0; i < addLoops.size(); i++) {
+              for (unsigned i = 0; i < addLoops.size(); i++) {
                 // Add the new loop to the loop vector
                 LOOPDATA newLoop;
                 newLoop.dwType = SF_LOOP_FORWARD;
@@ -531,7 +531,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     case 5:
       // This is for autosearching pitch information with FFT and store it in smpl chunk
       if (filesToProcess.IsEmpty() == false) {
-        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -579,7 +579,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
-        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -619,7 +619,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     case 7:
       // This is for autosearching pitch information in timedomain and store it in smpl chunk
       if (filesToProcess.IsEmpty() == false) {
-        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -668,7 +668,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
-        for (int i = 0; i < filesToProcess.GetCount(); i++) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());

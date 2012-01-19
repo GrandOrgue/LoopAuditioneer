@@ -165,8 +165,8 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
     
       double maxValue = 0, minValue = 0;
       int lineToDraw = 0;
-      for (int j = 0; j < waveTracks.size(); j++) {
-        for (int i = 0; i < waveTracks[0].waveData.size(); i++) {
+      for (unsigned j = 0; j < waveTracks.size(); j++) {
+        for (unsigned i = 0; i < waveTracks[0].waveData.size(); i++) {
           if (i % samplesPerPixel == 0 && i > 0) {
             // we should write the line representing the audio data and start a new count
             // but first we adjust max and min values with the m_amplitudeZoomLevel
@@ -207,7 +207,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
       if (cueSampleOffset.size() > 0) {
         int overlap = 0;
         // here we draw the cues from the vector
-        for (int i = 0; i < cueSampleOffset.size(); i++) {
+        for (unsigned i = 0; i < cueSampleOffset.size(); i++) {
           overlap = cueLayout[i].putInRow;
           // the positions from dwSampleOffset is in sample frames so it has to be re-calculated into pixels
           int xPosition = cueSampleOffset[i] / samplesPerPixel + leftMargin;
@@ -228,7 +228,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
         int yPositionHigh = topMargin + 1;
         int yPositionLow = topMargin + trackHeight * waveTracks.size() + (marginBetweenTracks * (waveTracks.size() - 1) - 1);
 
-        for (int i = 0; i < loopPositions.size(); i++) {
+        for (unsigned i = 0; i < loopPositions.size(); i++) {
           // the loop start value (in samples) is in loopPositions[i].first
           int xPositionS = loopPositions[i].first / samplesPerPixel + leftMargin;
 
@@ -324,14 +324,14 @@ void WaveformDrawer::CalculateLayout() {
   cueLayout.clear();
 
   // then we deal with the loops
-  for (int i = 0; i < loopPositions.size(); i++) {
+  for (unsigned i = 0; i < loopPositions.size(); i++) {
     // add a LOOPLAYOUT item to loopLayout vector
     LOOPLAYOUT item;
     loopLayout.push_back(item);
     // let's check if loop will overlap any previous and which
     // and preliminary set placedInRow to 0
     loopLayout[i].placedInRow = 0;
-    for (int j = 0; j < i; j++) {
+    for (unsigned j = 0; j < i; j++) {
       bool isOverlapping = false;
       if (loopPositions[i].first >= loopPositions[j].first && loopPositions[i].first <= loopPositions[j].second)
         isOverlapping = true;
@@ -348,7 +348,7 @@ void WaveformDrawer::CalculateLayout() {
   }
   // now all placedInRow is 0 and we know what loops overlaps which others
   // IF the loopLayout[i].overlappingLoops vector not is empty then placedInRow might need correction
-  for (int i = 0; i < loopLayout.size(); i++) {
+  for (unsigned i = 0; i < loopLayout.size(); i++) {
     // loopLayout[i].overlappingLoops[some valid index] contains the index of one overlapping loop
     // IF not the vector is empty...
     // IF last overlapping loop is in row 0 THEN this must be in row 1 (if there's only one)
@@ -360,7 +360,7 @@ void WaveformDrawer::CalculateLayout() {
         loopLayout[i].placedInRow = 1;
       else {
         int unUsedRow = 0;
-        for (int j = 0; j < loopLayout[i].overlappingLoops.size(); j++) {
+        for (unsigned j = 0; j < loopLayout[i].overlappingLoops.size(); j++) {
           bool alreadyTaken = false;
           if (loopLayout[loopLayout[i].overlappingLoops[j]].placedInRow == unUsedRow) {
             alreadyTaken = true;
@@ -368,7 +368,7 @@ void WaveformDrawer::CalculateLayout() {
 
           // we should check if any of the overlapped loops already got this
           // row, in which case we must continue looking for an unused one
-          for (int k = 0; k < loopLayout[i].overlappingLoops.size(); k++) {
+          for (unsigned k = 0; k < loopLayout[i].overlappingLoops.size(); k++) {
             if (loopLayout[loopLayout[i].overlappingLoops[k]].placedInRow ==
                 unUsedRow) {
               alreadyTaken = true;
@@ -399,7 +399,7 @@ void WaveformDrawer::CalculateLayout() {
 
   equalTo24px = 24 * samplesPerPixel;
 
-  for (int i = 0; i < cueSampleOffset.size(); i++) {
+  for (unsigned i = 0; i < cueSampleOffset.size(); i++) {
     // Add a CUELAYOUT item to the cueLayout vector
     CUELAYOUT item;
     cueLayout.push_back(item);
@@ -408,7 +408,7 @@ void WaveformDrawer::CalculateLayout() {
     // with the cues we check if the marker is within any loop and if so treat as with the loops
     // but due to the possibility of marker and loop start flags overlapping we'll add samples to
     // the start equal to 24 pixels
-    for (int j = 0; j < loopPositions.size(); j++) {
+    for (unsigned j = 0; j < loopPositions.size(); j++) {
       bool isOverlapping = false;
       if (cueSampleOffset[i] > (loopPositions[j].first - equalTo24px) && cueSampleOffset[i] < loopPositions[j].second)
         isOverlapping = true;
@@ -419,7 +419,7 @@ void WaveformDrawer::CalculateLayout() {
       }
     }
     // and additionally we check if any previous marker is within 25 pixels around it
-    for (int j = 0; j < i; j++) {
+    for (unsigned j = 0; j < i; j++) {
       int differenceInSamples;
       if (cueSampleOffset[i] > cueSampleOffset[j])
         differenceInSamples = cueSampleOffset[i] - cueSampleOffset[j];
@@ -431,7 +431,7 @@ void WaveformDrawer::CalculateLayout() {
     }
   }
   // so now we know what loops the marker is within and what other cues could be close
-  for (int i = 0; i < cueLayout.size(); i++) {
+  for (unsigned i = 0; i < cueLayout.size(); i++) {
     // cueLayout[i].withinLoop[some valid index] contains the index of one overlapping loop
     // IF not the vector is empty...
     // IF last overlapping loop is in row 0 THEN this must be in row 1
@@ -442,14 +442,14 @@ void WaveformDrawer::CalculateLayout() {
         cueLayout[i].putInRow = 1;
       else {
         int unUsedRow = 0;
-        for (int j = 0; j < cueLayout[i].withinLoop.size(); j++) {
+        for (unsigned j = 0; j < cueLayout[i].withinLoop.size(); j++) {
           if (loopLayout[cueLayout[i].withinLoop[j]].placedInRow == unUsedRow) {
             unUsedRow++;
           } else {
             if (cueLayout[i].markerClose.empty())
               break;
             else {
-              for (int k = 0; k < cueLayout[i].markerClose.size(); k++) {
+              for (unsigned k = 0; k < cueLayout[i].markerClose.size(); k++) {
                 if (cueLayout[cueLayout[i].markerClose[k]].putInRow == unUsedRow)
                   unUsedRow++;
               }
@@ -463,7 +463,7 @@ void WaveformDrawer::CalculateLayout() {
       if (cueLayout[i].markerClose.empty() == false) {
         int unUsedRow = 0;
 
-        for (int k = 0; k < cueLayout[i].markerClose.size(); k++) {
+        for (unsigned k = 0; k < cueLayout[i].markerClose.size(); k++) {
           if (cueLayout[cueLayout[i].markerClose[k]].putInRow == unUsedRow)
             unUsedRow++;
         }
@@ -498,7 +498,7 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
 
       int approximateSampleNumber = samplesPerPixel * (m_x - (leftMargin + 1));
       int earliestSampleToConsider = approximateSampleNumber - samplesPerPixel;
-      int lastSampleToConsider = approximateSampleNumber + samplesPerPixel;
+      unsigned lastSampleToConsider = approximateSampleNumber + samplesPerPixel;
 
       if (earliestSampleToConsider < 0)
         earliestSampleToConsider = 0;
@@ -506,12 +506,12 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
       if (lastSampleToConsider > waveTracks[0].waveData.size())
         lastSampleToConsider = waveTracks[0].waveData.size() - 1;
 
-      unsigned int bestSample;
+      unsigned int bestSample = 0;
       double lowestRMSPower = DBL_MAX;
       double currentRMSPower = 0;
       // the sample values are in waveTracks[0].waveData
-      for (int i = earliestSampleToConsider; i <= lastSampleToConsider; i++) {
-        for (int j = 0; j < waveTracks.size(); j++)
+      for (unsigned i = earliestSampleToConsider; i <= lastSampleToConsider; i++) {
+        for (unsigned j = 0; j < waveTracks.size(); j++)
           currentRMSPower += pow(waveTracks[j].waveData[i], 2);
 
         if (currentRMSPower < lowestRMSPower) {
@@ -532,7 +532,7 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
     if (!cueIsSelected) {
       // check if click is in a cue flag and if so select that cue for re-positioning
       bool inCue = false;
-      for (int i = 0; i < cueSampleOffset.size(); i++) {
+      for (unsigned i = 0; i < cueSampleOffset.size(); i++) {
         if (m_x > cueLayout[i].flagUpLeft.first && m_x <= cueLayout[i].flagDownRight.first && 
             m_y > cueLayout[i].flagUpLeft.second && m_y <= cueLayout[i].flagDownRight.second) {
           inCue = true;
@@ -607,7 +607,7 @@ void WaveformDrawer::OnClickAddCue(wxCommandEvent& event) {
 
   int approximateSampleNumber = samplesPerPixel * (m_x - (leftMargin + 1));
   int earliestSampleToConsider = approximateSampleNumber - samplesPerPixel;
-  int lastSampleToConsider = approximateSampleNumber + samplesPerPixel;
+  unsigned lastSampleToConsider = approximateSampleNumber + samplesPerPixel;
 
   if (earliestSampleToConsider < 0)
     earliestSampleToConsider = 0;
@@ -615,12 +615,12 @@ void WaveformDrawer::OnClickAddCue(wxCommandEvent& event) {
   if (lastSampleToConsider > waveTracks[0].waveData.size())
     lastSampleToConsider = waveTracks[0].waveData.size() - 1;
 
-  unsigned int bestSample;
+  unsigned int bestSample = 0;
   double lowestRMSPower = DBL_MAX;
   double currentRMSPower = 0;
   // the sample values are in waveTracks[0].waveData
-  for (int i = earliestSampleToConsider; i <= lastSampleToConsider; i++) {
-    for (int j = 0; j < waveTracks.size(); j++)
+  for (unsigned i = earliestSampleToConsider; i <= lastSampleToConsider; i++) {
+    for (unsigned j = 0; j < waveTracks.size(); j++)
       currentRMSPower += pow(waveTracks[j].waveData[i], 2);
 
     if (currentRMSPower < lowestRMSPower) {
@@ -644,8 +644,8 @@ bool WaveformDrawer::GetDoubleAudioData(double audio[], unsigned arrayLength) {
     unsigned length = waveTracks.size() * waveTracks[0].waveData.size();
 
     if (arrayLength == length) {
-      for (int i = 0; i < waveTracks.size(); i++) {
-        for (int j = 0; j < waveTracks[0].waveData.size(); j++) {
+      for (unsigned i = 0; i < waveTracks.size(); i++) {
+        for (unsigned j = 0; j < waveTracks[0].waveData.size(); j++) {
           audio[i + j * waveTracks.size()] = waveTracks[i].waveData[j];
         }
       }
