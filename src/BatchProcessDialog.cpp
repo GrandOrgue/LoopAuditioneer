@@ -682,6 +682,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
             // autosearch pitch and calculate midi note and pitch fraction
             double pitch = fh.GetFFTPitch(audioData);
+            pitch = fh.GetTDPitch();
             int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
             double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
             double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
