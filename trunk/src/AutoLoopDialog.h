@@ -50,7 +50,7 @@ public:
     const wxString& caption = wxT("Parameters for auto searching loops"),
     const wxPoint& pos = wxDefaultPosition,
     const wxSize& size = wxDefaultSize,
-    long style = wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU
+    long style = wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX
   );
 
   // Initialize our variables
@@ -63,7 +63,7 @@ public:
     const wxString& caption = wxT("Parameters for auto searching loops"),
     const wxPoint& pos = wxDefaultPosition,
     const wxSize& size = wxDefaultSize,
-    long style = wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU
+    long style = wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX
   );
 
   // Creates the controls and sizers

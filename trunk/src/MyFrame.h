@@ -1,6 +1,6 @@
 /* 
  * MyFrame.h is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2012 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@
 #include "WaveformDrawer.h"
 #include "AutoLoopDialog.h"
 #include "AutoLooping.h"
+#include "CrossfadeDialog.h"
 
 class MyFrame : public wxFrame {
 public:
@@ -60,6 +61,9 @@ public:
   void OnZoomInAmplitude(wxCommandEvent& event);
   void OnZoomOutAmplitude(wxCommandEvent& event);
   void OnVolumeSlider(wxCommandEvent& event);
+  void OnCrossfade(wxCommandEvent& event);
+  void OnEditLoop(wxCommandEvent& event);
+  void OnViewLoop(wxCommandEvent& event);
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
@@ -93,10 +97,12 @@ private:
   wxMenu *transportMenu;
   wxMenu *toolMenu;
   wxMenu *helpMenu;
+  wxMenu *m_loopPopupMenu;
   wxMenuBar *menuBar;
   WaveformDrawer *m_waveform;
   AutoLoopDialog *m_autoloopSettings;
   AutoLooping *m_autoloop;
+  CrossfadeDialog *m_crossfades;
 
   void PopulateListOfFileNames();
   void UpdateAllViews();

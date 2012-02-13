@@ -29,6 +29,7 @@
 #include "BatchProcessDialog.h"
 #include <climits>
 #include "PitchDialog.h"
+#include "LoopOverlay.h"
 
 bool MyFrame::loopPlay = true; // default to loop play
 int MyFrame::volumeMultiplier = 1; // default value
@@ -40,6 +41,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_MENU(FILE_SELECT, MyFrame::OnSelectDir)
   EVT_MENU(wxID_SAVE, MyFrame::OnSaveFile)
   EVT_MENU(wxID_SAVEAS, MyFrame::OnSaveFileAs)
+  EVT_MENU(EDIT_LOOP, MyFrame::OnEditLoop)
+  EVT_MENU(VIEW_LOOPPOINTS, MyFrame::OnViewLoop)
   EVT_LISTBOX_DCLICK(ID_LISTBOX, MyFrame::OnDblClick)
   EVT_LISTBOX(ID_LISTBOX, MyFrame::OnSelection)
   EVT_TOOL(OPEN_SELECTED, MyFrame::OnDblClick)
@@ -60,6 +63,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_TOOL(ZOOM_OUT_AMP, MyFrame::OnZoomOutAmplitude)
   EVT_TIMER(TIMER_ID, MyFrame::UpdatePlayPosition)
   EVT_SLIDER(ID_VOLUME_SLIDER, MyFrame::OnVolumeSlider)
+  EVT_TOOL(X_FADE, MyFrame::OnCrossfade)
 END_EVENT_TABLE()
 
 void MyFrame::OnAbout(wxCommandEvent& event) {
@@ -209,6 +213,8 @@ void MyFrame::CloseOpenAudioFile() {
   toolBar->EnableTool(ZOOM_OUT_AMP, false);
   viewMenu->Enable(ZOOM_IN_AMP, false);
   viewMenu->Enable(ZOOM_OUT_AMP, false);
+  toolBar->EnableTool(X_FADE, false);
+  toolMenu->Enable(X_FADE, false);
 
   m_sound->CloseAudioStream();
 
@@ -257,6 +263,8 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
       toolBar->EnableTool(START_PLAYBACK, true);
       transportMenu->Enable(START_PLAYBACK, true);
     }
+    toolBar->EnableTool(X_FADE, true);
+    toolMenu->Enable(X_FADE, true);
   }
 }
 
@@ -294,6 +302,8 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
       toolBar->EnableTool(START_PLAYBACK, true);
       transportMenu->Enable(START_PLAYBACK, true);
     }
+    toolBar->EnableTool(X_FADE, false);
+    toolMenu->Enable(X_FADE, false);
   }
 }
 
@@ -370,6 +380,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   m_sound = new MySound();
   m_autoloopSettings = new AutoLoopDialog(this);
   m_autoloop = new AutoLooping();
+  m_crossfades = new CrossfadeDialog(this);
 
   workingDir = wxEmptyString;
 
@@ -418,10 +429,12 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolMenu->Append(AUTOSEARCH_LOOPS, wxT("&Autoloop\tCtrl+L"), wxT("Search for loop(s)"));
   toolMenu->Append(BATCH_PROCESS, wxT("&Batch processing\tCtrl+B"), wxT("Batch processing of files"));
   toolMenu->Append(PITCH_SETTINGS, wxT("&Pitch info\tCtrl+P"), wxT("Find/set info about pitch"));
+  toolMenu->Append(X_FADE, wxT("&Crossfade\tAlt+C"), wxT("Crossfade the selected loop"));
 
   toolMenu->Enable(ADD_LOOP, false);
   toolMenu->Enable(AUTOSEARCH_LOOPS, false);
   toolMenu->Enable(PITCH_SETTINGS, false);
+  toolMenu->Enable(X_FADE, false);
 
   // Create a help menu
   helpMenu = new wxMenu();
@@ -439,6 +452,12 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
 
   // Attach menu bar to frame
   SetMenuBar(menuBar);
+
+  // create the popup menu for the loops
+  m_loopPopupMenu = new wxMenu();
+  m_loopPopupMenu->Append(EDIT_LOOP, wxT("&Edit loop"), wxT("Edit the currently selected loop"));
+  m_loopPopupMenu->Append(X_FADE, wxT("&Crossfade loop"), wxT("Crossfade the currently selected loop"));
+  m_loopPopupMenu->Append(VIEW_LOOPPOINTS, wxT("&View looppoints"), wxT("Closeup view of overlayed looppoints"));
 
   // Create Status bar
   CreateStatusBar(3);
@@ -461,17 +480,22 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   wxBitmap pitchInfo(wxT("../icons/24x24/Bell.png"), wxBITMAP_TYPE_PNG);
   wxBitmap zoomInAmp(wxT("../icons/24x24/Zoom_in.png"), wxBITMAP_TYPE_PNG);
   wxBitmap zoomOutAmp(wxT("../icons/24x24/Zoom_out.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap crossfade(wxT("../icons/24x24/Wizard.png"), wxBITMAP_TYPE_PNG);
   toolBar->AddTool(FILE_SELECT, selectFolder, wxT("Select working folder"), wxT("Select working folder"));
   toolBar->AddTool(OPEN_SELECTED, openSelectedFile, wxT("Open selected file"), wxT("Open selected file"));
   toolBar->AddTool(wxID_SAVE, saveFile, wxT("Save file"), wxT("Save file"));
   toolBar->AddTool(wxID_SAVEAS, saveFileAs, wxT("Save as..."), wxT("Save file with new name"));
+  toolBar->AddSeparator();
   toolBar->AddTool(START_PLAYBACK, startPlayback, wxT("Play"), wxT("Play"));
   toolBar->AddTool(wxID_STOP, stopPlayback, wxT("Stop"), wxT("Stop"));
+  toolBar->AddSeparator();
   toolBar->AddTool(ADD_LOOP, loopCreation, wxT("New loop"), wxT("Create a new loop"));
   toolBar->AddTool(AUTOSEARCH_LOOPS, autoLoop, wxT("Autoloop"), wxT("Search for loop(s)"));
   toolBar->AddTool(AUTOLOOP_SETTINGS, autoLoopSettings, wxT("Autoloop settings"), wxT("Change settings for auto loopsearching"));
   toolBar->AddTool(BATCH_PROCESS, batchProcess, wxT("Batch processing"), wxT("Batch processing of files/folders"));
   toolBar->AddTool(PITCH_SETTINGS, pitchInfo, wxT("Pitch settings"), wxT("Find/set information about pitch"));
+  toolBar->AddTool(X_FADE, crossfade, wxT("Crossfade"), wxT("Crossfade a selected loop"));
+  toolBar->AddSeparator();
   toolBar->AddTool(ZOOM_IN_AMP, zoomInAmp, wxT("Zoom in"), wxT("Zoom in on amplitude"));
   toolBar->AddTool(ZOOM_OUT_AMP, zoomOutAmp, wxT("Zoom out"), wxT("Zoom out on amplitude"));
 
@@ -509,6 +533,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->EnableTool(PITCH_SETTINGS, false);
   toolBar->EnableTool(ZOOM_IN_AMP, false);
   toolBar->EnableTool(ZOOM_OUT_AMP, false);
+  toolBar->EnableTool(X_FADE, false);
   this->SetToolBar(toolBar);
 
   // Create sizers for frame content
@@ -794,10 +819,9 @@ void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
     m_panel->m_cueGrid->ClearSelection();
     m_panel->m_grid->SelectRow(event.GetRow());
 
-    // set the currently selected loops positions
-    LOOPDATA currentLoop;
-    int index = event.GetRow();
-    m_audiofile->m_loops->GetLoopData(index, currentLoop);
+    // Enable x-fade as now a loop is selected
+    toolBar->EnableTool(X_FADE, true);
+    toolMenu->Enable(X_FADE, true);
 
     m_panel->m_grid->SetGridCursor(0, 4); // this is to hide the highlight box
     SetLoopPlayback(true); // set the playback to be for loops
@@ -806,32 +830,8 @@ void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
       transportMenu->Enable(START_PLAYBACK, true);
     }
 
-    LoopParametersDialog loopDialog(currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->ArrayLength / m_audiofile->m_channels, this);
-
-    if (loopDialog.ShowModal() == wxID_OK) {
-      unsigned int loopStartSample = loopDialog.GetLoopStart();
-      unsigned int loopEndSample = loopDialog.GetLoopEnd();
-
-      // Store the changes to the loop in the loop vector
-      m_audiofile->m_loops->SetLoopPositions(loopStartSample, loopEndSample, index);
-      m_audiofile->m_loops->GetLoopData(index, currentLoop);
-
-      // Change loop to the grid
-      int sRate = m_audiofile->GetSampleRate();
-      m_panel->ChangeLoopData(currentLoop.dwStart, currentLoop.dwEnd, sRate, index);
-
-      // Change loop in waveform drawer
-      m_waveform->ChangeLoopPositions(currentLoop.dwStart, currentLoop.dwEnd, index);
-
-      // Set loops positions for playback
-      m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
-
-      // Enable save icon and menu
-      toolBar->EnableTool(wxID_SAVE, true);
-      fileMenu->Enable(wxID_SAVE, true);
-
-      UpdateAllViews();
-    }
+    // Now we should have a context menu pop up where user can do something
+    PopupMenu(m_loopPopupMenu, event.GetPosition());
   }
 }
 
@@ -1044,5 +1044,150 @@ void MyFrame::OnVolumeSlider(wxCommandEvent& event) {
   int value = volumeSl->GetValue();
 
   volumeMultiplier = (int) (pow(2, (double) value));
+}
+
+void MyFrame::OnCrossfade(wxCommandEvent& event) {
+  // get the audio data as doubles from m_waveform
+  double *audioData = new double[m_audiofile->ArrayLength];
+  bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
+  if (!gotData) {
+    delete[] audioData;
+    return;
+  }
+
+  wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
+  int firstSelected;
+  if (!selectedRows.IsEmpty())
+    firstSelected = selectedRows[0];
+  else {
+    delete[] audioData;
+    return;
+  }
+
+  wxString dialogTitle = wxString::Format(wxT("Crossfading parameters for Loop %i"), firstSelected + 1);
+  m_crossfades->SetCaption(dialogTitle);
+
+  // show the crossfade dialog to get parameters (method and time)
+  if (m_crossfades->ShowModal() == wxID_OK) {
+    double crossfadeTime = m_crossfades->GetFadeduration();
+    int crossfadetype = m_crossfades->GetFadetype();
+
+    // perform crossfading on the first selected loop with selected method
+    m_audiofile->PerformCrossfade(audioData, firstSelected, crossfadeTime, crossfadetype);
+
+    // update the waveform data
+    m_waveform->UpdateWaveTracks(audioData, m_audiofile->m_channels, m_audiofile->ArrayLength);
+
+    // change the current audiodata in m_audiofile
+    if (m_audiofile->shortAudioData != NULL) {
+      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
+        m_audiofile->shortAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFF));
+    } else if (m_audiofile->intAudioData != NULL) {
+      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
+        m_audiofile->intAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFFFFFF));
+    } else if (m_audiofile->doubleAudioData != NULL) {
+      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
+        m_audiofile->doubleAudioData[i] = audioData[i];
+    }
+
+    // Enable save icon and menu
+    toolBar->EnableTool(wxID_SAVE, true);
+    fileMenu->Enable(wxID_SAVE, true);
+
+    // then we should make sure to update the views
+    UpdateAllViews();
+  } else {
+    // user clicked cancel...
+  }
+
+  delete[] audioData;
+}
+
+void MyFrame::OnEditLoop(wxCommandEvent& event) {
+  wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
+  int firstSelected;
+  if (!selectedRows.IsEmpty())
+    firstSelected = selectedRows[0];
+  else {
+    return;
+  }
+
+  // set the currently selected loops positions
+  LOOPDATA currentLoop;
+  m_audiofile->m_loops->GetLoopData(firstSelected, currentLoop);
+
+  wxString dialogTitle = wxString::Format(wxT("Edit Loop %i"), firstSelected + 1);
+
+  LoopParametersDialog loopDialog(
+    currentLoop.dwStart,
+    currentLoop.dwEnd,
+    m_audiofile->ArrayLength / m_audiofile->m_channels,
+    this,
+    wxID_ANY,
+    dialogTitle
+  );
+
+  if (loopDialog.ShowModal() == wxID_OK) {
+    unsigned int loopStartSample = loopDialog.GetLoopStart();
+    unsigned int loopEndSample = loopDialog.GetLoopEnd();
+
+    // Store the changes to the loop in the loop vector
+    m_audiofile->m_loops->SetLoopPositions(loopStartSample, loopEndSample, firstSelected);
+    m_audiofile->m_loops->GetLoopData(firstSelected, currentLoop);
+
+    // Change loop to the grid
+    int sRate = m_audiofile->GetSampleRate();
+    m_panel->ChangeLoopData(currentLoop.dwStart, currentLoop.dwEnd, sRate, firstSelected);
+
+    // Change loop in waveform drawer
+    m_waveform->ChangeLoopPositions(currentLoop.dwStart, currentLoop.dwEnd, firstSelected);
+
+    // Set loops positions for playback
+    m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+
+    // Enable save icon and menu
+    toolBar->EnableTool(wxID_SAVE, true);
+    fileMenu->Enable(wxID_SAVE, true);
+
+    UpdateAllViews();
+  }
+}
+
+void MyFrame::OnViewLoop(wxCommandEvent& event) {
+  wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
+  int firstSelected;
+  if (!selectedRows.IsEmpty())
+    firstSelected = selectedRows[0];
+  else {
+    return;
+  }
+
+  // set the currently selected loops positions
+  LOOPDATA currentLoop;
+  m_audiofile->m_loops->GetLoopData(firstSelected, currentLoop);
+
+  // get the audio data as doubles from m_waveform
+  double *audioData = new double[m_audiofile->ArrayLength];
+  bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
+  if (!gotData) {
+    delete[] audioData;
+    return;
+  }
+
+  wxString dialogTitle = wxString::Format(wxT("Waveform overlay of Loop %i"), firstSelected + 1);
+
+  LoopOverlay lpo(
+    audioData,
+    currentLoop.dwStart,
+    currentLoop.dwEnd,
+    m_audiofile->m_channels,
+    this,
+    wxID_ANY,
+    dialogTitle
+  );
+
+  lpo.ShowModal();
+
+  delete[] audioData;
 }
 
