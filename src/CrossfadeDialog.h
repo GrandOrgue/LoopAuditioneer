@@ -1,6 +1,6 @@
 /* 
- * LoopParametersDialog.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2012 Lars Palo 
+ * CrossfadeDialog.h provide a GUI for setting parameters for Crossfading
+ * Copyright (C) 2012 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,45 +18,41 @@
  * You can contact the author on larspalo(at)yahoo.se
  */
 
-#ifndef LOOPPARAMETERSDIALOG
-#define LOOPPARAMETERSDIALOG
+#ifndef CROSSFADEDIALOG_H
+#define CROSSFADEDIALOG_H
 
 #include <wx/wx.h>
-#include <wx/spinctrl.h>
 
 // Identifiers
 enum {
-  ID_LOOPSTART = wxID_HIGHEST + 100,
-  ID_LOOPEND = wxID_HIGHEST + 101
+  ID_FADEDURATION = wxID_HIGHEST + 500,
+  ID_FADEMETHOD = wxID_HIGHEST + 501
 };
 
-class LoopParametersDialog : public wxDialog {
-  DECLARE_CLASS(LoopParametersDialog)
+class CrossfadeDialog : public wxDialog {
+  DECLARE_CLASS(CrossfadeDialog)
   DECLARE_EVENT_TABLE()
 
 public:
   // Constructors
-  LoopParametersDialog(unsigned int start, unsigned int end, unsigned int length);
-  LoopParametersDialog(
-    unsigned int start, 
-    unsigned int end,
-    unsigned int length,
+  CrossfadeDialog();
+  CrossfadeDialog(
     wxWindow* parent,
     wxWindowID id = wxID_ANY,
-    const wxString& caption = wxT("Loop parameters"),
+    const wxString& caption = wxT("Parameters for crossfading loops"),
     const wxPoint& pos = wxDefaultPosition,
     const wxSize& size = wxDefaultSize,
     long style = wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX
   );
 
   // Initialize our variables
-  void Init(unsigned int start, unsigned int end, unsigned int length);
+  void Init();
 
   // Creation
   bool Create( 
     wxWindow* parent,
     wxWindowID id = wxID_ANY,
-    const wxString& caption = wxT("Loop parameters"),
+    const wxString& caption = wxT("Parameters for crossfading loops"),
     const wxPoint& pos = wxDefaultPosition,
     const wxSize& size = wxDefaultSize,
     long style = wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX
@@ -66,23 +62,23 @@ public:
   void CreateControls();
 
   // Accessing functions
-  void SetLoopStart(unsigned int loopStart);
-  unsigned int GetLoopStart();
-  void SetLoopEnd(unsigned int loopEnd);
-  unsigned int GetLoopEnd();
-  void SetLastSample(unsigned int lastSample);
+  double GetFadeduration();
+  int GetFadetype();
 
   // Overrides
   bool TransferDataToWindow();
   bool TransferDataFromWindow();
+  void SetCaption(wxString str);
+
+  // Event processing methods
+  void OnFadedurationSlider(wxCommandEvent& event);
+  void OnFademethodSelection(wxCommandEvent& event);
 
 private:
-  unsigned int m_loopStart;
-  unsigned int m_loopEnd;
-  unsigned int m_lastSample;
-
-  void OnLoopStartSpin(wxSpinEvent& event);
-  void OnLoopEndSpin(wxSpinEvent& event);
+  double m_fadeduration;  // in seconds (default 50 ms = 0.05, range 1 ms to 1000 ms)
+  wxArrayString m_fademethods; // linear, equal power
+  int selectedMethod; // index of fademethods linear = 0 as default
 };
+
 
 #endif

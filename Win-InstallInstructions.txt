@@ -38,7 +38,7 @@ in lib-src folder
 
 In src folder:
 
-i686-w64-mingw32-g++ -D__WINDOWS_DS__ -static -O2 -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -o LoopAuditioneer.exe LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp FFT.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/rtaudio/include ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ldsound -lole32 -lwinmm -lm `/PATH_TO_WX_SOURCE/win-ur-static/wx-config --static=yes --cxxflags --libs`
+i686-w64-mingw32-g++ -D__WINDOWS_DS__ -static -O2 -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -o LoopAuditioneer.exe LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/rtaudio/include ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ldsound -lole32 -lwinmm -lm `/PATH_TO_WX_SOURCE/win-ur-static/wx-config --static=yes --cxxflags --libs`
 
 
 To reduce size of binary:

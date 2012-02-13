@@ -185,6 +185,11 @@ int FileHandling::GetAudioFormat() {
   return m_minorFormat;
 }
 
+int FileHandling::GetWholeFormat() {
+  return m_format;
+}
+
+
 bool FileHandling::FileCouldBeOpened() {
   if (fileOpenWasSuccessful)
     return true;
@@ -509,5 +514,79 @@ double FileHandling::DetectedPitchInTimeDomain(double audio[], unsigned start, u
 
 double FileHandling::GetTDPitch() {
   return m_timeDomainPitch;
+}
+
+void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double fadeLength, int fadeType) {
+  LOOPDATA loopToCrossfade;
+  m_loops->GetLoopData(loopNumber, loopToCrossfade);
+  unsigned samplesToFade = m_samplerate * fadeLength;
+  unsigned firstTargetIdx = (loopToCrossfade.dwEnd - (samplesToFade - 1)) * m_channels;
+  unsigned firstSourceIdx = (loopToCrossfade.dwStart - samplesToFade) * m_channels;
+  unsigned secondTargetIdx = (loopToCrossfade.dwEnd + 1) * m_channels;
+  unsigned secondSourceIdx = loopToCrossfade.dwStart * m_channels;
+
+  // prepare an array for the crossfade curve data
+  double fadeData[samplesToFade];
+
+  switch(fadeType) {
+    case 0:
+      // linear data from 0 to 1
+      for (int i = 0; i < samplesToFade; i++)
+        fadeData[i] = i * 1.0 / (samplesToFade - 1);
+      break;
+
+    case 1:
+      // create a curve from 0 to 1 with equal power
+      for (int i = 0; i < samplesToFade; i++) {
+        double linear = i * 1.0 / (samplesToFade - 1);
+        fadeData[i] = linear / sqrt( pow(linear, 2) + pow((1 - linear), 2) );
+      }
+      break;
+
+    case 2:
+      // create a sine curve table from 0 to 1
+      for (int i = 0; i < samplesToFade; i++) {
+        double linear = i * 1.0 / (samplesToFade - 1);
+        fadeData[i] = sin(M_PI / 2 * linear);
+      }
+      break;
+
+    case 3:
+      // create a S curve table from 0 to 1
+      for (int i = 0; i < samplesToFade; i++) {
+        double linear = i * 1.0 / (samplesToFade - 1);
+        fadeData[i] = 0.5 * (1.0 + cos((1.0 - linear) * M_PI));
+      }
+      break;
+
+    default:
+      // linear data from 0 to 1
+      for (int i = 0; i < samplesToFade; i++)
+      fadeData[i] = i * 1.0 / (samplesToFade - 1);
+  }
+
+  // crossfade around the endpoint so that the audio won't click
+  // the new loopEnd will be identical to the sample before loopStart
+  // and the new sample after loopEnd will be identical to loopStart
+  // with crossfades to either side of loopEnd with source from loopStart
+
+  for (unsigned i = 0; i < samplesToFade; i++) {
+    for (int j = 0; j < m_channels; j++) {
+      audioData[firstTargetIdx + j] = 
+        audioData[firstTargetIdx + j] * fadeData[samplesToFade - 1 - i] +
+        audioData[firstSourceIdx + j] * fadeData[i] - 
+        (audioData[firstTargetIdx + j] * fadeData[samplesToFade - 1 - i]) * 
+        (audioData[firstSourceIdx + j] * fadeData[i]);
+      audioData[secondTargetIdx + j] = 
+        audioData[secondTargetIdx + j] * fadeData[i] +
+        audioData[secondSourceIdx + j] * fadeData[samplesToFade - 1 - i] - 
+        (audioData[secondTargetIdx + j] * fadeData[i]) * 
+        (audioData[secondSourceIdx + j] * fadeData[samplesToFade - 1 - i]);
+    }
+    firstTargetIdx += m_channels;
+    secondTargetIdx += m_channels;
+    firstSourceIdx += m_channels;
+    secondSourceIdx += m_channels;
+  }
 }
 

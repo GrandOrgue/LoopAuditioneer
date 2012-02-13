@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2012 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -673,5 +673,22 @@ void WaveformDrawer::ZoomOutAmplitude() {
     m_amplitudeZoomLevel /= 2;
 
   somethingHasChanged = true;
+}
+
+void WaveformDrawer::UpdateWaveTracks(double audio[], int nrChannels, unsigned arrayLength) {
+  // first empty old wavetracks
+  for (int i = 0; i < waveTracks.size(); i++)
+    waveTracks[i].waveData.clear();
+
+  // copy the new track data to right tracks
+    int index = 0;
+    for (unsigned i = 0; i < arrayLength; i++) {
+      // de-interleaving
+      waveTracks[index].waveData.push_back(audio[i]);
+      index++;
+
+      if (index == nrChannels)
+        index = 0;
+    }
 }
 

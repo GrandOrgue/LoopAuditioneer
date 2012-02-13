@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2012 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,6 +64,9 @@ public:
 
   // Get audio data as doubles
   bool GetDoubleAudioData(double audio[], unsigned arrayLength);
+
+  // Update the wave data vector if audio is changed
+  void UpdateWaveTracks(double audio[], int nrChannels, unsigned arrayLength);
 
   // Methods for dealing with amplitude zoom level
   int GetAmplitudeZoomLevel();

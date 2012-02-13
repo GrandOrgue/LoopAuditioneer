@@ -1,6 +1,6 @@
 /*
  * FileHandling.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-12 Lars Palo
+ * Copyright (C) 2011-2012 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,9 +39,11 @@ public:
   void SaveAudioFile(wxString fileName, wxString path);
   int GetSampleRate();
   int GetAudioFormat();
+  int GetWholeFormat();
   bool FileCouldBeOpened();
   double GetFFTPitch(double data[]);
   double GetTDPitch();
+  void PerformCrossfade(double audioData[], int loopNumber, double fadeLength, int fadeType);
 
   short *shortAudioData;
   int *intAudioData;
