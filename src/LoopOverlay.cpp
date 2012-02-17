@@ -166,7 +166,7 @@ void LoopOverlay::OnPaint(wxDC& dc) {
         );
       }
 
-      // draw in the spline and sample points indicating the startpoint data
+      // draw in the sample points and lines indicating the startpoint data
       dc.SetPen(wxPen(*wxBLUE, 1, wxSOLID));
       wxPoint startWave[41];
       for (int j = 0; j < 41; j++) {
@@ -182,9 +182,9 @@ void LoopOverlay::OnPaint(wxDC& dc) {
         }
       }
       dc.SetPen(wxPen(*wxBLUE, 1, wxDOT));
-      dc.DrawSpline(WXSIZEOF(startWave), startWave);
+      dc.DrawLines(41, startWave);
 
-      // draw in the spline and sample points indicating the endpoint data
+      // draw in the sample points and lines indicating the endpoint data
       dc.SetPen(wxPen(*wxRED, 1, wxSOLID));
       wxPoint endWave[41];
       for (int j = 0; j < 41; j++) {
@@ -200,7 +200,7 @@ void LoopOverlay::OnPaint(wxDC& dc) {
         }
       }
       dc.SetPen(wxPen(*wxRED, 1, wxLONG_DASH));
-      dc.DrawSpline(WXSIZEOF(endWave), endWave);
+      dc.DrawLines(41, endWave);
 
       // draw the vertical line that indicate where loopstart sample is
       dc.SetPen(wxPen(*wxLIGHT_GREY, 1, wxDOT_DASH));
