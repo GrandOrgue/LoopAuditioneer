@@ -71,7 +71,7 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
   info.SetName(appName);
   info.SetVersion(appVersion);
   info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files."));
-  info.SetCopyright(wxT("Copyright (C) 2011 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
+  info.SetCopyright(wxT("Copyright (C) 2011-2012 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
   info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
 
   wxAboutBox(info);
@@ -1174,19 +1174,24 @@ void MyFrame::OnViewLoop(wxCommandEvent& event) {
     return;
   }
 
-  wxString dialogTitle = wxString::Format(wxT("Waveform overlay of Loop %i"), firstSelected + 1);
+  // check that the loop and data is safe to send to the loopoverlay
+  if (currentLoop.dwStart > 21 &&
+      currentLoop.dwEnd < (m_audiofile->ArrayLength / m_audiofile->m_channels) - 22) {
 
-  LoopOverlay lpo(
-    audioData,
-    currentLoop.dwStart,
-    currentLoop.dwEnd,
-    m_audiofile->m_channels,
-    this,
-    wxID_ANY,
-    dialogTitle
-  );
+    wxString dialogTitle = wxString::Format(wxT("Waveform overlay of Loop %i"), firstSelected + 1);
 
-  lpo.ShowModal();
+    LoopOverlay lpo(
+      audioData,
+      currentLoop.dwStart,
+      currentLoop.dwEnd,
+      m_audiofile->m_channels,
+      this,
+      wxID_ANY,
+      dialogTitle
+    );
+
+    lpo.ShowModal();
+  }
 
   delete[] audioData;
 }
