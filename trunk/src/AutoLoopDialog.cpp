@@ -1,6 +1,6 @@
 /* 
  * AutoLoopDialog.cpp provide a GUI for setting parameters for AutoLooping
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2012 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -234,7 +234,7 @@ void AutoLoopDialog::CreateControls() {
     ID_DURATION,
     100,
     0,
-    200,
+    300,
     wxDefaultPosition, 
     wxDefaultSize, 
     wxSL_HORIZONTAL
@@ -292,7 +292,7 @@ void AutoLoopDialog::CreateControls() {
     ID_QUALITY,
     60,
     5,
-    150,
+    300,
     wxDefaultPosition, 
     wxDefaultSize, 
     wxSL_HORIZONTAL
@@ -320,7 +320,7 @@ void AutoLoopDialog::CreateControls() {
     ID_CANDIDATES,
     8000,
     1000,
-    20000,
+    50000,
     wxDefaultPosition, 
     wxDefaultSize, 
     wxSL_HORIZONTAL|wxSL_LABELS
