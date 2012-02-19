@@ -30,6 +30,7 @@
 #include <climits>
 #include "PitchDialog.h"
 #include "LoopOverlay.h"
+#include <wx/busyinfo.h>
 
 bool MyFrame::loopPlay = true; // default to loop play
 int MyFrame::volumeMultiplier = 1; // default value
@@ -869,17 +870,27 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
   bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
 
   if (gotData) {
-    // this is the call to search for loops
-    bool foundSomeLoops = m_autoloop->AutoFindLoops(
-      audioData,
-      m_audiofile->ArrayLength,
-      m_audiofile->m_channels,
-      m_audiofile->GetSampleRate(),
-      loops,
-      m_autoloopSettings->GetAutosearch(),
-      m_autoloopSettings->GetStart(),
-      m_autoloopSettings->GetEnd()
-    );
+    bool foundSomeLoops = false;
+
+    if (!foundSomeLoops) {
+      // stop other windows and set a busyinfo to calm user if it takes some time
+      wxWindowDisabler disableAll;
+
+      wxBusyInfo searchInfo(wxT("Searching for loops, please wait..."), this);
+      wxSafeYield();
+    
+      // this is the call to search for loops
+      foundSomeLoops = m_autoloop->AutoFindLoops(
+        audioData,
+        m_audiofile->ArrayLength,
+        m_audiofile->m_channels,
+        m_audiofile->GetSampleRate(),
+        loops,
+        m_autoloopSettings->GetAutosearch(),
+        m_autoloopSettings->GetStart(),
+        m_autoloopSettings->GetEnd()
+      );
+    }
 
     if (foundSomeLoops) {
       for (unsigned i = 0; i < loops.size(); i++) {

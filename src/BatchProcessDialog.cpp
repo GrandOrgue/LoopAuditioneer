@@ -66,6 +66,7 @@ void BatchProcessDialog::Init() {
   m_batchProcessesAvailable.Add(wxT("List FFT pitch deviations"));
   m_batchProcessesAvailable.Add(wxT("Store time domain detected pitch info"));
   m_batchProcessesAvailable.Add(wxT("List time domain pitch deviations"));
+  m_batchProcessesAvailable.Add(wxT("List existing pitch info in file(s)"));
 }
 
 bool BatchProcessDialog::Create(
@@ -705,6 +706,36 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
       }
 
     break;
+
+    case 9:
+      // This is for listing existing pitch information in file(s)
+      if (filesToProcess.IsEmpty() == false) {
+        m_statusProgress->AppendText(m_sourceField->GetValue());
+        m_statusProgress->AppendText(wxT("\n"));
+        m_statusProgress->AppendText(wxT("\n"));
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          m_statusProgress->AppendText(filesToProcess.Item(i));
+          m_statusProgress->AppendText(wxT("\n"));
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            // get pitch info and calculate resulting pitch frequency
+            double cents = (double) fh.m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
+            int midiNote = (int) fh.m_loops->GetMIDIUnityNote();
+            double midi_note_pitch = 440.0 * pow(2, ((double)(midiNote - 69) / 12.0));
+            double resultingPitch = midi_note_pitch * pow(2, (cents / 1200.0));
+           
+            m_statusProgress->AppendText(wxString::Format(wxT("\tExisting MIDINote = %i \n"), midiNote));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction (in cents) = %.2f \n"), cents));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tResulting Frequency = %.2f \n"), resultingPitch));
+
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+        }
+        m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
 
     default:
       // This should be impossible as well!

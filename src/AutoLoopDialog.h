@@ -1,6 +1,6 @@
 /* 
  * AutoLoopDialog.h provide a GUI for setting parameters for AutoLooping
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2012 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -108,7 +108,7 @@ private:
   double m_threshold;  // 0.03 (3 %)
   double m_minDuration;      // 1.0 seconds
   double m_betweenLoops; // 0.3 seconds
-  double m_quality;        // value (6) for short, *65535 for int, /32767 (0.00006) for float)
+  double m_quality;        // value (6) /32767 (0.00006) for float)
   int m_candidates;           // 8000
   int m_numberOfLoops;           // 4
   int m_loopMultiple;        // 5
