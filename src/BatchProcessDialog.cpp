@@ -20,6 +20,7 @@
 
 #include "BatchProcessDialog.h"
 #include "AutoLoopDialog.h"
+#include "StopHarmonicDialog.h"
 #include "AutoLooping.h"
 #include "FileHandling.h"
 #include "sndfile.hh"
@@ -67,6 +68,7 @@ void BatchProcessDialog::Init() {
   m_batchProcessesAvailable.Add(wxT("Store time domain detected pitch info"));
   m_batchProcessesAvailable.Add(wxT("List time domain pitch deviations"));
   m_batchProcessesAvailable.Add(wxT("List existing pitch info in file(s)"));
+  m_batchProcessesAvailable.Add(wxT("Set pitch info from file name nr."));
 }
 
 bool BatchProcessDialog::Create(
@@ -736,6 +738,62 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
       } else {
         m_statusProgress->AppendText(wxT("No wav files to process!\n"));
       }
+
+    break;
+
+    case 10:
+      // This is for setting pitch info manually
+      if (filesToProcess.IsEmpty() == false) {
+        // Create a dialog to select foot to use
+        StopHarmonicDialog harmDlg(this);
+        if (harmDlg.ShowModal() == wxID_OK) {
+          int harmonicNr = harmDlg.GetSelectedHarmonic();
+          m_statusProgress->AppendText(m_sourceField->GetValue());
+          m_statusProgress->AppendText(wxT("\n"));
+          m_statusProgress->AppendText(wxT("\n"));
+          for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+            FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+            if (fh.FileCouldBeOpened()) {
+              wxString currentFileName = filesToProcess.Item(i);
+              wxString midiNrStr = currentFileName.Mid(0, 3);
+              int midiNr = wxAtoi(midiNrStr);
+              if (midiNr != 0) {
+                // Calculate pitch from detected MIDI note
+                double initialPitch = 440.0 * pow(2, ((double)(midiNr - 69) / 12.0));
+
+                // Correct pitch from harmonic number
+                double actualPitch = initialPitch * (8.0 / (64.0 / (double) harmonicNr));
+
+                // Calculate new dwMIDINote and dwMIDIPitchFraction
+                int midi_note = (69 + 12 * (log10(actualPitch / 440.0) / log10(2)));
+                double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
+                double cent_deviation = 1200 * (log10(actualPitch / midi_note_pitch) / log10(2));
+                unsigned int midi_pitch_fraction = ((double)UINT_MAX * (cent_deviation / 100.0));
+
+                m_statusProgress->AppendText(currentFileName);
+                m_statusProgress->AppendText(wxT("\n"));
+                m_statusProgress->AppendText(wxString::Format(wxT("\tExtracted MIDI number = %i \n"), midiNr));
+                m_statusProgress->AppendText(wxString::Format(wxT("\tInitial pitch = %.2f \n"), initialPitch));
+                m_statusProgress->AppendText(wxString::Format(wxT("\tRe-calculated pitch = %.2f \n"), actualPitch));
+                m_statusProgress->AppendText(wxString::Format(wxT("\tMIDINote = %i \n"), midi_note));
+                m_statusProgress->AppendText(wxString::Format(wxT("\tPitchFraction = %.2f \n"), cent_deviation));
+              
+              } else {
+                m_statusProgress->AppendText(wxT("\tCouldn't determine MIDI note from name!\n"));
+              }
+            } else {
+              m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+            }
+          }
+          m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
+        } else {
+          m_statusProgress->AppendText(wxT("\tProcess aborted!\n"));
+        }
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
 
     default:
       // This should be impossible as well!

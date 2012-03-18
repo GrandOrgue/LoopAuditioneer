@@ -181,6 +181,10 @@ int FileHandling::GetSampleRate() {
   return m_samplerate;
 }
 
+void FileHandling::SetSampleRate(unsigned s_rate) {
+  m_samplerate = s_rate;
+}
+
 int FileHandling::GetAudioFormat() {
   return m_minorFormat;
 }
@@ -236,11 +240,14 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
 
   // Find strongest value
   double maxValue = 0;
+  unsigned indexWithMaxValue = 0;
   for (unsigned idx = 0; idx < numberOfSamples; idx++) {
     double currentValue = fabs(channel_data[idx]);
 
-    if (currentValue > maxValue)
+    if (currentValue > maxValue) {
       maxValue = currentValue;
+      indexWithMaxValue = idx;
+    }
   }
 
   // now detect sustain section
@@ -307,9 +314,70 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
 
   if (sustainEndIndex < sustainStartIndex) {
     // this is an error situation where no sustainsection could be found
-    m_timeDomainPitch = 0.0;
-    delete[] channel_data;
-    return false;
+    // so we try another approach to detecting the part of sound that we can
+    // analyze we know where the max value is located so we calculate where the
+    // max values get no larger than one fourth of maxvalue in both directions
+    // we start searching backwards from max index
+    double lastValue = maxValue;
+    double middleValue = fabs(channel_data[indexWithMaxValue + 1]);
+    std::vector<std::pair<unsigned, double> > absolutePeaks;
+    for (unsigned i = indexWithMaxValue + 2; i < numberOfSamples; i++) {
+      double currentValue = fabs(channel_data[i]);
+      if (middleValue > currentValue && middleValue > lastValue) {
+        // we have a peak
+        absolutePeaks.push_back(std::make_pair(i - 1, middleValue));
+      } else {
+        lastValue = middleValue;
+        middleValue = currentValue;
+      }
+    }
+
+    // now we search backwards in the vector for the first peak that is larger
+    // than maxValue / 4
+    if (absolutePeaks.empty() == false) {
+      for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
+        if (absolutePeaks[i].second > (maxValue / 4)) {
+          sustainEndIndex = absolutePeaks[i].first;
+          break;
+        }
+      }
+    } else {
+      // we've really failed
+      m_timeDomainPitch = 0.0;
+      delete[] channel_data;
+      return false;
+    }
+
+    // now we search forwards from max index
+    lastValue = maxValue;
+    middleValue = fabs(channel_data[indexWithMaxValue - 1]);
+    absolutePeaks.clear();
+    for (unsigned i = indexWithMaxValue - 2; i > 0; i--) {
+      double currentValue = fabs(channel_data[i]);
+      if (middleValue > currentValue && middleValue > lastValue) {
+        // we have a peak
+        absolutePeaks.push_back(std::make_pair(i + 1, middleValue));
+      } else {
+        lastValue = middleValue;
+        middleValue = currentValue;
+      }
+    }
+
+    // now we search backwards in the vector for the first peak that is larger
+    // than maxValue / 4
+    if (absolutePeaks.empty() == false) {
+      for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
+        if (absolutePeaks[i].second > (maxValue / 4)) {
+          sustainStartIndex = absolutePeaks[i].first;
+          break;
+        }
+      }
+    } else {
+      // we've really failed
+      m_timeDomainPitch = 0.0;
+      delete[] channel_data;
+      return false;
+    }
   }
 
   // find out how large the analyze window can be
@@ -522,6 +590,15 @@ void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double f
   LOOPDATA loopToCrossfade;
   m_loops->GetLoopData(loopNumber, loopToCrossfade);
   unsigned samplesToFade = m_samplerate * fadeLength;
+
+  // check to not read outside the audiodata array
+  if (samplesToFade > loopToCrossfade.dwStart)
+    samplesToFade = loopToCrossfade.dwStart;
+
+  // check to not write outside the audiodata array
+  if ((samplesToFade + loopToCrossfade.dwEnd + 1) * m_channels > ArrayLength)
+    samplesToFade = (ArrayLength - (loopToCrossfade.dwEnd + 1)) / m_channels;
+
   unsigned firstTargetIdx = (loopToCrossfade.dwEnd - (samplesToFade - 1)) * m_channels;
   unsigned firstSourceIdx = (loopToCrossfade.dwStart - samplesToFade) * m_channels;
   unsigned secondTargetIdx = (loopToCrossfade.dwEnd + 1) * m_channels;
@@ -542,6 +619,22 @@ void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double f
       for (int i = 0; i < samplesToFade; i++) {
         double linear = i * 1.0 / (samplesToFade - 1);
         fadeData[i] = 0.5 * (1.0 + cos((1.0 - linear) * M_PI));
+      }
+      break;
+
+    case 2:
+      // create a curve from 0 to 1 with equal power/gain
+      for (int i = 0; i < samplesToFade; i++) {
+        double linear = i * 1.0 / (samplesToFade - 1);
+        fadeData[i] = linear / sqrt( pow(linear, 2) + pow((1 - linear), 2) );
+      }
+      break;
+
+    case 3:
+       // create a sine curve table from 0 to 1
+      for (int i = 0; i < samplesToFade; i++) {
+        double linear = i * 1.0 / (samplesToFade - 1);
+        fadeData[i] = sin(M_PI / 2 * linear);
       }
       break;
 
