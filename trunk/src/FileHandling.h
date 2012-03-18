@@ -38,6 +38,7 @@ public:
 
   void SaveAudioFile(wxString fileName, wxString path);
   int GetSampleRate();
+  void SetSampleRate(unsigned s_rate);
   int GetAudioFormat();
   int GetWholeFormat();
   bool FileCouldBeOpened();
