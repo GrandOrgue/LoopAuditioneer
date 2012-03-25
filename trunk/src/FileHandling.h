@@ -43,7 +43,7 @@ public:
   int GetWholeFormat();
   bool FileCouldBeOpened();
   double GetFFTPitch(double data[]);
-  double GetTDPitch();
+  double GetTDPitch(double data[]);
   void PerformCrossfade(double audioData[], int loopNumber, double fadeLength, int fadeType);
 
   short *shortAudioData;
@@ -67,7 +67,16 @@ private:
   double m_timeDomainPitch;
 
   bool DetectPitchByFFT(double data[]);
-  double DetectedPitchInTimeDomain(double audio[], unsigned start, unsigned end);
+  bool DetectPitchInTimeDomain(double audio[]);
+  double TranslateIndexToPitch(
+    int idxAtPeak,
+    double valueBeforePeak,
+    double valueAtPeak,
+    double valueAfterPeak,
+    unsigned wSize
+  );
+  void SeparateStrongestChannel(double inData[], double outData[]);
+  std::pair<unsigned, unsigned> GetSustainStartAndEnd(double ch_data[]);
 
 };
 

@@ -20,6 +20,7 @@
 
 #include "FileHandling.h"
 #include "FFT.h"
+#include <cfloat>
 
 FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_timeDomainPitch(0) {
   m_loops = new LoopMarkers();
@@ -212,179 +213,33 @@ double FileHandling::GetFFTPitch(double data[]) {
 bool FileHandling::DetectPitchByFFT(double data[]) {
   std::vector<double> detectedPitches;
   unsigned numberOfSamples = ArrayLength / m_channels;
-  unsigned sustainStartIndex = 0, sustainEndIndex = 0;
+  std::pair <unsigned, unsigned> sustainStartAndEnd;
+  sustainStartAndEnd.first = 0;
+  sustainStartAndEnd.second = 0;
   double *channel_data = new double[numberOfSamples];
-  unsigned channel_idx = 0;
 
-  // detect strongest channel
-  if (m_channels > 1) {
-    double strongestValue = 0;
-    for (int i = 0; i < m_channels; i++) {
-      for (unsigned j = i; j < ArrayLength; j += m_channels) {
-        if (fabs(data[j]) > strongestValue) {
-          strongestValue = fabs(data[j]);
-          channel_idx = i;
-        }
-      }
-    }
-  } else {
-    channel_idx = 0;
-  }
- 
-  // fill channel_data array with values from data[]
-  unsigned ch_idx = 0;
-  for (unsigned data_idx = channel_idx; data_idx < ArrayLength; data_idx += m_channels) {
-    channel_data[ch_idx] = data[data_idx];
-    ch_idx++;
+  // Get channel data if necessary
+  if (m_channels > 1)
+    SeparateStrongestChannel(data, channel_data);
+  else {
+    for (unsigned i = 0; i < numberOfSamples; i++)
+      channel_data[i] = data[i];
   }
 
-  // Find strongest value
-  double maxValue = 0;
-  unsigned indexWithMaxValue = 0;
-  for (unsigned idx = 0; idx < numberOfSamples; idx++) {
-    double currentValue = fabs(channel_data[idx]);
+  // Get sustainsection start and end
+  sustainStartAndEnd = GetSustainStartAndEnd(channel_data);
 
-    if (currentValue > maxValue) {
-      maxValue = currentValue;
-      indexWithMaxValue = idx;
-    }
-  }
-
-  // now detect sustain section
-  // set a windowsize for a 20 Hz frequency in current file (mono now!)
-  unsigned windowSize = m_samplerate / 20;
-
-  // Find sustainstart by scanning from the beginning
-  double maxAmplitudeValue = 0;
-  
-  for (unsigned idx = 0; idx < numberOfSamples - windowSize; idx += windowSize) {
-    double maxValueInThisWindow = 0;
-    for (unsigned j = idx; j < idx + windowSize; j++) {
-      double currentValue = fabs(channel_data[j]);
-
-      if (currentValue > maxValueInThisWindow)
-        maxValueInThisWindow = currentValue;
-    }
-
-    if (maxValueInThisWindow > maxAmplitudeValue)
-      maxAmplitudeValue = maxValueInThisWindow;
-    else {
-      // the max value in the window is not increasing anymore so 
-      // sustainsection is reached
-      sustainStartIndex = idx + windowSize;
-      break;
-    }
-  }
-
-  // then we add an offset of 0.25 seconds to allow the tone to stabilize
-  sustainStartIndex += m_samplerate / 4;
-
-  // now find sustainend by scanning from the end of audio data
-  maxAmplitudeValue = 0;
-  
-  for (unsigned idx = numberOfSamples - 1; idx > windowSize; idx -= windowSize) {
-    double maxValueInThisWindow = 0;
-    for (unsigned j = idx; j > idx - windowSize; j--) {
-      double currentValue = fabs(channel_data[j]);
-
-      if (currentValue > maxValueInThisWindow)
-        maxValueInThisWindow = currentValue;
-    }
-
-    // if current max is less than one fourth of max value, or 12 dB lower
-    // we just continue searching backwards
-    if (maxValueInThisWindow < maxValue / 4) {
-      maxAmplitudeValue = maxValueInThisWindow;
-      continue;
-    }
-
-    if (maxValueInThisWindow > maxAmplitudeValue) {
-      maxAmplitudeValue = maxValueInThisWindow;
-    } else {
-      // the max value in the window is not increasing anymore so 
-      // sustainsectionend should be reached
-      sustainEndIndex = idx;
-      break;
-    }
-  }
-  if (sustainEndIndex > sustainStartIndex) {
-    // then we remove an offset of 0.25 seconds to be sure
-    sustainEndIndex -= m_samplerate / 4;
-  }
-
-  if (sustainEndIndex < sustainStartIndex) {
-    // this is an error situation where no sustainsection could be found
-    // so we try another approach to detecting the part of sound that we can
-    // analyze we know where the max value is located so we calculate where the
-    // max values get no larger than one fourth of maxvalue in both directions
-    // we start searching backwards from max index
-    double lastValue = maxValue;
-    double middleValue = fabs(channel_data[indexWithMaxValue + 1]);
-    std::vector<std::pair<unsigned, double> > absolutePeaks;
-    for (unsigned i = indexWithMaxValue + 2; i < numberOfSamples; i++) {
-      double currentValue = fabs(channel_data[i]);
-      if (middleValue > currentValue && middleValue > lastValue) {
-        // we have a peak
-        absolutePeaks.push_back(std::make_pair(i - 1, middleValue));
-      } else {
-        lastValue = middleValue;
-        middleValue = currentValue;
-      }
-    }
-
-    // now we search backwards in the vector for the first peak that is larger
-    // than maxValue / 4
-    if (absolutePeaks.empty() == false) {
-      for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
-        if (absolutePeaks[i].second > (maxValue / 4)) {
-          sustainEndIndex = absolutePeaks[i].first;
-          break;
-        }
-      }
-    } else {
-      // we've really failed
-      m_timeDomainPitch = 0.0;
-      delete[] channel_data;
-      return false;
-    }
-
-    // now we search forwards from max index
-    lastValue = maxValue;
-    middleValue = fabs(channel_data[indexWithMaxValue - 1]);
-    absolutePeaks.clear();
-    for (unsigned i = indexWithMaxValue - 2; i > 0; i--) {
-      double currentValue = fabs(channel_data[i]);
-      if (middleValue > currentValue && middleValue > lastValue) {
-        // we have a peak
-        absolutePeaks.push_back(std::make_pair(i + 1, middleValue));
-      } else {
-        lastValue = middleValue;
-        middleValue = currentValue;
-      }
-    }
-
-    // now we search backwards in the vector for the first peak that is larger
-    // than maxValue / 4
-    if (absolutePeaks.empty() == false) {
-      for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
-        if (absolutePeaks[i].second > (maxValue / 4)) {
-          sustainStartIndex = absolutePeaks[i].first;
-          break;
-        }
-      }
-    } else {
-      // we've really failed
-      m_timeDomainPitch = 0.0;
-      delete[] channel_data;
-      return false;
-    }
+  // Check if sustainsection is not valid and abort if so
+  if (sustainStartAndEnd.first == 0 && sustainStartAndEnd.second == 0) {
+    delete[] channel_data;
+    return false;
   }
 
   // find out how large the analyze window can be
   unsigned analyzeWindowSize = 2;
   bool keepIncreasing = true;
   while (keepIncreasing) {
-    if (analyzeWindowSize * 2 < sustainEndIndex - sustainStartIndex) {
+    if (analyzeWindowSize * 2 < sustainStartAndEnd.second - sustainStartAndEnd.first) {
       if (analyzeWindowSize < m_samplerate) {
         if (analyzeWindowSize < 65536)
           analyzeWindowSize *= 2;
@@ -399,18 +254,19 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
   }
 
   // if not more than one window will be analyzed put it in the middle
-  if ((sustainEndIndex - sustainStartIndex) / analyzeWindowSize < 2) {
-    sustainStartIndex += (sustainEndIndex - sustainStartIndex - analyzeWindowSize) / 2;
+  if ((sustainStartAndEnd.second - sustainStartAndEnd.first) / analyzeWindowSize < 2) {
+    sustainStartAndEnd.first += (sustainStartAndEnd.second - sustainStartAndEnd.first - analyzeWindowSize) / 2;
   }
 
   double *in = new double[analyzeWindowSize];
   double *out = new double[analyzeWindowSize / 2];
+  double *outInDb = new double[analyzeWindowSize / 2];
    
-  unsigned current_idx = sustainStartIndex;
+  unsigned current_idx = sustainStartAndEnd.first;
 
-  while (current_idx < sustainEndIndex - analyzeWindowSize) {
+  while (current_idx < sustainStartAndEnd.second - analyzeWindowSize) {
     // fill in array
-    int index = 0;
+    unsigned index = 0;
     for (unsigned x = current_idx; x < current_idx + analyzeWindowSize; x++) {
       in[index] = channel_data[x];
       index++;
@@ -422,78 +278,123 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
     // Perform the FFT
     PowerSpectrum(analyzeWindowSize, in, out);
 
-    // now we should find the first peak above the average value which should
-    // indicate what frequency is the fundamental
-    double sum = 0, averageValue;
-    for (int x = 0; x < (analyzeWindowSize / 2); x++)
-      sum += out[x];
+    // Normalize output magnitude between 0 and 1
+    double maxValuePreNorm = 0;
+    for (int i = 0; i < analyzeWindowSize / 2; i++){
+      double temp = out[i];
+      if (temp > maxValuePreNorm)
+        maxValuePreNorm = temp;
+    }
 
-    averageValue = sum / (double) (analyzeWindowSize / 2);
+    // Convert to decibels (normalized)
+    for (int i = 0; i < analyzeWindowSize / 2; i++){
+      double temp = out[i] / maxValuePreNorm;
+      outInDb[i] = 10 * log10(temp);
+    }
 
+    // Find greatest peak
+    int originalSize = analyzeWindowSize / 2;
+    double maxPeakValue = -DBL_MAX;
     int peakIndex = 0;
-    double current, before, beforeBefore;
-    for (int x = 0; x < (analyzeWindowSize / 2); x++) {
-      current = out[x];
 
-      if (x > 1) {
-        if (current > before) {
-          // we're going towards a possible peak so just continue
-          beforeBefore = before;
-          before = current;
-        } else {
-          // we're going away from a max so check if previous was a max
-          if (before > beforeBefore) {
-            // previous index was a max! check if we're above average
-            if (before > averageValue) {
-              // So, this value is a max and it's above average but can
-              // we be ceratin that this is truly a local max?
-              bool greaterMaxSoon = false;
-              for (int t = 0; t < x / 10; t++) {
-                if (out[x + t] > current) {
-                  // No, there's a larger max soon to come
-                  greaterMaxSoon = true;
-                }
-              }
-              if (greaterMaxSoon) {
-                // No! We must continue
-                beforeBefore = before;
-                before = current;
-              } else {
-                // Yes! we store before index as peakIndex
-                peakIndex = x - 1;
-                break;
-              }
-            } else {
-              // No! Then we must continue
-              beforeBefore = before;
-              before = current;
-            }
-          } else {
-            // no, we are just moving away from a max so just continue
-            beforeBefore = before;
-            before = current;
-          }
-        }
-      }
-
-      if (x == 0)
-        before = current;
-
-      if (x == 1) {
-        beforeBefore = before;
-        before = current;
+    for (int x = 0; x < originalSize; x++) {
+      double currentValue = outInDb[x];
+      if (currentValue > maxPeakValue) {
+        maxPeakValue = currentValue;
+        peakIndex = x;
       }
     }
 
-    // translate peakIndex to a frequency
-    double centerPeakBin; 
-    double valueBeforePeak = out[peakIndex - 1];
-    double valueAtPeak = out[peakIndex];
-    double valueAfterPeak = out[peakIndex + 1]; 
+    // search if there are earlier peaks that could be the fundamental
+    std::vector<unsigned> allPeaksToConsider;
+    double middleValue = outInDb[1];
+    double lastValue = outInDb[0];
+    for (int x = 2; x < peakIndex; x++) {
+      double currentValue = outInDb[x];
+      if (middleValue > currentValue && middleValue > lastValue) {
+        // it's a peak but should it be considered?
+        if (middleValue > (maxPeakValue - 24)) {
+          // yes, add it to the vector
+          allPeaksToConsider.push_back(x - 1);
+          lastValue = middleValue;
+          middleValue = currentValue;
+        } else {
+          // no, just continue
+          lastValue = middleValue;
+          middleValue = currentValue;
+        }
+      } else {
+        lastValue = middleValue;
+        middleValue = currentValue;
+      }
+    }
+    if ((allPeaksToConsider.empty() == false) && (allPeaksToConsider.size() > 1)) {
+      // sort the vector so that strongest peak is first
+      for (unsigned i = 0; i < allPeaksToConsider.size() - 1; i++) {
+        unsigned best = i;
+        // find highest peak among i to allPeaksToConsider.size() - 1
+        for (unsigned j = i + 1; j < allPeaksToConsider.size(); j++) {
+          if (outInDb[ allPeaksToConsider[j] ] > outInDb[ allPeaksToConsider[best] ])
+            best = j;
+        }
 
-    centerPeakBin = (valueAfterPeak - valueBeforePeak) / (2 * ( 2 * valueAtPeak - valueBeforePeak - valueAfterPeak));
-    double peakFrequency = (peakIndex + centerPeakBin) * m_samplerate / (double) analyzeWindowSize;
-    detectedPitches.push_back(peakFrequency);
+        // now we switch content of index i and best
+        unsigned tempIndex = allPeaksToConsider[i];
+        allPeaksToConsider[i] = allPeaksToConsider[best];
+        allPeaksToConsider[best] = tempIndex;
+      }
+    }
+
+    // this is the max peak that we add last and compare to
+    allPeaksToConsider.push_back(peakIndex);
+
+    double binFrequencyResolution = m_samplerate / (double) analyzeWindowSize;
+    double maxPeakFrequency = TranslateIndexToPitch(
+      peakIndex,
+      out[peakIndex - 1],
+      out[peakIndex],
+      out[peakIndex + 1],
+      analyzeWindowSize
+    );
+
+    if (allPeaksToConsider.size() > 1) {
+      // now see if the maxpeak can be a harmonic of any other peak
+      for (int x = 0; x < allPeaksToConsider.size() - 1; x++) {
+        double thisPitch = TranslateIndexToPitch(
+          allPeaksToConsider[x],
+          out[allPeaksToConsider[x] - 1],
+          out[allPeaksToConsider[x] ],
+          out[allPeaksToConsider[x] + 1],
+          analyzeWindowSize
+        );
+        double harmonic1 = thisPitch * 2;
+        double diff1 = harmonic1 - maxPeakFrequency;
+        double harmonic2 = thisPitch * 3;
+        double diff2 = harmonic2 - maxPeakFrequency;
+
+        if ((diff1 < 10) && (diff1 > -10)) {
+          // peakIndex could be the first harmonic
+          peakIndex = allPeaksToConsider[x];
+          break;
+        } else if ((diff2 < 10) && (diff2 > -10)) {
+          // peakIndex could be the second harmonic of this one
+          peakIndex = allPeaksToConsider[x];
+          break;
+        }
+      }
+    }
+
+    // translate peakIndex to a frequency and store it
+    double finalFrequency = TranslateIndexToPitch(
+      peakIndex,
+      out[peakIndex - 1],
+      out[peakIndex],
+      out[peakIndex + 1],
+      analyzeWindowSize
+    );
+    detectedPitches.push_back(finalFrequency);
+
+    allPeaksToConsider.clear();
 
     // proceed to next window
     current_idx += analyzeWindowSize / 2;
@@ -501,9 +402,7 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
 
   delete[] in;
   delete[] out;
-
-  m_timeDomainPitch = DetectedPitchInTimeDomain(channel_data, sustainStartIndex, sustainEndIndex);
-
+  delete[] outInDb;
   delete[] channel_data;
 
   if (detectedPitches.empty() == false) {
@@ -519,16 +418,58 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
   }
 }
 
-double FileHandling::DetectedPitchInTimeDomain(double audio[], unsigned start, unsigned end) {
-  if (end - start < 2)
+double FileHandling::TranslateIndexToPitch(
+  int idxAtPeak,
+  double valueBeforePeak,
+  double valueAtPeak,
+  double valueAfterPeak,
+  unsigned wSize) {
+  double pitchToReturn;
+
+  double centerPeakBin;
+
+  centerPeakBin = (valueAfterPeak - valueBeforePeak) / (2 * ( 2 * valueAtPeak - valueBeforePeak - valueAfterPeak));
+  pitchToReturn = (idxAtPeak + centerPeakBin) * m_samplerate / (double) wSize;
+
+  return pitchToReturn;
+}
+
+bool FileHandling::DetectPitchInTimeDomain(double audio[]) {
+  unsigned numberOfSamples = ArrayLength / m_channels;
+  std::pair <unsigned, unsigned> sustainStartAndEnd;
+  sustainStartAndEnd.first = 0;
+  sustainStartAndEnd.second = 0;
+  double *channel_data = new double[numberOfSamples];
+
+  // Get channel data if necessary
+  if (m_channels > 1)
+    SeparateStrongestChannel(audio, channel_data);
+  else {
+    for (unsigned i = 0; i < numberOfSamples; i++)
+      channel_data[i] = audio[i];
+  }
+
+  // Get sustainsection start and end
+  sustainStartAndEnd = GetSustainStartAndEnd(channel_data);
+
+  // Check if sustainsection is not valid and abort if so
+  if (sustainStartAndEnd.first == 0 && sustainStartAndEnd.second == 0) {
+    delete[] channel_data;
+    return false;
+  }
+
+  if (sustainStartAndEnd.second - sustainStartAndEnd.first < 2)
     return 0; // cannot calculate pitch
 
+  if (sustainStartAndEnd.second - sustainStartAndEnd.first > m_samplerate * 2)
+    sustainStartAndEnd.second = sustainStartAndEnd.first + m_samplerate * 2;
+
   std::vector<double> allDetectedPitches;
-  double prev = audio[end]; // Last sample
+  double prev = channel_data[sustainStartAndEnd.second]; // Last sample
   unsigned end_point = 0; // Preliminary value of the last sample of period
 
-  for (unsigned i = end - 2; i > start; i--) {
-    double v = audio[i];
+  for (unsigned i = sustainStartAndEnd.second - 2; i > sustainStartAndEnd.first; i--) {
+    double v = channel_data[i];
 
     /* We are interested in positive zero crossings */
     if ((v > 0.0) && (prev <= 0.0)) {
@@ -545,8 +486,8 @@ double FileHandling::DetectedPitchInTimeDomain(double audio[], unsigned start, u
           double error_rms = 0.0;
 
           for (unsigned j = 0; j < len; j++) {
-            double error = audio[j + prev_start_point] - audio[j + i];
-            double d     = audio[j + prev_start_point];
+            double error = channel_data[j + prev_start_point] - channel_data[j + i];
+            double d     = channel_data[j + prev_start_point];
 
             error *= error;
             d *= d;
@@ -571,19 +512,27 @@ double FileHandling::DetectedPitchInTimeDomain(double audio[], unsigned start, u
     prev = v;
   }
 
+  delete[] channel_data;
+
   if (allDetectedPitches.empty() == false) {
     double pitchSum = 0.0;
     for (unsigned i = 0; i < allDetectedPitches.size(); i++)
       pitchSum += allDetectedPitches[i];
 
-    return pitchSum / allDetectedPitches.size();
+    m_timeDomainPitch = pitchSum / allDetectedPitches.size();
+    return true;
   } else {
-    return 0; /* Couldn't find out the pitch */
+    m_timeDomainPitch = 0; /* Couldn't find out the pitch */
+    return false;
   }
 }
 
-double FileHandling::GetTDPitch() {
-  return m_timeDomainPitch;
+double FileHandling::GetTDPitch(double data[]) {
+  bool gotPitch = DetectPitchInTimeDomain(data);
+  if (gotPitch)
+    return m_timeDomainPitch;
+  else
+    return 0;
 }
 
 void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double fadeLength, int fadeType) {
@@ -663,5 +612,188 @@ void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double f
     firstSourceIdx += m_channels;
     secondSourceIdx += m_channels;
   }
+}
+
+void FileHandling::SeparateStrongestChannel(double inData[], double outData[]) {
+  unsigned channel_idx = 0;
+
+  // detect strongest channel
+  double strongestValue = 0;
+  for (int i = 0; i < m_channels; i++) {
+    for (unsigned j = i; j < ArrayLength; j += m_channels) {
+      if (fabs(inData[j]) > strongestValue) {
+        strongestValue = fabs(inData[j]);
+        channel_idx = i;
+      }
+    }
+  }
+ 
+  // fill channel_data array with values from data[]
+  unsigned ch_idx = 0;
+  for (unsigned data_idx = channel_idx; data_idx < ArrayLength; data_idx += m_channels) {
+    outData[ch_idx] = inData[data_idx];
+    ch_idx++;
+  }
+}
+
+std::pair<unsigned, unsigned> FileHandling::GetSustainStartAndEnd(double ch_data[]) {
+  unsigned numberOfSamples = ArrayLength / m_channels;
+  std::pair<unsigned, unsigned> sustainsection;
+  sustainsection.first = 0;
+  sustainsection.second = 0;
+
+  // Find strongest value
+  double maxValue = 0;
+  unsigned indexWithMaxValue = 0;
+  for (unsigned idx = 0; idx < numberOfSamples; idx++) {
+    double currentValue = fabs(ch_data[idx]);
+
+    if (currentValue > maxValue) {
+      maxValue = currentValue;
+      indexWithMaxValue = idx;
+    }
+  }
+
+  // now detect sustain section
+  // set a windowsize for a 20 Hz frequency in current file (mono now!)
+  unsigned windowSize = m_samplerate / 20;
+
+  // Find sustainstart by scanning from the beginning
+  double maxAmplitudeValue = 0;
+  
+  for (unsigned idx = 0; idx < numberOfSamples - windowSize; idx += windowSize) {
+    double maxValueInThisWindow = 0;
+    for (unsigned j = idx; j < idx + windowSize; j++) {
+      double currentValue = fabs(ch_data[j]);
+
+      if (currentValue > maxValueInThisWindow)
+        maxValueInThisWindow = currentValue;
+    }
+
+    if (maxValueInThisWindow > maxAmplitudeValue)
+      maxAmplitudeValue = maxValueInThisWindow;
+    else {
+      // the max value in the window is not increasing anymore so 
+      // sustainsection is reached
+      sustainsection.first = idx + windowSize;
+      break;
+    }
+  }
+
+  // then we add an offset of 0.25 seconds to allow the tone to stabilize
+  sustainsection.first += m_samplerate / 4;
+
+  // now find sustainend by scanning from the end of audio data
+  maxAmplitudeValue = 0;
+  
+  for (unsigned idx = numberOfSamples - 1; idx > windowSize; idx -= windowSize) {
+    double maxValueInThisWindow = 0;
+    for (unsigned j = idx; j > idx - windowSize; j--) {
+      double currentValue = fabs(ch_data[j]);
+
+      if (currentValue > maxValueInThisWindow)
+        maxValueInThisWindow = currentValue;
+    }
+
+    // if current max is less than one fourth of max value, or 12 dB lower
+    // we just continue searching backwards
+    if (maxValueInThisWindow < maxValue / 4) {
+      maxAmplitudeValue = maxValueInThisWindow;
+      continue;
+    }
+
+    if (maxValueInThisWindow > maxAmplitudeValue) {
+      maxAmplitudeValue = maxValueInThisWindow;
+    } else {
+      // the max value in the window is not increasing anymore so 
+      // sustainsectionend should be reached
+      sustainsection.second = idx;
+      break;
+    }
+  }
+  if (sustainsection.second > sustainsection.first) {
+    // then we remove an offset of 0.25 seconds to be sure
+    sustainsection.second -= m_samplerate / 4;
+  }
+
+  if (sustainsection.second < sustainsection.first) {
+    // this is an error situation where no sustainsection could be found
+    // so we try another approach to detecting the part of sound that we can
+    // analyze we know where the max value is located so we calculate where the
+    // max values get no larger than one half of maxvalue in both directions
+    // we start searching backwards from max index
+    double lastValue = maxValue;
+    double middleValue = fabs(ch_data[indexWithMaxValue + 1]);
+    std::vector<std::pair<unsigned, double> > absolutePeaks;
+    for (unsigned i = indexWithMaxValue + 2; i < numberOfSamples; i++) {
+      double currentValue = fabs(ch_data[i]);
+      if (middleValue > currentValue && middleValue > lastValue) {
+        // we have a peak
+        absolutePeaks.push_back(std::make_pair(i - 1, middleValue));
+
+        lastValue = middleValue;
+        middleValue = currentValue;
+      } else {
+        lastValue = middleValue;
+        middleValue = currentValue;
+      }
+    }
+
+    // now we search backwards in the vector for the first peak that is larger
+    // than maxValue / 2
+    if (absolutePeaks.empty() == false) {
+      for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
+        if (absolutePeaks[i].second > (maxValue / 2)) {
+          sustainsection.second = absolutePeaks[i].first;
+          break;
+        }
+      }
+    } else {
+      // we've really failed
+      return std::make_pair(0, 0);
+    }
+
+    // now we search forwards from max index
+    lastValue = maxValue;
+    middleValue = fabs(ch_data[indexWithMaxValue - 1]);
+    absolutePeaks.clear();
+    for (unsigned i = indexWithMaxValue - 2; i > 0; i--) {
+      double currentValue = fabs(ch_data[i]);
+      if (middleValue > currentValue && middleValue > lastValue) {
+        // we have a peak
+        absolutePeaks.push_back(std::make_pair(i + 1, middleValue));
+
+        lastValue = middleValue;
+        middleValue = currentValue;
+      } else {
+        lastValue = middleValue;
+        middleValue = currentValue;
+      }
+    }
+
+    // now we search backwards in the vector for the first peak that is larger
+    // than maxValue / 2
+    if (absolutePeaks.empty() == false) {
+      for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
+        if (absolutePeaks[i].second > (maxValue / 2)) {
+          sustainsection.first = absolutePeaks[i].first;
+          break;
+        }
+      }
+    } else {
+      // we've really failed
+      return std::make_pair(0, 0);
+    }
+
+    if (sustainsection.first < sustainsection.second)
+      return sustainsection;
+    else
+      return std::make_pair(0, 0);
+  }
+
+  if (sustainsection.first < sustainsection.second)
+    return sustainsection;
+  else
+    return std::make_pair(0, 0);
 }
 
