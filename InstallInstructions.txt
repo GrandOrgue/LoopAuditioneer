@@ -30,7 +30,7 @@ g++ -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.
 with example optimizations for my atom netbook (for the general use binary I've 
 omitted the -march option):
 
-g++ -O2 -march=atom -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio ../lib-src/libsndfile.a ../lib-src/librtaudio.a -lasound -lpthread -lm `wx-config --cxxflags --unicode=yes --libs`
+g++ -O3 -march=atom -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -ffast-math -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio ../lib-src/libsndfile.a ../lib-src/librtaudio.a -lasound -lpthread -lm `wx-config --cxxflags --unicode=yes --libs`
 
 To reduce executable size:
 

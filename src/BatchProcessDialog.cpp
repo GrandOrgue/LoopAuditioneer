@@ -534,6 +534,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     case 5:
       // This is for autosearching pitch information with FFT and store it in smpl chunk
       if (filesToProcess.IsEmpty() == false) {
+        m_statusProgress->AppendText(m_sourceField->GetValue());
+        m_statusProgress->AppendText(wxT("\n"));
+        m_statusProgress->AppendText(wxT("\n"));
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
@@ -622,6 +625,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     case 7:
       // This is for autosearching pitch information in timedomain and store it in smpl chunk
       if (filesToProcess.IsEmpty() == false) {
+        m_statusProgress->AppendText(m_sourceField->GetValue());
+        m_statusProgress->AppendText(wxT("\n"));
+        m_statusProgress->AppendText(wxT("\n"));
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
@@ -637,12 +643,22 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             sfh.read(audioData, sfh.frames() * sfh.channels());
 
             // autosearch pitch and calculate midi note and pitch fraction
-            double pitch = fh.GetFFTPitch(audioData);
-            pitch = fh.GetTDPitch();
-            int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
-            double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
-            double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
-            unsigned int midi_pitch_fraction = ((double)UINT_MAX * (cent_deviation / 100.0));
+            double pitch = fh.GetTDPitch(audioData);
+            int midi_note;
+            double midi_note_pitch;
+            double cent_deviation;
+            unsigned int midi_pitch_fraction;
+            if (pitch != 0) {
+              midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
+              midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
+              cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
+              midi_pitch_fraction = ((double)UINT_MAX * (cent_deviation / 100.0));
+            } else {
+              midi_note = 0;
+              midi_note_pitch = 0;
+              cent_deviation = 0;
+              midi_pitch_fraction = 0;
+            }
 
             // set midi note and pitch fraction to loopmarkers
             fh.m_loops->SetMIDIUnityNote((char) midi_note);
@@ -684,13 +700,25 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             sfh.read(audioData, sfh.frames() * sfh.channels());
 
             // autosearch pitch and calculate midi note and pitch fraction
-            double pitch = fh.GetFFTPitch(audioData);
-            pitch = fh.GetTDPitch();
-            int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
-            double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
-            double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
-            double deviationToRaise = 100.0 - cent_deviation;
-            double deviationToLower = -cent_deviation;
+            double pitch = fh.GetTDPitch(audioData);
+            int midi_note;
+            double midi_note_pitch;
+            double cent_deviation;
+            double deviationToRaise;
+            double deviationToLower;
+            if (pitch != 0) {
+              midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
+              midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
+              cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
+              deviationToRaise = 100.0 - cent_deviation;
+              deviationToLower = -cent_deviation;
+            } else {
+              midi_note = 0;
+              midi_note_pitch = 0;
+              cent_deviation = 0;
+              deviationToRaise = 0;
+              deviationToLower = 0;
+            }
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch in time domain = %.2f Hz\n"), pitch));
             m_statusProgress->AppendText(wxString::Format(wxT("\tCents to tune up = %.2f \n"), deviationToRaise));
@@ -725,10 +753,14 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             int midiNote = (int) fh.m_loops->GetMIDIUnityNote();
             double midi_note_pitch = 440.0 * pow(2, ((double)(midiNote - 69) / 12.0));
             double resultingPitch = midi_note_pitch * pow(2, (cents / 1200.0));
+            double deviationToRaise = 100 - cents;
+            double deviationToLower = -cents;
            
             m_statusProgress->AppendText(wxString::Format(wxT("\tExisting MIDINote = %i \n"), midiNote));
             m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction (in cents) = %.2f \n"), cents));
             m_statusProgress->AppendText(wxString::Format(wxT("\tResulting Frequency = %.2f \n"), resultingPitch));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tTo raise in ODF: Pipe999PitchTuning=%.2f \n"), deviationToRaise));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tTo lower in ODF Pipe999PitchTuning=%.2f \n"), deviationToLower));
 
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
