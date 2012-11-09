@@ -6,7 +6,7 @@ from Linux with mingw-w64
 
 Requires:
 
-Linux (The author uses Ubuntu 11.10) with usual development tools
+Linux (The author uses Ubuntu 12.04) with usual development tools
 mingw-w64
 wxWidgets 
 	(The author used wxGTK-2.8.12 cross-compiled like this:

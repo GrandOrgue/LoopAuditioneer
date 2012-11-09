@@ -69,6 +69,7 @@ void BatchProcessDialog::Init() {
   m_batchProcessesAvailable.Add(wxT("List time domain pitch deviations"));
   m_batchProcessesAvailable.Add(wxT("List existing pitch info in file(s)"));
   m_batchProcessesAvailable.Add(wxT("Set pitch info from file name nr."));
+  m_batchProcessesAvailable.Add(wxT("Copy pitch info from corresponding file(s)"));
 }
 
 bool BatchProcessDialog::Create(
@@ -774,7 +775,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     break;
 
     case 10:
-      // This is for setting pitch info manually
+      // This is for setting pitch info from file name
       if (filesToProcess.IsEmpty() == false) {
         // Create a dialog to select foot to use
         StopHarmonicDialog harmDlg(this);
@@ -809,6 +810,14 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
                 m_statusProgress->AppendText(wxString::Format(wxT("\tRe-calculated pitch = %.2f \n"), actualPitch));
                 m_statusProgress->AppendText(wxString::Format(wxT("\tMIDINote = %i \n"), midi_note));
                 m_statusProgress->AppendText(wxString::Format(wxT("\tPitchFraction = %.2f \n"), cent_deviation));
+
+                // set midi note and pitch fraction to loopmarkers
+                fh.m_loops->SetMIDIUnityNote((char) midi_note);
+                fh.m_loops->SetMIDIPitchFraction(midi_pitch_fraction);
+
+                // save file
+                fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+                m_statusProgress->AppendText(wxT("\tDone!\n"));
               
               } else {
                 m_statusProgress->AppendText(wxT("\tCouldn't determine MIDI note from name!\n"));
@@ -821,6 +830,49 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
         } else {
           m_statusProgress->AppendText(wxT("\tProcess aborted!\n"));
         }
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 11:
+      // This is for copying pitch information from corresponding file(s)
+      if (filesToProcess.IsEmpty() == false) {
+        m_statusProgress->AppendText(wxT("Reading source from "));
+        m_statusProgress->AppendText(m_sourceField->GetValue());
+        m_statusProgress->AppendText(wxT("\n"));
+        m_statusProgress->AppendText(wxT("\n"));
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          m_statusProgress->AppendText(filesToProcess.Item(i));
+          m_statusProgress->AppendText(wxT("\n"));
+          FileHandling sourceFile(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (sourceFile.FileCouldBeOpened()) {
+            // get pitch info from the source file
+            unsigned int pitchFraction = sourceFile.m_loops->GetMIDIPitchFraction();
+            int midiNote = (int) sourceFile.m_loops->GetMIDIUnityNote();
+            double cents = (double) pitchFraction / (double)UINT_MAX * 100.0;
+
+            // try to open a corresponding target file
+            FileHandling targetFile(filesToProcess.Item(i), m_targetField->GetValue());
+            if (targetFile.FileCouldBeOpened()) {
+              // set midi note and pitch fraction to target file
+              targetFile.m_loops->SetMIDIUnityNote((char) midiNote);
+              targetFile.m_loops->SetMIDIPitchFraction(pitchFraction);
+
+              // save target file
+              targetFile.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+              m_statusProgress->AppendText(wxString::Format(wxT("\tMIDINote = %i \n"), midiNote));
+              m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction (in cents) = %.2f \n"), cents));
+              m_statusProgress->AppendText(wxT("\tDone!\n"));
+            } else {
+              m_statusProgress->AppendText(wxT("\tCouldn't open target file with such name!\n"));
+            }
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open source file!\n"));
+          }
+        }
+        m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
         m_statusProgress->AppendText(wxT("No wav files to process!\n"));
       }
