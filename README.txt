@@ -1,4 +1,4 @@
-This is LoopAuditioneer 0.7.0.3
+This is LoopAuditioneer 0.7.2.0
 Copyright (C) 2011 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
@@ -31,7 +31,7 @@ distributed under a Creative Commons 3.0 license.
 
 Basic installation instructions are available in the InstallInstructions.txt
 file. At the moment the program developed and mostly tested under Linux
-(Ubuntu 11.10).
+(Ubuntu 12.04).
 
 OTHER DEPENDENCIES
 ------------------
