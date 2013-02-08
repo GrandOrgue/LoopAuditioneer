@@ -1,6 +1,6 @@
 /*
  * BatchProcessDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2012 Lars Palo
+ * Copyright (C) 2011-2013 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,6 +70,7 @@ void BatchProcessDialog::Init() {
   m_batchProcessesAvailable.Add(wxT("List existing pitch info in file(s)"));
   m_batchProcessesAvailable.Add(wxT("Set pitch info from file name nr."));
   m_batchProcessesAvailable.Add(wxT("Copy pitch info from corresponding file(s)"));
+  m_batchProcessesAvailable.Add(wxT("Create Pipe999PitchTuning= lines from file(s)"));
 }
 
 bool BatchProcessDialog::Create(
@@ -757,11 +758,11 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             double deviationToRaise = 100 - cents;
             double deviationToLower = -cents;
            
-            m_statusProgress->AppendText(wxString::Format(wxT("\tExisting MIDINote = %i \n"), midiNote));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction (in cents) = %.2f \n"), cents));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tResulting Frequency = %.2f \n"), resultingPitch));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tTo raise in ODF: Pipe999PitchTuning=%.2f \n"), deviationToRaise));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tTo lower in ODF Pipe999PitchTuning=%.2f \n"), deviationToLower));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tExisting MIDINote = %i\n"), midiNote));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction (in cents) = %.2f\n"), cents));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tResulting Frequency = %.2f\n"), resultingPitch));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tTo raise in ODF: Pipe999PitchTuning=%.2f\n"), deviationToRaise));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tTo lower in ODF Pipe999PitchTuning=%.2f\n"), deviationToLower));
 
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
@@ -873,6 +874,40 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           }
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 12:
+      // This is for writing out the Pipe999PitchTuning lines for GO ODFs
+      if (filesToProcess.IsEmpty() == false) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            // get pitch info and calculate resulting pitch frequency
+            double cents = (double) fh.m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
+            int midiNote = (int) fh.m_loops->GetMIDIUnityNote();
+            double midi_note_pitch = 440.0 * pow(2, ((double)(midiNote - 69) / 12.0));
+            double resultingPitch = midi_note_pitch * pow(2, (cents / 1200.0));
+            double deviationToRaise = 100 - cents;
+            double deviationToLower = -cents;
+
+            if (fabs(deviationToRaise) < fabs(deviationToLower)) {
+              m_statusProgress->AppendText(
+                wxString::Format(wxT("Pipe%03uPitchTuning=%.2f\n"), i + 1, deviationToRaise)
+              );
+            } else {
+              m_statusProgress->AppendText(
+                wxString::Format(wxT("Pipe%03uPitchTuning=%.2f\n"), i + 1, deviationToLower)
+              );
+            }
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+        }
+        m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
       } else {
         m_statusProgress->AppendText(wxT("No wav files to process!\n"));
       }
