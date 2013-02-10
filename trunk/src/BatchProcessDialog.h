@@ -82,6 +82,8 @@ private:
   void OnChoiceSelected(wxCommandEvent& event);
   void OnRunBatch(wxCommandEvent& event);
 
+  wxString MyDoubleToString(double dbl);
+
   void ReadyToRockAndRoll();
 };
 

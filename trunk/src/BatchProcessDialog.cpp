@@ -31,6 +31,7 @@
 #include <vector>
 #include <climits>
 #include <cmath>
+#include <cstring>
 
 IMPLEMENT_CLASS(BatchProcessDialog, wxDialog )
 
@@ -608,8 +609,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             double deviationToLower = -cent_deviation;
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tFFT detected pitch = %.2f Hz\n"), pitch));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tCents to tune up = %.2f \n"), deviationToRaise));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tCents to tune down = %.2f \n"), deviationToLower));
+            m_statusProgress->AppendText(wxT("\tCents to tune up = "));
+            m_statusProgress->AppendText(MyDoubleToString(deviationToRaise));
+            m_statusProgress->AppendText(wxT("\n"));
+            m_statusProgress->AppendText(wxT("\tCents to tune down = "));
+            m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
+            m_statusProgress->AppendText(wxT("\n"));
 
             // delete the now unneccessary array of double audio data
             delete[] audioData;
@@ -723,8 +728,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             }
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch in time domain = %.2f Hz\n"), pitch));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tCents to tune up = %.2f \n"), deviationToRaise));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tCents to tune down = %.2f \n"), deviationToLower));
+            m_statusProgress->AppendText(wxT("\tCents to tune up = "));
+            m_statusProgress->AppendText(MyDoubleToString(deviationToRaise));
+            m_statusProgress->AppendText(wxT("\n"));
+            m_statusProgress->AppendText(wxT("\tCents to tune down = "));
+            m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
+            m_statusProgress->AppendText(wxT("\n"));
 
             // delete the now unneccessary array of double audio data
             delete[] audioData;
@@ -761,8 +770,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             m_statusProgress->AppendText(wxString::Format(wxT("\tExisting MIDINote = %i\n"), midiNote));
             m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction (in cents) = %.2f\n"), cents));
             m_statusProgress->AppendText(wxString::Format(wxT("\tResulting Frequency = %.2f\n"), resultingPitch));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tTo raise in ODF: Pipe999PitchTuning=%.2f\n"), deviationToRaise));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tTo lower in ODF Pipe999PitchTuning=%.2f\n"), deviationToLower));
+            m_statusProgress->AppendText(wxT("\tTo raise in ODF: Pipe999PitchTuning="));
+            m_statusProgress->AppendText(MyDoubleToString(deviationToRaise));
+            m_statusProgress->AppendText(wxT("\n"));
+            m_statusProgress->AppendText(wxT("\tTo lower in ODF Pipe999PitchTuning="));
+            m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
+            m_statusProgress->AppendText(wxT("\n"));
 
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
@@ -896,12 +909,16 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
             if (fabs(deviationToRaise) < fabs(deviationToLower)) {
               m_statusProgress->AppendText(
-                wxString::Format(wxT("Pipe%03uPitchTuning=%.2f\n"), i + 1, deviationToRaise)
+                wxString::Format(wxT("Pipe%03uPitchTuning="), i + 1)
               );
+              m_statusProgress->AppendText(MyDoubleToString(deviationToRaise));
+              m_statusProgress->AppendText(wxT("\n"));
             } else {
               m_statusProgress->AppendText(
-                wxString::Format(wxT("Pipe%03uPitchTuning=%.2f\n"), i + 1, deviationToLower)
+                wxString::Format(wxT("Pipe%03uPitchTuning="), i + 1)
               );
+              m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
+              m_statusProgress->AppendText(wxT("\n"));
             }
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
@@ -922,3 +939,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
   delete autoloop;
 }
 
+wxString BatchProcessDialog::MyDoubleToString(double dbl) {
+  wxString returnString = wxString::Format(wxT("%.2f"), dbl);
+
+  if (returnString.Find(wxT(',')) != wxNOT_FOUND) {
+    returnString.Replace(wxT(","), wxT("."));
+  }
+
+  return returnString;
+}
