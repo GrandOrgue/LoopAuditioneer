@@ -72,6 +72,7 @@ void BatchProcessDialog::Init() {
   m_batchProcessesAvailable.Add(wxT("Set pitch info from file name nr."));
   m_batchProcessesAvailable.Add(wxT("Copy pitch info from corresponding file(s)"));
   m_batchProcessesAvailable.Add(wxT("Create Pipe999PitchTuning= lines from file(s)"));
+  m_batchProcessesAvailable.Add(wxT("Remove sound between last loop and cue"));
 }
 
 bool BatchProcessDialog::Create(
@@ -920,6 +921,30 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
               m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
               m_statusProgress->AppendText(wxT("\n"));
             }
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+        }
+        m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 13:
+      // This is for deleting sound after last loop and before cue marker (if existing)
+      if (filesToProcess.IsEmpty() == false) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            fh.TrimExcessData();
+
+            // save file
+            fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+            m_statusProgress->AppendText(wxT("\tDone trimming "));
+            m_statusProgress->AppendText(filesToProcess.Item(i));
+            m_statusProgress->AppendText(wxT("\n"));
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }

@@ -797,3 +797,115 @@ std::pair<unsigned, unsigned> FileHandling::GetSustainStartAndEnd(double ch_data
     return std::make_pair(0, 0);
 }
 
+void FileHandling::TrimExcessData() {
+  // Remove data between last loop and first cue larger than last loop
+  // First get last loop sample
+  unsigned lastEndSample = 0;
+  for (int i = 0; i < m_loops->GetNumberOfLoops(); i++) {
+    LOOPDATA currentLoop;
+    m_loops->GetLoopData(i, currentLoop);
+    if (currentLoop.dwEnd > lastEndSample)
+      lastEndSample = currentLoop.dwEnd;
+  }
+  // only continue if there were any loops
+  if (lastEndSample) {
+    // now get cues greater than loopend (if there are any)
+    unsigned firstCuePosAfter = 0;
+    for (unsigned i = 0; i < m_cues->GetNumberOfCues(); i++) {
+      CUEPOINT currentCue;
+      m_cues->GetCuePoint(i, currentCue);
+      if (currentCue.dwSampleOffset > lastEndSample) {
+        if (!firstCuePosAfter)
+          firstCuePosAfter = currentCue.dwSampleOffset;
+        else if (currentCue.dwSampleOffset < firstCuePosAfter)
+          firstCuePosAfter = currentCue.dwSampleOffset;
+      }
+    }
+
+    long unsigned int newArrayLength = (lastEndSample + 3) * m_channels;
+
+    if (firstCuePosAfter) {
+      newArrayLength += (ArrayLength - ((firstCuePosAfter - 1) * m_channels));
+
+      // we must also move one or more cues to new positions
+      unsigned samplesToRemove = (firstCuePosAfter - 1) - (lastEndSample + 3);
+      for (unsigned i = 0; i < m_cues->GetNumberOfCues(); i++) {
+        CUEPOINT currentCue;
+        m_cues->GetCuePoint(i, currentCue);
+        if (currentCue.dwSampleOffset > lastEndSample) {
+          unsigned newCuePosition = currentCue.dwSampleOffset - samplesToRemove;
+          m_cues->ChangePosition(newCuePosition, i);
+        }
+      }
+    }
+
+    // Time to copy data to a temporary array and then to cleaned target array
+    if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+      double *audioData = new double[newArrayLength];
+
+      for (unsigned i = 0; i < (lastEndSample + 3) * m_channels; i++)
+        audioData[i] = doubleAudioData[i];
+
+      if (firstCuePosAfter) {
+        unsigned newIdx = (lastEndSample + 3) * m_channels;
+        for (unsigned i = (firstCuePosAfter - 1) * m_channels; i < ArrayLength; i++) {
+          audioData[newIdx] = doubleAudioData[i];
+          newIdx++;
+        }
+      }
+
+      delete[] doubleAudioData;
+      doubleAudioData = new double[newArrayLength];
+      ArrayLength = newArrayLength;
+
+      for (unsigned i = 0; i < ArrayLength; i++)
+        doubleAudioData[i] = audioData[i];
+
+      delete[] audioData;
+    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
+      short *audioData = new short[newArrayLength];
+
+      for (unsigned i = 0; i < (lastEndSample + 3) * m_channels; i++)
+        audioData[i] = shortAudioData[i];
+
+      if (firstCuePosAfter) {
+        unsigned newIdx = (lastEndSample + 3) * m_channels;
+        for (unsigned i = (firstCuePosAfter - 1) * m_channels; i < ArrayLength; i++) {
+          audioData[newIdx] = shortAudioData[i];
+          newIdx++;
+        }
+      }
+
+      delete[] shortAudioData;
+      shortAudioData = new short[newArrayLength];
+      ArrayLength = newArrayLength;
+
+      for (unsigned i = 0; i < ArrayLength; i++)
+        shortAudioData[i] = audioData[i];
+
+      delete[] audioData;
+    } else {
+      int *audioData = new int[newArrayLength];
+
+      for (unsigned i = 0; i < (lastEndSample + 3) * m_channels; i++)
+        audioData[i] = intAudioData[i];
+
+      if (firstCuePosAfter) {
+        unsigned newIdx = (lastEndSample + 3) * m_channels;
+        for (unsigned i = (firstCuePosAfter - 1) * m_channels; i < ArrayLength; i++) {
+          audioData[newIdx] = intAudioData[i];
+          newIdx++;
+        }
+      }
+
+      delete[] intAudioData;
+      intAudioData = new int[newArrayLength];
+      ArrayLength = newArrayLength;
+
+      for (unsigned i = 0; i < ArrayLength; i++)
+        intAudioData[i] = audioData[i];
+
+      delete[] audioData;
+    }
+  }
+}
