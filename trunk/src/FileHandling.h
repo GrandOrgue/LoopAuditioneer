@@ -45,6 +45,7 @@ public:
   double GetFFTPitch(double data[]);
   double GetTDPitch(double data[]);
   void PerformCrossfade(double audioData[], int loopNumber, double fadeLength, int fadeType);
+  void TrimExcessData();
 
   short *shortAudioData;
   int *intAudioData;
