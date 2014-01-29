@@ -1,6 +1,6 @@
 /* 
  * CueMarkers.h is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,8 @@ public:
   void SetSaveOption(bool keep, unsigned index);
   void ChangePosition(unsigned offset, unsigned index);
   void ExportCues();
+  void MoveCues(unsigned samples);
+  void AreCuesValidStill(long unsigned dataLength);
 
   std::vector<CUEPOINT> exportedCues;
 

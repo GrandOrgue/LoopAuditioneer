@@ -1,6 +1,6 @@
 /*
  * FileHandling.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2012 Lars Palo
+ * Copyright (C) 2011-2014 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -906,6 +906,159 @@ void FileHandling::TrimExcessData() {
         intAudioData[i] = audioData[i];
 
       delete[] audioData;
+    }
+  }
+}
+
+bool FileHandling::TrimStart(unsigned timeToTrim) {
+  // convert time to samples
+  unsigned samples = (timeToTrim / 1000.0) * m_samplerate;
+  unsigned samplesToCut = samples * m_channels;
+
+  if (samplesToCut < ArrayLength) {
+    // calculate new arraylength
+    long unsigned int newArrayLength = ArrayLength - samplesToCut;
+
+    if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+      double *audioData = new double[newArrayLength];
+
+      for (unsigned i = 0; i < newArrayLength; i++)
+        audioData[i] = doubleAudioData[samplesToCut + i];
+
+      delete[] doubleAudioData;
+      doubleAudioData = new double[newArrayLength];
+      ArrayLength = newArrayLength;
+
+      for (unsigned i = 0; i < ArrayLength; i++)
+        doubleAudioData[i] = audioData[i];
+
+      delete[] audioData;
+    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
+      short *audioData = new short[newArrayLength];
+
+      for (unsigned i = 0; i < newArrayLength; i++)
+        audioData[i] = shortAudioData[samplesToCut + i];
+
+      delete[] shortAudioData;
+      shortAudioData = new short[newArrayLength];
+      ArrayLength = newArrayLength;
+
+      for (unsigned i = 0; i < ArrayLength; i++)
+        shortAudioData[i] = audioData[i];
+
+      delete[] audioData;
+    } else {
+      int *audioData = new int[newArrayLength];
+
+      for (unsigned i = 0; i < newArrayLength; i++)
+        audioData[i] = intAudioData[samplesToCut + i];
+
+      delete[] intAudioData;
+      intAudioData = new int[newArrayLength];
+      ArrayLength = newArrayLength;
+
+      for (unsigned i = 0; i < ArrayLength; i++)
+        intAudioData[i] = audioData[i];
+
+      delete[] audioData;
+    }
+
+    // if loops and/or cues exist they must now be moved!
+    m_loops->MoveLoops(samples);
+    m_cues->MoveCues(samples);
+
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool FileHandling::TrimEnd(unsigned timeToTrim) {
+  // convert time to samples
+  unsigned samples = (timeToTrim / 1000.0) * m_samplerate;
+  unsigned samplesToCut = samples * m_channels;
+
+  if (samplesToCut < ArrayLength) {
+    // calculate new arraylength
+    long unsigned int newArrayLength = ArrayLength - samplesToCut;
+
+    if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+      double *audioData = new double[newArrayLength];
+
+      for (unsigned i = 0; i < newArrayLength; i++)
+        audioData[i] = doubleAudioData[i];
+
+      delete[] doubleAudioData;
+      doubleAudioData = new double[newArrayLength];
+      ArrayLength = newArrayLength;
+
+      for (unsigned i = 0; i < ArrayLength; i++)
+        doubleAudioData[i] = audioData[i];
+
+      delete[] audioData;
+    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
+      short *audioData = new short[newArrayLength];
+
+      for (unsigned i = 0; i < newArrayLength; i++)
+        audioData[i] = shortAudioData[i];
+
+      delete[] shortAudioData;
+      shortAudioData = new short[newArrayLength];
+      ArrayLength = newArrayLength;
+
+      for (unsigned i = 0; i < ArrayLength; i++)
+        shortAudioData[i] = audioData[i];
+
+      delete[] audioData;
+    } else {
+      int *audioData = new int[newArrayLength];
+
+      for (unsigned i = 0; i < newArrayLength; i++)
+        audioData[i] = intAudioData[i];
+
+      delete[] intAudioData;
+      intAudioData = new int[newArrayLength];
+      ArrayLength = newArrayLength;
+
+      for (unsigned i = 0; i < ArrayLength; i++)
+        intAudioData[i] = audioData[i];
+
+      delete[] audioData;
+    }
+
+    // Check if loops and/or cues still is within audio data!
+    m_loops->AreLoopsStillValid(ArrayLength);
+    m_cues->AreCuesValidStill(ArrayLength);
+
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void FileHandling::PerformFade(double audioData[], unsigned fadeLength, int fadeType) {
+  // fadeType 0 == fade in, anything else is a fade out
+
+  unsigned samplesToFade = (fadeLength / 1000.0) * m_samplerate;
+
+  // prepare an array for the crossfade curve data
+  double fadeData[samplesToFade];
+
+  // linear data from 0 to 1
+  for (int i = 0; i < samplesToFade; i++)
+    fadeData[i] = i * 1.0 / (samplesToFade - 1);
+
+  if (fadeType == 0) {
+    for (unsigned i = 0; i < samplesToFade; i++) {
+      for (int j = 0; j < m_channels; j++) {
+        audioData[i * m_channels + j] *= fadeData[i];
+      }
+    }
+  } else {
+    for (unsigned i = 0; i < samplesToFade; i++) {
+      for (int j = 0; j < m_channels; j++) {
+        audioData[(ArrayLength - m_channels) - (i + j)] *= fadeData[i];
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 /* 
  * LoopMarkers.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-14 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,3 +85,28 @@ void LoopMarkers::SetLoopPositions(unsigned int start, unsigned int end, int ind
   loopsIn[index].dwEnd = end;
 }
 
+void LoopMarkers::MoveLoops(unsigned samples) {
+  if (loopsIn.empty() == false) {
+    for (unsigned i = 0; i < loopsIn.size() ; i++) {
+      int difference = (int) loopsIn[i].dwStart - (int) samples;
+
+      if (difference < 0)
+        loopsIn[i].shouldBeSaved = false;
+      else {
+        loopsIn[i].dwStart -= samples;
+        loopsIn[i].dwEnd -= samples;
+      }
+    }
+  }
+}
+
+void LoopMarkers::AreLoopsStillValid(long unsigned dataLength) {
+  if (loopsIn.empty() == false) {
+    for (unsigned i = 0; i < loopsIn.size() ; i++) {
+      long int difference = (long int) dataLength - (long int) loopsIn[i].dwEnd;
+
+      if (difference < 0)
+        loopsIn[i].shouldBeSaved = false;
+    }
+  }
+}

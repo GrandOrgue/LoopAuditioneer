@@ -1,6 +1,6 @@
 /*
  * MyFrame.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2013 Lars Palo
+ * Copyright (C) 2011-2014 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,6 +65,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_TIMER(TIMER_ID, MyFrame::UpdatePlayPosition)
   EVT_SLIDER(ID_VOLUME_SLIDER, MyFrame::OnVolumeSlider)
   EVT_TOOL(X_FADE, MyFrame::OnCrossfade)
+  EVT_TOOL(CUT_N_FADE, MyFrame::OnCutFade)
 END_EVENT_TABLE()
 
 void MyFrame::OnAbout(wxCommandEvent& event) {
@@ -72,7 +73,7 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
   info.SetName(appName);
   info.SetVersion(appVersion);
   info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files."));
-  info.SetCopyright(wxT("Copyright (C) 2011-2013 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
+  info.SetCopyright(wxT("Copyright (C) 2011-2014 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
   info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
 
   wxAboutBox(info);
@@ -169,6 +170,8 @@ void MyFrame::OpenAudioFile() {
     toolBar->EnableTool(ZOOM_OUT_AMP, true);
     viewMenu->Enable(ZOOM_IN_AMP, true);
     viewMenu->Enable(ZOOM_OUT_AMP, true);
+    toolBar->EnableTool(CUT_N_FADE, true);
+    toolMenu->Enable(CUT_N_FADE, true);
 
   } else {
     // libsndfile couldn't open the file or no audio data in file
@@ -216,6 +219,8 @@ void MyFrame::CloseOpenAudioFile() {
   viewMenu->Enable(ZOOM_OUT_AMP, false);
   toolBar->EnableTool(X_FADE, false);
   toolMenu->Enable(X_FADE, false);
+  toolBar->EnableTool(CUT_N_FADE, false);
+  toolMenu->Enable(CUT_N_FADE, false);
 
   m_sound->CloseAudioStream();
 
@@ -382,6 +387,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   m_autoloopSettings = new AutoLoopDialog(this);
   m_autoloop = new AutoLooping();
   m_crossfades = new CrossfadeDialog(this);
+  m_cutNFade = new CutNFadeDialog(this);
 
   workingDir = wxEmptyString;
 
@@ -431,11 +437,13 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolMenu->Append(BATCH_PROCESS, wxT("&Batch processing\tCtrl+B"), wxT("Batch processing of files"));
   toolMenu->Append(PITCH_SETTINGS, wxT("&Pitch info\tCtrl+P"), wxT("Find/set info about pitch"));
   toolMenu->Append(X_FADE, wxT("&Crossfade\tAlt+C"), wxT("Crossfade the selected loop"));
+  toolMenu->Append(CUT_N_FADE, wxT("Cut and &fade\tAlt+F"), wxT("Cut & fade in/out"));
 
   toolMenu->Enable(ADD_LOOP, false);
   toolMenu->Enable(AUTOSEARCH_LOOPS, false);
   toolMenu->Enable(PITCH_SETTINGS, false);
   toolMenu->Enable(X_FADE, false);
+  toolMenu->Enable(CUT_N_FADE, false);
 
   // Create a help menu
   helpMenu = new wxMenu();
@@ -482,6 +490,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   wxBitmap zoomInAmp(wxT("../icons/24x24/Zoom_in.png"), wxBITMAP_TYPE_PNG);
   wxBitmap zoomOutAmp(wxT("../icons/24x24/Zoom_out.png"), wxBITMAP_TYPE_PNG);
   wxBitmap crossfade(wxT("../icons/24x24/Wizard.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap cutfade(wxT("../icons/24x24/Software.png"), wxBITMAP_TYPE_PNG);
   toolBar->AddTool(FILE_SELECT, selectFolder, wxT("Select working folder"), wxT("Select working folder"));
   toolBar->AddTool(OPEN_SELECTED, openSelectedFile, wxT("Open selected file"), wxT("Open selected file"));
   toolBar->AddTool(wxID_SAVE, saveFile, wxT("Save file"), wxT("Save file"));
@@ -496,6 +505,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->AddTool(BATCH_PROCESS, batchProcess, wxT("Batch processing"), wxT("Batch processing of files/folders"));
   toolBar->AddTool(PITCH_SETTINGS, pitchInfo, wxT("Pitch settings"), wxT("Find/set information about pitch"));
   toolBar->AddTool(X_FADE, crossfade, wxT("Crossfade"), wxT("Crossfade a selected loop"));
+  toolBar->AddTool(CUT_N_FADE, cutfade, wxT("Cut & Fade"), wxT("Cut & Fade in/out"));
   toolBar->AddSeparator();
   toolBar->AddTool(ZOOM_IN_AMP, zoomInAmp, wxT("Zoom in"), wxT("Zoom in on amplitude"));
   toolBar->AddTool(ZOOM_OUT_AMP, zoomOutAmp, wxT("Zoom out"), wxT("Zoom out on amplitude"));
@@ -535,6 +545,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->EnableTool(ZOOM_IN_AMP, false);
   toolBar->EnableTool(ZOOM_OUT_AMP, false);
   toolBar->EnableTool(X_FADE, false);
+  toolBar->EnableTool(CUT_N_FADE, false);
   this->SetToolBar(toolBar);
 
   // Create sizers for frame content
@@ -1210,3 +1221,110 @@ void MyFrame::OnViewLoop(wxCommandEvent& event) {
   delete[] audioData;
 }
 
+void MyFrame::OnCutFade(wxCommandEvent& event) {
+  // show the cut & fade dialog to get parameters
+  if (m_cutNFade->ShowModal() == wxID_OK) {
+    // update values
+    m_cutNFade->TransferDataFromWindow();
+
+    // make eventual cuts of audio data
+
+    // from beginning
+    if (m_cutNFade->GetCutStart() > 0) {
+      bool success = m_audiofile->TrimStart(m_cutNFade->GetCutStart());
+
+      if (!success) {
+        wxString message = wxT("Couldn't cut audio data from beginning!");
+        wxMessageDialog *dialog = new wxMessageDialog(
+          NULL,
+          message,
+          wxT("Error cutting audio data"),
+          wxOK | wxICON_ERROR
+        );
+        dialog->ShowModal();
+      }
+    }
+
+    // from end
+    if (m_cutNFade->GetCutEnd() > 0) {
+      bool success = m_audiofile->TrimEnd(m_cutNFade->GetCutEnd());
+
+      if (!success) {
+        wxString message = wxT("Couldn't cut audio data from end!");
+        wxMessageDialog *dialog = new wxMessageDialog(
+          NULL,
+          message,
+          wxT("Error cutting audio data"),
+          wxOK | wxICON_ERROR
+        );
+        dialog->ShowModal();
+      }
+    }
+
+    double *audioData = new double[m_audiofile->ArrayLength];
+
+    // convert audio data into doubles if needed
+    if (m_audiofile->shortAudioData != NULL) {
+      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
+        audioData[i] = (double) m_audiofile->shortAudioData[i] / (1.0 * 0x7FFF);
+    } else if (m_audiofile->intAudioData != NULL) {
+      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
+        audioData[i] = (double) m_audiofile->intAudioData[i] / (1.0 * 0x7FFFFFFF);
+    } else if (m_audiofile->doubleAudioData != NULL) {
+      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
+        audioData[i] = m_audiofile->doubleAudioData[i];
+    }
+
+    // perform fade(s) as needed
+    if (m_cutNFade->GetFadeStart() > 0)
+      m_audiofile->PerformFade(audioData, m_cutNFade->GetFadeStart(), 0);
+
+    if (m_cutNFade->GetFadeEnd() > 0)
+      m_audiofile->PerformFade(audioData, m_cutNFade->GetFadeEnd(), 1);
+
+    // update the waveform data
+    m_waveform->UpdateWaveTracks(audioData, m_audiofile->m_channels, m_audiofile->ArrayLength);
+
+    // update the current audiodata in m_audiofile
+    if (m_audiofile->shortAudioData != NULL) {
+      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
+        m_audiofile->shortAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFF));
+    } else if (m_audiofile->intAudioData != NULL) {
+      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
+        m_audiofile->intAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFFFFFF));
+    } else if (m_audiofile->doubleAudioData != NULL) {
+      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
+        m_audiofile->doubleAudioData[i] = audioData[i];
+    }
+
+    // Enable save icon and menu
+    toolBar->EnableTool(wxID_SAVE, true);
+    fileMenu->Enable(wxID_SAVE, true);
+
+    // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
+    m_panel->EmptyTable();
+    m_waveform->ClearMetadata();
+    int sRate = m_audiofile->GetSampleRate();
+    for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
+      LOOPDATA tempData;
+      m_audiofile->m_loops->GetLoopData(i, tempData);
+      m_panel->FillRowWithLoopData(tempData.dwStart, tempData.dwEnd, sRate, tempData.shouldBeSaved, i);
+      m_waveform->AddLoopPosition(tempData.dwStart, tempData.dwEnd);
+    }
+
+    // populate the wxGrid m_cueGrid in m_panel with the cue data and add it to the waveform drawer
+    for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
+      CUEPOINT tempCue;
+      m_audiofile->m_cues->GetCuePoint(i, tempCue);
+      m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);
+      m_waveform->AddCuePosition(tempCue.dwSampleOffset);
+    }
+
+    // then we should make sure to update the views
+    UpdateAllViews();
+
+    delete[] audioData;
+  } else {
+    // user clicked cancel...
+  }
+}

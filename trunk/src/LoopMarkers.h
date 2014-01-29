@@ -1,6 +1,6 @@
 /* 
  * LoopMarkers.h is a part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,8 @@ public:
   int GetNumberOfLoops();
   void GetLoopData(int index, LOOPDATA& lData);
   void ExportLoops();
+  void MoveLoops(unsigned samples);
+  void AreLoopsStillValid(long unsigned dataLength);
 
   std::vector<LOOPDATA> loopsOut;
 
