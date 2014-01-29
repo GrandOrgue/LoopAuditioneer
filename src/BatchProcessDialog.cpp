@@ -1,6 +1,6 @@
 /*
  * BatchProcessDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2013 Lars Palo
+ * Copyright (C) 2011-2014 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "StopHarmonicDialog.h"
 #include "AutoLooping.h"
 #include "FileHandling.h"
+#include "CutNFadeDialog.h"
 #include "sndfile.hh"
 #include <wx/statline.h>
 #include <wx/listctrl.h>
@@ -73,6 +74,10 @@ void BatchProcessDialog::Init() {
   m_batchProcessesAvailable.Add(wxT("Copy pitch info from corresponding file(s)"));
   m_batchProcessesAvailable.Add(wxT("Create Pipe999PitchTuning= lines from file(s)"));
   m_batchProcessesAvailable.Add(wxT("Remove sound between last loop and cue"));
+  m_batchProcessesAvailable.Add(wxT("Cut & Fade in/out"));
+
+  m_lastSource = wxEmptyString;
+  m_lastTarget = wxEmptyString;
 }
 
 bool BatchProcessDialog::Create(
@@ -285,7 +290,7 @@ void BatchProcessDialog::OnAddSource(wxCommandEvent& event) {
   wxDirDialog *selectDirDialog = new wxDirDialog(
     this,
     wxT("Choose a source folder to batch process"),
-    wxEmptyString,
+    m_lastSource,
     wxDD_DIR_MUST_EXIST | wxDD_CHANGE_DIR
   );
 
@@ -293,6 +298,7 @@ void BatchProcessDialog::OnAddSource(wxCommandEvent& event) {
     wxString pathToAdd = selectDirDialog->GetPath();
     if (pathToAdd != wxEmptyString) {
       m_sourceField->ChangeValue(pathToAdd);
+      m_lastSource = pathToAdd;
     }
   }
 
@@ -303,7 +309,7 @@ void BatchProcessDialog::OnAddTarget(wxCommandEvent& event) {
   wxDirDialog *selectDirDialog = new wxDirDialog(
     this,
     wxT("Choose target folder for batch process"),
-    wxEmptyString,
+    m_lastTarget,
     wxDD_CHANGE_DIR
   );
 
@@ -311,6 +317,7 @@ void BatchProcessDialog::OnAddTarget(wxCommandEvent& event) {
     wxString pathToAdd = selectDirDialog->GetPath();
     if (pathToAdd != wxEmptyString) {
       m_targetField->ChangeValue(pathToAdd);
+      m_lastTarget = pathToAdd;
     }
   }
 
@@ -950,6 +957,91 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           }
         }
         m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 14:
+      // This is for cutting and fading in/out
+      if (filesToProcess.IsEmpty() == false) {
+
+        // create the cut & fade dialog
+        CutNFadeDialog cfDlg(this);
+        // show the cut & fade dialog to get parameters
+        if (cfDlg.ShowModal() == wxID_OK) {
+           // update values
+           cfDlg.TransferDataFromWindow();
+
+          for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+            FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+            if (fh.FileCouldBeOpened()) {
+              // make eventual cuts of audio data
+              // from beginning
+              if (cfDlg.GetCutStart() > 0) {
+                bool success = fh.TrimStart(cfDlg.GetCutStart());
+
+                if (!success)
+                  m_statusProgress->AppendText(wxT("\nCouldn't trim from start!\n"));
+              }
+
+              // from end
+              if (cfDlg.GetCutEnd() > 0) {
+                bool success = fh.TrimEnd(cfDlg.GetCutEnd());
+
+                if (!success)
+                  m_statusProgress->AppendText(wxT("\nCouldn't trim from end!\n"));
+              }
+
+              double *audioData = new double[fh.ArrayLength];
+
+              // convert audio data into doubles if needed
+              if (fh.shortAudioData != NULL) {
+                for (unsigned i = 0; i < fh.ArrayLength; i++)
+                  audioData[i] = (double) fh.shortAudioData[i] / (1.0 * 0x7FFF);
+              } else if (fh.intAudioData != NULL) {
+                for (unsigned i = 0; i < fh.ArrayLength; i++)
+                  audioData[i] = (double) fh.intAudioData[i] / (1.0 * 0x7FFFFFFF);
+              } else if (fh.doubleAudioData != NULL) {
+                for (unsigned i = 0; i < fh.ArrayLength; i++)
+                  audioData[i] = fh.doubleAudioData[i];
+              }
+
+              // perform fade(s) as needed
+              if (cfDlg.GetFadeStart() > 0)
+                fh.PerformFade(audioData, cfDlg.GetFadeStart(), 0);
+
+              if (cfDlg.GetFadeEnd() > 0)
+                fh.PerformFade(audioData, cfDlg.GetFadeEnd(), 1);
+
+              // update the current audiodata in m_audiofile
+              if (fh.shortAudioData != NULL) {
+                for (unsigned i = 0; i < fh.ArrayLength; i++)
+                  fh.shortAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFF));
+              } else if (fh.intAudioData != NULL) {
+                for (unsigned i = 0; i < fh.ArrayLength; i++)
+                fh.intAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFFFFFF));
+              } else if (fh.doubleAudioData != NULL) {
+                for (unsigned i = 0; i < fh.ArrayLength; i++)
+                  fh.doubleAudioData[i] = audioData[i];
+              }
+
+              delete[] audioData;
+
+              // save file
+              fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+              m_statusProgress->AppendText(wxT("\tDone trimming & fading "));
+              m_statusProgress->AppendText(filesToProcess.Item(i));
+              m_statusProgress->AppendText(wxT("\n"));
+            } else {
+              m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+            }
+          }
+          m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
+        } else {
+          m_statusProgress->AppendText(wxT("\nBatch process aborted!\n"));
+        }
       } else {
         m_statusProgress->AppendText(wxT("No wav files to process!\n"));
       }

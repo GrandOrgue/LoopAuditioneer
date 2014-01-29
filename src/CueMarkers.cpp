@@ -1,6 +1,6 @@
 /* 
  * CueMarkers.cpp is part of LoopAuditioneer software
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,3 +75,26 @@ void CueMarkers::ChangePosition(unsigned offset, unsigned index) {
     cuePoints[index].dwSampleOffset = offset;
 }
 
+void CueMarkers::MoveCues(unsigned samples) {
+  if (cuePoints.empty() == false) {
+    for (unsigned i = 0; i < cuePoints.size() ; i++) {
+      int difference = (int) cuePoints[i].dwSampleOffset - (int) samples;
+
+      if (difference < 0)
+        cuePoints[i].keepThisCue = false;
+      else
+        cuePoints[i].dwSampleOffset -= samples;
+    }
+  }
+}
+
+void CueMarkers::AreCuesValidStill(long unsigned dataLength) {
+  if (cuePoints.empty() == false) {
+    for (unsigned i = 0; i < cuePoints.size() ; i++) {
+      long int difference = (long int) dataLength - (long int) cuePoints[i].dwSampleOffset;
+
+      if (difference < 0)
+        cuePoints[i].keepThisCue = false;
+    }
+  }
+}

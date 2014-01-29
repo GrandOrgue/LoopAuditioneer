@@ -1,6 +1,6 @@
 /*
  * FileHandling.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2012 Lars Palo
+ * Copyright (C) 2011-2014 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,9 @@ public:
   double GetTDPitch(double data[]);
   void PerformCrossfade(double audioData[], int loopNumber, double fadeLength, int fadeType);
   void TrimExcessData();
+  bool TrimStart(unsigned timeToTrim);
+  bool TrimEnd(unsigned timeToTrim);
+  void PerformFade(double audioData[], unsigned fadeLength, int fadeType);
 
   short *shortAudioData;
   int *intAudioData;

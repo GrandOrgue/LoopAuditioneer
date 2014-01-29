@@ -1,6 +1,6 @@
 /* 
- * BatchProcessDialog.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2014 Lars Palo 
+ * CutNFadeDialog.h is a part of LoopAuditioneer software
+ * Copyright (C) 2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,33 +18,31 @@
  * You can contact the author on larspalo(at)yahoo.se
  */
 
-#ifndef BATCHPROCESSDIALOG_H
-#define BATCHPROCESSDIALOG_H
+#ifndef CUTNFADEDIALOG
+#define CUTNFADEDIALOG
 
 #include <wx/wx.h>
+#include <wx/spinctrl.h>
 
 // Identifiers
 enum {
-  ID_ADD_SOURCE = wxID_HIGHEST + 200,
-  ID_ADD_TARGET = wxID_HIGHEST + 201,
-  ID_PROCESSBOX = wxID_HIGHEST + 202,
-  ID_SOURCE_TEXT = wxID_HIGHEST + 203,
-  ID_TARGET_TEXT = wxID_HIGHEST + 204,
-  ID_STATUS_TEXT = wxID_HIGHEST + 205,
-  ID_RUN_BATCH = wxID_HIGHEST + 206
+  ID_CUTSTART = wxID_HIGHEST + 550,
+  ID_CUTEND = wxID_HIGHEST + 551,
+  ID_FADESTART = wxID_HIGHEST + 552,
+  ID_FADEEND = wxID_HIGHEST + 553
 };
 
-class BatchProcessDialog : public wxDialog {
-  DECLARE_CLASS(BatchProcessDialog)
+class CutNFadeDialog : public wxDialog {
+  DECLARE_CLASS(CutNFadeDialog)
   DECLARE_EVENT_TABLE()
 
 public:
   // Constructors
-  BatchProcessDialog();
-  BatchProcessDialog(
+  CutNFadeDialog();
+  CutNFadeDialog(
     wxWindow* parent,
     wxWindowID id = wxID_ANY,
-    const wxString& caption = wxT("Batch processing"),
+    const wxString& caption = wxT("Cut & Fade"),
     const wxPoint& pos = wxDefaultPosition,
     const wxSize& size = wxDefaultSize,
     long style = wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX
@@ -57,7 +55,7 @@ public:
   bool Create( 
     wxWindow* parent,
     wxWindowID id = wxID_ANY,
-    const wxString& caption = wxT("Batch processing"),
+    const wxString& caption = wxT("Cut & Fade"),
     const wxPoint& pos = wxDefaultPosition,
     const wxSize& size = wxDefaultSize,
     long style = wxCAPTION|wxRESIZE_BORDER|wxSYSTEM_MENU|wxCLOSE_BOX
@@ -66,27 +64,30 @@ public:
   // Creates the controls and sizers
   void CreateControls();
 
+  // Accessing functions
+  void SetCutStart(unsigned cutStart);
+  unsigned GetCutStart();
+  void SetCutEnd(unsigned cutEnd);
+  unsigned GetCutEnd();
+  void SetFadeStart(unsigned fadeStart);
+  unsigned GetFadeStart();
+  void SetFadeEnd(unsigned fadeEnd);
+  unsigned GetFadeEnd();
+
+  // Overrides
+  bool TransferDataToWindow();
+  bool TransferDataFromWindow();
+
 private:
-  wxArrayString m_batchProcessesAvailable;
-  wxButton *m_selectSource;
-  wxButton *m_selectTarget;
-  wxButton *m_runButton;
-  wxChoice *m_processChoiceBox;
-  wxTextCtrl *m_sourceField;
-  wxTextCtrl *m_targetField;
-  wxTextCtrl *m_statusProgress;
-  wxString m_lastSource;
-  wxString m_lastTarget;
+  unsigned m_cutStart;
+  unsigned m_cutEnd;
+  unsigned m_fadeStart;
+  unsigned m_fadeEnd;
 
-  // Event methods
-  void OnAddSource(wxCommandEvent& event);
-  void OnAddTarget(wxCommandEvent& event);
-  void OnChoiceSelected(wxCommandEvent& event);
-  void OnRunBatch(wxCommandEvent& event);
-
-  wxString MyDoubleToString(double dbl);
-
-  void ReadyToRockAndRoll();
+  void OnCutStartSpin(wxSpinEvent& event);
+  void OnCutEndSpin(wxSpinEvent& event);
+  void OnFadeStartSpin(wxSpinEvent& event);
+  void OnFadeEndSpin(wxSpinEvent& event);
 };
 
 #endif
