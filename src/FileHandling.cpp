@@ -22,7 +22,7 @@
 #include "FFT.h"
 #include <cfloat>
 
-FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_timeDomainPitch(0) {
+FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_timeDomainPitch(0) {
   m_loops = new LoopMarkers();
   m_cues = new CueMarkers();
   wxString filePath;
@@ -202,16 +202,20 @@ bool FileHandling::FileCouldBeOpened() {
     return false;
 }
 
-double FileHandling::GetFFTPitch(double data[]) {
+bool FileHandling::GetFFTPitch(double data[], double pitches[]) {
   bool gotPitch = DetectPitchByFFT(data);
-  if (gotPitch)
-    return m_fftPitch;
-  else
-    return 0;
+  if (gotPitch) {
+    pitches[0] = m_fftPitch;
+    pitches[1] = m_fftHPS;
+
+    return true;
+  } else
+    return false;
 }
 
 bool FileHandling::DetectPitchByFFT(double data[]) {
   std::vector<double> detectedPitches;
+  std::vector<double> harmonicProductPitches;
   unsigned numberOfSamples = ArrayLength / m_channels;
   std::pair <unsigned, unsigned> sustainStartAndEnd;
   sustainStartAndEnd.first = 0;
@@ -259,8 +263,12 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
   }
 
   double *in = new double[analyzeWindowSize];
-  double *out = new double[analyzeWindowSize / 2];
-  double *outInDb = new double[analyzeWindowSize / 2];
+
+  int originalSize = analyzeWindowSize / 2;
+
+  double *out = new double[originalSize];
+  double *hps = new double[originalSize];
+  double *outInDb = new double[originalSize];
    
   unsigned current_idx = sustainStartAndEnd.first;
 
@@ -272,28 +280,31 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
       index++;
     }
 
-    // Apply a Gaussian window to the data
+    // Apply a Gaussian window to the in data
     WindowFunc(9, analyzeWindowSize, in);
 
     // Perform the FFT
     PowerSpectrum(analyzeWindowSize, in, out);
 
+    // copy to hps
+    for (int i = 0; i < originalSize; i++)
+      hps[i] = out[i];
+
     // Normalize output magnitude between 0 and 1
     double maxValuePreNorm = 0;
-    for (int i = 0; i < analyzeWindowSize / 2; i++){
+    for (int i = 0; i < originalSize; i++) {
       double temp = out[i];
       if (temp > maxValuePreNorm)
         maxValuePreNorm = temp;
     }
 
     // Convert to decibels (normalized)
-    for (int i = 0; i < analyzeWindowSize / 2; i++){
+    for (int i = 0; i < originalSize; i++) {
       double temp = out[i] / maxValuePreNorm;
       outInDb[i] = 10 * log10(temp);
     }
 
     // Find greatest peak
-    int originalSize = analyzeWindowSize / 2;
     double maxPeakValue = -DBL_MAX;
     int peakIndex = 0;
 
@@ -313,7 +324,7 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
       double currentValue = outInDb[x];
       if (middleValue > currentValue && middleValue > lastValue) {
         // it's a peak but should it be considered?
-        if (middleValue > (maxPeakValue - 24)) {
+        if (middleValue > (maxPeakValue - 36)) {
           // yes, add it to the vector
           allPeaksToConsider.push_back(x - 1);
           lastValue = middleValue;
@@ -348,36 +359,19 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
     // this is the max peak that we add last and compare to
     allPeaksToConsider.push_back(peakIndex);
 
-    double binFrequencyResolution = m_samplerate / (double) analyzeWindowSize;
-    double maxPeakFrequency = TranslateIndexToPitch(
-      peakIndex,
-      out[peakIndex - 1],
-      out[peakIndex],
-      out[peakIndex + 1],
-      analyzeWindowSize
-    );
-
     if (allPeaksToConsider.size() > 1) {
       // now see if the maxpeak can be a harmonic of any other peak
       for (int x = 0; x < allPeaksToConsider.size() - 1; x++) {
-        double thisPitch = TranslateIndexToPitch(
-          allPeaksToConsider[x],
-          out[allPeaksToConsider[x] - 1],
-          out[allPeaksToConsider[x] ],
-          out[allPeaksToConsider[x] + 1],
-          analyzeWindowSize
-        );
-        double harmonic1 = thisPitch * 2;
-        double diff1 = harmonic1 - maxPeakFrequency;
-        double harmonic2 = thisPitch * 3;
-        double diff2 = harmonic2 - maxPeakFrequency;
-
-        if ((diff1 < 10) && (diff1 > -10)) {
+        if (abs((allPeaksToConsider[x] * 2) - peakIndex) < 3) {
           // peakIndex could be the first harmonic
           peakIndex = allPeaksToConsider[x];
           break;
-        } else if ((diff2 < 10) && (diff2 > -10)) {
+        } else if (abs((allPeaksToConsider[x] * 3) - peakIndex) < 5) {
           // peakIndex could be the second harmonic of this one
+          peakIndex = allPeaksToConsider[x];
+          break;
+        } else if (abs((allPeaksToConsider[x] * 3) / 2 - peakIndex) < 4) {
+          // fundamental could just be a fifth lower 
           peakIndex = allPeaksToConsider[x];
           break;
         }
@@ -396,14 +390,71 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
 
     allPeaksToConsider.clear();
 
+    // now try detecting pitch with HPS using 4 harmonics
+    int maxSearchIndex = originalSize / 4;
+    int maxBin = 0;
+
+    for (int i = 0; i < maxSearchIndex; i++) {
+      for (int j = 2; j <= 4; j++)
+        hps[i] *= hps[i * j];
+
+      if (hps[i] > hps[maxBin])
+        maxBin = i;
+    }
+
+    // try fixing possible lower fundamental errors
+    // get strongest peak below up to ca a fourth below
+    int correctMaxBin = 0;
+    int maxsearch = (maxBin * 3) / 4;
+    for (int i = 1; i < maxsearch; i++) {
+      if ((hps[i] > hps[correctMaxBin]) && (abs(i * 2 - maxBin) < 4)) {
+        // this is likely an octave
+        correctMaxBin = i;
+      } else if ((hps[i] > hps[correctMaxBin]) && (abs((i * 3) / 2 - maxBin) < 4)) {
+        // this is likely a fifth
+        correctMaxBin = i;
+      }
+    }
+
+    if ((hps[correctMaxBin] / hps[maxBin]) > 0.001)
+      maxBin = correctMaxBin;
+
+    // translate maxBin to a frequency and store it
+    double hpsFrequency = TranslateIndexToPitch(
+      maxBin,
+      hps[maxBin - 1],
+      hps[maxBin],
+      hps[maxBin + 1],
+      analyzeWindowSize
+    );
+    harmonicProductPitches.push_back(hpsFrequency);
+
     // proceed to next window
     current_idx += analyzeWindowSize / 2;
   }
 
   delete[] in;
   delete[] out;
+  delete[] hps;
   delete[] outInDb;
   delete[] channel_data;
+
+  // try removing obvious pitch error values if still present for hps
+  if (harmonicProductPitches.empty() == false) {
+    for (unsigned i = 0; i < harmonicProductPitches.size() - 1; i++) {
+      for (unsigned j = i + 1; j < harmonicProductPitches.size(); j++) {
+        if (harmonicProductPitches[j] < harmonicProductPitches[i]) {
+          double tempValue = harmonicProductPitches[i];
+          harmonicProductPitches[i] = harmonicProductPitches[j];
+          harmonicProductPitches[j] = tempValue;
+        }
+      }
+    }
+    for (int i = harmonicProductPitches.size() - 1; i > 0; i--) {
+      if (harmonicProductPitches[i] / harmonicProductPitches[0] > 1.05)
+        harmonicProductPitches.pop_back();
+    }
+  }
 
   if (detectedPitches.empty() == false) {
     double pitchSum = 0;
@@ -411,6 +462,12 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
       pitchSum += detectedPitches[i];
 
     m_fftPitch = pitchSum / (double) detectedPitches.size();
+
+    pitchSum = 0;
+    for (unsigned i = 0; i < harmonicProductPitches.size(); i++)
+      pitchSum += harmonicProductPitches[i];
+
+    m_fftHPS = pitchSum / (double) harmonicProductPitches.size();
 
     return true;
   } else {
