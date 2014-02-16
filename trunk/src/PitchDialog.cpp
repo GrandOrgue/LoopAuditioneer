@@ -32,19 +32,25 @@ PitchDialog::PitchDialog(
   double pitch,
   int midiNote,
   double pitchFraction,
+  double hps_pitch,
+  int hps_midiNote,
+  double hps_pitchFraction,
   double td_pitch,
   int td_midiNote,
   double td_pitchFraction,
   int fileMidiNote,
   double filePitchFraction
 ) {
-  Init(pitch, midiNote, pitchFraction, td_pitch, td_midiNote, td_pitchFraction, fileMidiNote, filePitchFraction);
+  Init(pitch, midiNote, pitchFraction, hps_pitch, hps_midiNote, hps_pitchFraction, td_pitch, td_midiNote, td_pitchFraction, fileMidiNote, filePitchFraction);
 }
 
 PitchDialog::PitchDialog(
   double pitch,
   int midiNote,
   double pitchFraction,
+  double hps_pitch,
+  int hps_midiNote,
+  double hps_pitchFraction,
   double td_pitch,
   int td_midiNote,
   double td_pitchFraction,
@@ -57,7 +63,7 @@ PitchDialog::PitchDialog(
   const wxSize& size,
   long style
 ) {
-  Init(pitch, midiNote, pitchFraction, td_pitch, td_midiNote, td_pitchFraction, fileMidiNote, filePitchFraction);
+  Init(pitch, midiNote, pitchFraction, hps_pitch, hps_midiNote, hps_pitchFraction, td_pitch, td_midiNote, td_pitchFraction, fileMidiNote, filePitchFraction);
   Create(parent, id, caption, pos, size, style);
 }
  
@@ -65,6 +71,9 @@ void PitchDialog::Init(
   double pitch,
   int midiNote,
   double pitchFraction,
+  double hps_pitch,
+  int hps_midiNote,
+  double hps_pitchFraction,
   double td_pitch,
   int td_midiNote,
   double td_pitchFraction,
@@ -73,6 +82,9 @@ void PitchDialog::Init(
 ) {
   m_detectedMIDIUnityNote = midiNote;
   m_detectedMIDIPitchFraction = pitchFraction;
+  m_hpsDetectedPitch = hps_pitch;
+  m_hpsDetectedMIDIUnityNote = hps_midiNote;
+  m_hpsDetectedMIDIPitchFraction = hps_pitchFraction;
   m_fileMIDIUnityNote = fileMidiNote;
   m_fileMIDIPitchFraction = filePitchFraction;
   CalculatingResultingPitch();
@@ -81,10 +93,12 @@ void PitchDialog::Init(
   m_TDdetectedMIDIPitchFraction = td_pitchFraction;
   m_TDdetectedPitch = td_pitch;
   m_useFFTDetection = true;
+  m_useHpsFFTDetection = false;
   m_useTDDetection = false;
   m_useManual = false;
 
   pitchMethods.Add(wxT("FFT pitch"));
+  pitchMethods.Add(wxT("HPS pitch"));
   pitchMethods.Add(wxT("Timedomain pitch"));
   pitchMethods.Add(wxT("Existing/manual pitch"));
 
@@ -134,9 +148,13 @@ void PitchDialog::CreateControls() {
     wxDefaultSize
   );
 
-  // Vertical sizer for auto pitch subsections
-  wxStaticBoxSizer *autoPitchContainer = new wxStaticBoxSizer(FFTPitchBox, wxVERTICAL);
-  firstRow->Add(autoPitchContainer, 1, wxGROW|wxALL, 5);
+  // Horizontal sizer for fft detection methods
+  wxStaticBoxSizer *fftPitchContainer = new wxStaticBoxSizer(FFTPitchBox, wxHORIZONTAL);
+  firstRow->Add(fftPitchContainer, 2, wxGROW|wxALL, 5);
+
+  // Vertical sizer for first fft pitch subsections
+  wxBoxSizer *autoPitchContainer = new wxBoxSizer(wxVERTICAL);
+  fftPitchContainer->Add(autoPitchContainer, 1, wxGROW|wxALL, 5);
 
   // Label for the autodetected pitch frequency
   wxStaticText *pitchLabel = new wxStaticText ( 
@@ -147,7 +165,7 @@ void PitchDialog::CreateControls() {
     wxDefaultSize, 
     0
   );
-  pitchLabel->SetLabel(wxString::Format(wxT("Detected pitch: %.2f Hz"), m_detectedPitch));
+  pitchLabel->SetLabel(wxString::Format(wxT("FFT pitch: %.2f Hz"), m_detectedPitch));
   autoPitchContainer->Add(pitchLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Label for the calculated MIDIUnityNote
@@ -173,6 +191,46 @@ void PitchDialog::CreateControls() {
   );
   pitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_detectedMIDIPitchFraction));
   autoPitchContainer->Add(pitchFractionLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+
+  // Vertical sizer for second fft pitch subsections
+  wxBoxSizer *hpsPitchContainer = new wxBoxSizer(wxVERTICAL);
+  fftPitchContainer->Add(hpsPitchContainer, 1, wxGROW|wxALL, 5);
+
+  // Label for the autodetected pitch frequency
+  wxStaticText *hpsPitchLabel = new wxStaticText ( 
+    this, 
+    wxID_STATIC,
+    wxEmptyString, 
+    wxDefaultPosition, 
+    wxDefaultSize, 
+    0
+  );
+  hpsPitchLabel->SetLabel(wxString::Format(wxT("HPS pitch: %.2f Hz"), m_hpsDetectedPitch));
+  hpsPitchContainer->Add(hpsPitchLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+
+  // Label for the calculated MIDIUnityNote
+  wxStaticText *hpsMidiNoteLabel = new wxStaticText ( 
+    this, 
+    wxID_STATIC,
+    wxEmptyString, 
+    wxDefaultPosition, 
+    wxDefaultSize, 
+    0
+  );
+  hpsMidiNoteLabel->SetLabel(wxString::Format(wxT("MIDIUnityNote: %d"), m_hpsDetectedMIDIUnityNote));
+  hpsPitchContainer->Add(hpsMidiNoteLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+
+  // Label for the calculated MIDIPitchFraction
+  wxStaticText *hpsPitchFractionLabel = new wxStaticText ( 
+    this, 
+    wxID_STATIC,
+    wxEmptyString, 
+    wxDefaultPosition, 
+    wxDefaultSize, 
+    0
+  );
+  hpsPitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_hpsDetectedMIDIPitchFraction));
+  hpsPitchContainer->Add(hpsPitchFractionLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Grouping of TimeDomain pitch detection information
   wxStaticBox *TDPitchBox = new wxStaticBox(
@@ -386,10 +444,12 @@ bool PitchDialog::TransferDataFromWindow() {
 int PitchDialog::GetMethodUsed() {
   if (m_useFFTDetection)
     return 0;
-  if (m_useTDDetection)
+  if (m_useHpsFFTDetection)
     return 1;
-  if (m_useManual)
+  if (m_useTDDetection)
     return 2;
+  if (m_useManual)
+    return 3;
   else 
     return 0;
 }
@@ -400,15 +460,25 @@ void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& event) {
   wxSlider *pitchFract = (wxSlider*) FindWindow(ID_PITCHFRACTION);
 
   if (radioBox->GetSelection() == 0) {
-    // FFT method chosen
+    // first FFT method chosen
     m_useFFTDetection = true;
+    m_useHpsFFTDetection = false;
     m_useTDDetection = false;
     m_useManual = false;
     midinote->Enable(false);
     pitchFract->Enable(false);
   } else if (radioBox->GetSelection() == 1) {
+    // third FFT method chosen
+    m_useFFTDetection = false;
+    m_useHpsFFTDetection = true;
+    m_useTDDetection = false;
+    m_useManual = false;
+    midinote->Enable(false);
+    pitchFract->Enable(false);
+  } else if (radioBox->GetSelection() == 2) {
     // Timedomain method chosen
     m_useFFTDetection = false;
+    m_useHpsFFTDetection = false;
     m_useTDDetection = true;
     m_useManual = false;
     midinote->Enable(false);
@@ -416,6 +486,7 @@ void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& event) {
   } else {
     // Existing/manual method chosen
     m_useFFTDetection = false;
+    m_useHpsFFTDetection = false;
     m_useTDDetection = false;
     m_useManual = true;
     midinote->Enable(true);
@@ -452,4 +523,3 @@ void PitchDialog::CalculatingResultingPitch() {
   double midi_note_pitch = 440.0 * pow(2, ((double)(m_fileMIDIUnityNote - 69) / 12.0));
   m_resultingPitch = midi_note_pitch * pow(2, (m_fileMIDIPitchFraction / 1200.0));
 }
-

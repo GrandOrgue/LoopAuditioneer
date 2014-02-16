@@ -983,28 +983,45 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
   }
 
   int midi_note;
+  int hps_midi_note;
   int td_midi_note;
   double midi_note_pitch;
+  double hps_midi_note_pitch;
   double td_midi_note_pitch;
   double cent_deviation;
+  double hps_cent_deviation;
   double td_cent_deviation;
   unsigned int midi_pitch_fraction;
+  unsigned int hps_midi_pitch_fraction;
   unsigned int td_midi_pitch_fraction;
-  double pitch = m_audiofile->GetFFTPitch(audioData);
+  double fftPitches[2];
+  for (int i = 0; i < 2; i++)
+    fftPitches[i] = 0;
+  bool got_fftpitch = m_audiofile->GetFFTPitch(audioData, fftPitches);
   double td_pitch = m_audiofile->GetTDPitch(audioData);
   double cent_from_file = (double) m_audiofile->m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
 
-  if (pitch != 0) {
+  if (got_fftpitch) {
     // FFT detection
-    midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
+    midi_note = (69 + 12 * (log10(fftPitches[0] / 440.0) / log10(2)));
     midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
-    cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
+    cent_deviation = 1200 * (log10(fftPitches[0] / midi_note_pitch) / log10(2));
     midi_pitch_fraction = ((double)UINT_MAX * (cent_deviation / 100.0));
+
+    hps_midi_note = (69 + 12 * (log10(fftPitches[1] / 440.0) / log10(2)));
+    hps_midi_note_pitch = 440.0 * pow(2, ((double)(hps_midi_note - 69) / 12.0));
+    hps_cent_deviation = 1200 * (log10(fftPitches[1] / hps_midi_note_pitch) / log10(2));
+    hps_midi_pitch_fraction = ((double)UINT_MAX * (hps_cent_deviation / 100.0));
   } else {
     midi_note = 0;
     midi_note_pitch = 0;
     cent_deviation = 0;
     midi_pitch_fraction = 0;
+
+    hps_midi_note = 0;
+    hps_midi_note_pitch = 0;
+    hps_cent_deviation = 0;
+    hps_midi_pitch_fraction = 0;
   }
 
   if (td_pitch != 0) {
@@ -1021,9 +1038,12 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
   }
 
   PitchDialog dialog(
-    pitch,
+    fftPitches[0],
     midi_note,
     cent_deviation,
+    fftPitches[1],
+    hps_midi_note,
+    hps_cent_deviation,
     td_pitch,
     td_midi_note,
     td_cent_deviation,
@@ -1038,9 +1058,12 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
       m_audiofile->m_loops->SetMIDIUnityNote((char) midi_note);
       m_audiofile->m_loops->SetMIDIPitchFraction(midi_pitch_fraction);
     } else if (selectedMethod == 1) {
+      m_audiofile->m_loops->SetMIDIUnityNote((char) hps_midi_note);
+      m_audiofile->m_loops->SetMIDIPitchFraction(hps_midi_pitch_fraction);
+    } else if (selectedMethod == 2) {
       m_audiofile->m_loops->SetMIDIUnityNote((char) td_midi_note);
       m_audiofile->m_loops->SetMIDIPitchFraction(td_midi_pitch_fraction);
-    } else if (selectedMethod == 2) {
+    } else if (selectedMethod == 3) {
       m_audiofile->m_loops->SetMIDIUnityNote((char) dialog.GetMIDINote());
       m_audiofile->m_loops->SetMIDIPitchFraction((unsigned)((double)UINT_MAX * (dialog.GetPitchFraction() / 100.0)));
     }

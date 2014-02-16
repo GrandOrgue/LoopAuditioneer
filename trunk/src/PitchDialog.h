@@ -40,6 +40,9 @@ public:
     double pitch,
     int midiNote,
     double pitchFraction,
+    double hps_pitch,
+    int hps_midiNote,
+    double hps_pitchFraction,
     double td_pitch,
     int td_midiNote,
     double td_pitchFraction,
@@ -50,6 +53,9 @@ public:
     double pitch, 
     int midiNote,
     double pitchFraction,
+    double hps_pitch,
+    int hps_midiNote,
+    double hps_pitchFraction,
     double td_pitch,
     int td_midiNote,
     double td_pitchFraction,
@@ -68,6 +74,9 @@ public:
     double pitch,
     int midiNote,
     double pitchFraction,
+    double hps_pitch,
+    int hps_midiNote,
+    double hps_pitchFraction,
     double td_pitch,
     int td_midiNote,
     double td_pitchFraction,
@@ -103,12 +112,16 @@ public:
   void OnFractionChange(wxCommandEvent& event);
 
 private:
+  double m_detectedPitch;
   int m_detectedMIDIUnityNote;
   double m_detectedMIDIPitchFraction;
+  double m_hpsDetectedPitch;
+  int m_hpsDetectedMIDIUnityNote;
+  double m_hpsDetectedMIDIPitchFraction;
   int m_fileMIDIUnityNote;
   double m_fileMIDIPitchFraction;
-  double m_detectedPitch;
   bool m_useFFTDetection;
+  bool m_useHpsFFTDetection;
   bool m_useTDDetection;
   bool m_useManual;
   double m_resultingPitch;

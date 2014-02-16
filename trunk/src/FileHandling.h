@@ -42,7 +42,7 @@ public:
   int GetAudioFormat();
   int GetWholeFormat();
   bool FileCouldBeOpened();
-  double GetFFTPitch(double data[]);
+  bool GetFFTPitch(double data[], double pitches[]);
   double GetTDPitch(double data[]);
   void PerformCrossfade(double audioData[], int loopNumber, double fadeLength, int fadeType);
   void TrimExcessData();
@@ -68,6 +68,7 @@ private:
   unsigned m_samplerate;
   bool fileOpenWasSuccessful;
   double m_fftPitch;
+  double m_fftHPS;
   double m_timeDomainPitch;
 
   bool DetectPitchByFFT(double data[]);
