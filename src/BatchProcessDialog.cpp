@@ -19,7 +19,6 @@
  */
 
 #include "BatchProcessDialog.h"
-#include "AutoLoopDialog.h"
 #include "StopHarmonicDialog.h"
 #include "AutoLooping.h"
 #include "FileHandling.h"
@@ -43,11 +42,12 @@ BEGIN_EVENT_TABLE(BatchProcessDialog, wxDialog)
   EVT_CHOICE(ID_PROCESSBOX, BatchProcessDialog::OnChoiceSelected)
 END_EVENT_TABLE()
 
-BatchProcessDialog::BatchProcessDialog() {
-  Init();
+BatchProcessDialog::BatchProcessDialog(AutoLoopDialog* autoloopSettings) {
+  Init(autoloopSettings);
 }
 
 BatchProcessDialog::BatchProcessDialog(
+    AutoLoopDialog* autoloopSettings,
     wxWindow* parent,
     wxWindowID id,
     const wxString& caption,
@@ -55,11 +55,11 @@ BatchProcessDialog::BatchProcessDialog(
     const wxSize& size,
     long style
   ) {
-  Init();
+  Init(autoloopSettings);
   Create(parent, id, caption, pos, size, style);
 }
 
-void BatchProcessDialog::Init() {
+void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxEmptyString);
   m_batchProcessesAvailable.Add(wxT("Kill all loops"));
   m_batchProcessesAvailable.Add(wxT("Kill all cues"));
@@ -80,6 +80,8 @@ void BatchProcessDialog::Init() {
 
   m_lastSource = wxEmptyString;
   m_lastTarget = wxEmptyString;
+
+  m_loopSettings = autoloopSettings;
 }
 
 bool BatchProcessDialog::Create(
@@ -348,7 +350,6 @@ void BatchProcessDialog::ReadyToRockAndRoll() {
 }
 
 void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
-  AutoLoopDialog *autoloopSettings = new AutoLoopDialog(this);
   AutoLooping *autoloop = new AutoLooping();
   // Get all wav files in the source directory
   wxArrayString filesToProcess;
@@ -472,17 +473,17 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     break;
 
     case 4:
-      // This is for autosearching for loops, first show dialog
-      if (autoloopSettings->ShowModal() == wxID_OK) {
-        // Update AutoLooping object
-        autoloop->SetThreshold(autoloopSettings->GetThreshold());
-        autoloop->SetDuration(autoloopSettings->GetDuration());
-        autoloop->SetBetween(autoloopSettings->GetBetween());
-        autoloop->SetQuality(autoloopSettings->GetQuality());
-        autoloop->SetCandidates(autoloopSettings->GetCandidates());
-        autoloop->SetLoops(autoloopSettings->GetNrLoops());
-        autoloop->SetMultiple(autoloopSettings->GetMultiple());
-      }
+      // This is for autosearching for loops
+      // First make sure to update AutoLooping object
+      autoloop->SetThreshold(m_loopSettings->GetThreshold());
+      autoloop->SetDuration(m_loopSettings->GetDuration());
+      autoloop->SetBetween(m_loopSettings->GetBetween());
+      autoloop->SetQuality(m_loopSettings->GetQuality());
+      autoloop->SetCandidates(m_loopSettings->GetCandidates());
+      autoloop->SetLoops(m_loopSettings->GetNrLoops());
+      autoloop->SetMultiple(m_loopSettings->GetMultiple());
+      autoloop->SetBruteForce(m_loopSettings->GetBruteForce());
+
       if (filesToProcess.IsEmpty() == false) {
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
@@ -493,7 +494,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
             // now we need to search for loops and for that we need data as doubles
             wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
-            m_statusProgress->AppendText(wxT("\tRead double data from ") + fullFilePath + wxT("\n"));
             SndfileHandle sfh;
             sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
             double *audioData = new double[sfh.frames() * sfh.channels()];
@@ -507,9 +507,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
               fh.m_channels,
               fh.GetSampleRate(),
               addLoops,
-              autoloopSettings->GetAutosearch(),
-              autoloopSettings->GetStart(),
-              autoloopSettings->GetEnd()
+              m_loopSettings->GetAutosearch(),
+              m_loopSettings->GetStart(),
+              m_loopSettings->GetEnd()
             );
             // delete the now unneccessary array of double audio data
             delete[] audioData;
@@ -1161,7 +1161,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
       // This should be impossible as well!
       m_statusProgress->AppendText(wxT("No process selected!\n"));
   }
-  delete autoloopSettings;
   delete autoloop;
 }
 

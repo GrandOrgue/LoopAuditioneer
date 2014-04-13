@@ -1,6 +1,6 @@
 /* 
  * AutoLooping.cpp tries to find natural good loop points in audio
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ AutoLooping::AutoLooping(
   m_maxCandidates = maxCandidates;
   m_loopsToReturn = loopsToReturn;
   m_maxLoopsMultiple = maxLoopsMultiple;
+  m_useBruteForce = false;
 }
 
 AutoLooping::~AutoLooping() {
@@ -205,10 +206,10 @@ bool AutoLooping::AutoFindLoops(
     unsigned compareStartIndex = loopStartIndex - 2 * numberOfChannels;
 
     // if loop start point is too close to already stored loop continue
-    if (foundLoops.empty() == false) {
+    if (!foundLoops.empty()) {
       if (
         (loopStartIndex - foundLoops.back().first.first * numberOfChannels) < 
-        (samplerate * m_distanceBetweenLoops * numberOfChannels)
+        (samplerate * m_distanceBetweenLoops * numberOfChannels) && !m_useBruteForce
       ) {
         continue;
       }
@@ -248,7 +249,7 @@ bool AutoLooping::AutoFindLoops(
       }
     }
     // if enough loops to select from are found we abort
-    if (foundLoops.size() > m_loopsToReturn * m_maxLoopsMultiple - 1)
+    if ((foundLoops.size() > m_loopsToReturn * m_maxLoopsMultiple - 1) && !m_useBruteForce)
       break;
   }
 
@@ -277,15 +278,71 @@ bool AutoLooping::AutoFindLoops(
 
   // the wished number of loops will be pushed back into the loops vector
   // selected from the best quality loops in the foundLoops vector
-  if (foundLoops.size() > m_loopsToReturn) {
-    for (unsigned i = 0; i < m_loopsToReturn; i++)
-      loops.push_back(foundLoops[i]);
+  // but we should make sure that all returned loops must overlap at least one other
+  if (!foundLoops.empty()) {
+    std::vector<unsigned> alreadyStoredLoopIndexes;
 
-    return true;
-  } else if (foundLoops.empty() != true) {
-    for (unsigned i = 0; i < foundLoops.size(); i++)
-      loops.push_back(foundLoops[i]);
+    // the first loop should be the best quality and is added
+    loops.push_back(foundLoops[0]);
 
+    alreadyStoredLoopIndexes.push_back(0);
+    bool addedLoop = true;
+
+    while (loops.size() < m_loopsToReturn && addedLoop) {
+      addedLoop = false;
+
+      for (unsigned i = 0; i < foundLoops.size(); i++) {
+        bool jumpToNext = false;
+        for (unsigned l = 0; l < alreadyStoredLoopIndexes.size(); l++) {
+          if (i == alreadyStoredLoopIndexes[l])
+            jumpToNext = true;
+        }
+
+        if (jumpToNext)
+          continue;
+        
+        bool overlaps = false;
+        bool tooClose = true;
+        for (unsigned j = 0; j < loops.size(); j++) {
+          if ((foundLoops[i].first.first > loops[j].first.first && foundLoops[i].first.first < loops[j].first.second) ||
+              (foundLoops[i].first.second < loops[j].first.second && foundLoops[i].first.second > loops[j].first.first)
+          ) {
+            overlaps = true;
+            // also check if using brute force that it's not too close to any already added
+            if (m_useBruteForce) {
+              for (unsigned k = 0; k < loops.size(); k++) {
+                if (std::abs((int) foundLoops[i].first.first - (int) loops[k].first.first) > samplerate * m_distanceBetweenLoops) {
+                  tooClose = false;
+                } else {
+                  tooClose = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        if (overlaps) {
+          if (m_useBruteForce) {
+            if (!tooClose) {
+              loops.push_back(foundLoops[i]);
+              addedLoop = true;
+              alreadyStoredLoopIndexes.push_back(i);
+
+              // jump out and begin checking again from start
+              break;
+            }
+          } else {
+            loops.push_back(foundLoops[i]);
+            addedLoop = true;
+            alreadyStoredLoopIndexes.push_back(i);
+
+            // jump out and begin checking again from start
+            break;
+          }
+        }
+      }
+    }
     return true;
   } else {
     return false;
@@ -313,4 +370,9 @@ void AutoLooping::SetLoops(int l) {
 void AutoLooping::SetMultiple(int m) {
   m_maxLoopsMultiple = m;
 }
-
+void AutoLooping::SetBruteForce(bool b) {
+  if (b)
+    m_useBruteForce = true;
+  else
+    m_useBruteForce = false;
+}

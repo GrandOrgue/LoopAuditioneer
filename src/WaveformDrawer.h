@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011-2012 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -104,6 +104,7 @@ private:
   int selectedCueIndex;
   bool cueIsSelected;
   int m_amplitudeZoomLevel;
+  unsigned m_samplerate;
 
   void OnClickAddCue(wxCommandEvent& event);
 
@@ -112,4 +113,3 @@ private:
 };
 
 #endif
-

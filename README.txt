@@ -1,5 +1,5 @@
-This is LoopAuditioneer 0.7.4.0
-Copyright (C) 2011-2013 Lars Palo
+This is LoopAuditioneer 0.7.5.0
+Copyright (C) 2011-2014 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
 LoopAuditioneer is a software for evaluating loops and cues existing in wav 

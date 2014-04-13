@@ -863,6 +863,7 @@ void MyFrame::UpdateAllViews() {
 
 void MyFrame::OnBatchProcess(wxCommandEvent& event) {
   BatchProcessDialog batchDialog(
+    m_autoloopSettings,
     this,
     wxID_ANY,
     wxT("Batch processing"),
@@ -970,6 +971,7 @@ void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
     m_autoloop->SetCandidates(m_autoloopSettings->GetCandidates());
     m_autoloop->SetLoops(m_autoloopSettings->GetNrLoops());
     m_autoloop->SetMultiple(m_autoloopSettings->GetMultiple());
+    m_autoloop->SetBruteForce(m_autoloopSettings->GetBruteForce());
   }
 }
 
