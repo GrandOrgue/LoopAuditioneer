@@ -1,6 +1,6 @@
 /* 
  * AutoLoopDialog.h provide a GUI for setting parameters for AutoLooping
- * Copyright (C) 2011-2012 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,8 @@ enum {
   ID_LOOP_MULTIPLE = wxID_HIGHEST + 306,
   ID_SEARCH_CHECK = wxID_HIGHEST + 307,
   ID_SUSTAINSTART = wxID_HIGHEST + 308,
-  ID_SUSTAINEND = wxID_HIGHEST + 309
+  ID_SUSTAINEND = wxID_HIGHEST + 309,
+  ID_BRUTE_FORCE_CHECK = wxID_HIGHEST + 310
 };
 
 class AutoLoopDialog : public wxDialog {
@@ -80,6 +81,7 @@ public:
   void SetAutosearch(bool search);
   void SetStart(int start);
   void SetEnd(int end);
+  void SetBruteForce(bool b);
   double GetThreshold();
   double GetDuration();
   double GetBetween();
@@ -90,6 +92,7 @@ public:
   bool GetAutosearch();
   int GetStart();
   int GetEnd();
+  bool GetBruteForce();
 
   // Overrides
   bool TransferDataToWindow();
@@ -97,6 +100,7 @@ public:
 
   // Event processing methods (for label updates)
   void OnAutosearchCheck(wxCommandEvent& event);
+  void OnBruteForceCheck(wxCommandEvent& event);
   void OnStartSliderMove(wxCommandEvent& event);
   void OnEndSliderMove(wxCommandEvent& event);
   void OnThresholdSlider(wxCommandEvent& event);
@@ -109,12 +113,13 @@ private:
   double m_minDuration;      // 1.0 seconds
   double m_betweenLoops; // 0.3 seconds
   double m_quality;        // value (6) /32767 (0.00006) for float)
-  int m_candidates;           // 8000
-  int m_numberOfLoops;           // 4
-  int m_loopMultiple;        // 5
+  int m_candidates;           // 50000
+  int m_numberOfLoops;           // 6
+  int m_loopMultiple;        // 10
   bool m_autoSearchSustain; // true
   int m_startPercentage; // 20
   int m_endPercentage; // 70
+  bool m_searchBruteForce;
 
   // GUI controls
   wxStaticText *m_thresholdLabel;
@@ -124,6 +129,5 @@ private:
   wxStaticText *m_qualityLabel;
   wxStaticText *m_distanceLabel;
 };
-
 
 #endif

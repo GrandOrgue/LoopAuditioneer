@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011-2012 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, wxString fileName) : wxPanel(par
   xSize = 1;
   ySize = 1;
   topMargin = 10;
-  bottomMargin = 0;
+  bottomMargin = 10;
   marginBetweenTracks = 0;
   leftMargin = 30;
   rightMargin = 10;
@@ -64,6 +64,7 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, wxString fileName) : wxPanel(par
 
   if (sfHandle) {
     nrChannels = sfHandle.channels();
+    m_samplerate = sfHandle.samplerate();
 
     for (int i = 0; i < nrChannels; i++) {
       WAVETRACK wt;
@@ -197,7 +198,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
         }
         // draw the 0 indicating line
         dc.SetPen(wxPen(blue, 1, wxSOLID));
-        dc.DrawLine((leftMargin + 1), topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2), size.x - (rightMargin + 1), topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2)); 
+        dc.DrawLine((leftMargin + 1), topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2), size.x - (rightMargin + 1), topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2));
 
         // reset the wave pixel position for the next track
         lineToDraw = 0;
@@ -248,6 +249,35 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
 
           // draw line at top connecting loop start and end lines
           dc.DrawLine(xPositionS, yPositionHigh + overlap * (extent.GetHeight() + 5), xPositionE, yPositionHigh + overlap * (extent.GetHeight() + 5));
+        }
+      }
+      // draw time indicating lines at bottom
+      dc.SetPen(wxPen(black, 1, wxSOLID));
+      // starting at zero
+      dc.DrawLine(leftMargin, size.y - 11, leftMargin, size.y - 1);
+      dc.SetFont(wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_LIGHT));
+      wxSize extent = dc.GetTextExtent(wxT("0"));
+      dc.DrawText(wxT("0"), leftMargin + 2, size.y - extent.GetHeight());
+      int lastLineX = 0;
+      int lineNbr = 1;
+      for (int i = 0; i < nrOfSamples; i++) {
+        // only care if the sample make at least 0.25s
+        if ((i * 4) % m_samplerate == 0) {
+          // make sure at least 25 pixels are passed since last line
+          int xCoordinate = i / samplesPerPixel;
+          if (xCoordinate - lastLineX >= 25) {
+            if (lineNbr % 2 == 0) {
+              // at this line we also write a number
+              dc.DrawLine(leftMargin + xCoordinate, size.y - 11, leftMargin + xCoordinate, size.y - 1);
+              wxString timeString = wxString::Format(wxT("%.1f"), ((double) i / (double) m_samplerate));
+              wxSize extent = dc.GetTextExtent(timeString);
+              dc.DrawText(timeString, leftMargin + xCoordinate + 2, size.y - extent.GetHeight());
+            } else {
+              dc.DrawLine(leftMargin + xCoordinate, size.y - 11, leftMargin + xCoordinate, size.y - 5);
+            }
+            lineNbr++;
+            lastLineX = xCoordinate;
+          }
         }
       }
     }
@@ -691,4 +721,3 @@ void WaveformDrawer::UpdateWaveTracks(double audio[], int nrChannels, unsigned a
         index = 0;
     }
 }
-

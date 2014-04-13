@@ -1,6 +1,6 @@
 /* 
  * AutoLooping.h tries to find natural good loop points in audio
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,9 +32,9 @@ public:
     double = 1.0,
     double = 0.3,
     double = 6,
-    unsigned = 8000,
-    unsigned = 4,
-    unsigned = 5
+    unsigned = 50000,
+    unsigned = 6,
+    unsigned = 10
   );
 
   ~AutoLooping();
@@ -60,15 +60,17 @@ public:
   void SetCandidates(int c);
   void SetLoops(int l);
   void SetMultiple(int m);
+  void SetBruteForce(bool b);
 
 private:
   double m_derivativeThreshold;  // 0.03 (3 %)
   double m_minLoopDuration;      // 1.0 seconds
   double m_distanceBetweenLoops; // 0.3 seconds
   double m_qualityFactor;        // value (6) /32767 (0.00006) for float)
-  unsigned m_maxCandidates;      // 8000
-  unsigned m_loopsToReturn;      // 4
-  unsigned m_maxLoopsMultiple;   // 5
+  unsigned m_maxCandidates;      // 50000
+  unsigned m_loopsToReturn;      // 6
+  unsigned m_maxLoopsMultiple;   // 10
+  bool m_useBruteForce;
 };
 
 #endif

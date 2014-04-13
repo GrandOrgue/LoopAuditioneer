@@ -1,6 +1,6 @@
 /* 
  * AutoLoopDialog.cpp provide a GUI for setting parameters for AutoLooping
- * Copyright (C) 2011-2012 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ IMPLEMENT_CLASS(AutoLoopDialog, wxDialog )
 
 BEGIN_EVENT_TABLE(AutoLoopDialog, wxDialog)
   EVT_CHECKBOX(ID_SEARCH_CHECK, AutoLoopDialog::OnAutosearchCheck)
+  EVT_CHECKBOX(ID_BRUTE_FORCE_CHECK, AutoLoopDialog::OnBruteForceCheck)
   EVT_SLIDER(ID_SUSTAINSTART, AutoLoopDialog::OnStartSliderMove)
   EVT_SLIDER(ID_SUSTAINEND, AutoLoopDialog::OnEndSliderMove)
   EVT_SLIDER(ID_THRESHOLD, AutoLoopDialog::OnThresholdSlider)
@@ -54,12 +55,13 @@ void AutoLoopDialog::Init() {
   m_minDuration = 1.0;
   m_betweenLoops = 0.3;
   m_quality = 6;
-  m_candidates = 8000;
-  m_numberOfLoops = 4;
-  m_loopMultiple = 5;
+  m_candidates = 50000;
+  m_numberOfLoops = 6;
+  m_loopMultiple = 10;
   m_autoSearchSustain = true;
   m_startPercentage = 20;
   m_endPercentage = 70;
+  m_searchBruteForce = false;
 }
 
 bool AutoLoopDialog::Create( 
@@ -99,7 +101,7 @@ void AutoLoopDialog::CreateControls() {
   wxStaticBox *staticBox = new wxStaticBox(
     this, 
     wxID_STATIC,
-    wxT("Sustainsection options"), 
+    wxT("Search options"), 
     wxDefaultPosition, 
     wxDefaultSize
   );
@@ -122,6 +124,17 @@ void AutoLoopDialog::CreateControls() {
   );
   autosearchCheck->SetValue(true);
   firstSubRow->Add(autosearchCheck, 1, wxGROW|wxALL, 2);
+
+  // Checkbox for search with brute force
+  wxCheckBox *bruteForceCheck = new wxCheckBox(
+    this,
+    ID_BRUTE_FORCE_CHECK,
+    wxT("Search w. brute force (can take long time)"),
+    wxDefaultPosition,
+    wxDefaultSize
+  );
+  bruteForceCheck->SetValue(true);
+  firstSubRow->Add(bruteForceCheck, 1, wxGROW|wxALL, 2);
 
   // Horizontal sizer for second sub row
   wxBoxSizer *secondSubRow = new wxBoxSizer(wxHORIZONTAL);
@@ -234,7 +247,7 @@ void AutoLoopDialog::CreateControls() {
     ID_DURATION,
     100,
     0,
-    300,
+    500,
     wxDefaultPosition, 
     wxDefaultSize, 
     wxSL_HORIZONTAL
@@ -292,7 +305,7 @@ void AutoLoopDialog::CreateControls() {
     ID_QUALITY,
     60,
     5,
-    300,
+    1000,
     wxDefaultPosition, 
     wxDefaultSize, 
     wxSL_HORIZONTAL
@@ -318,9 +331,9 @@ void AutoLoopDialog::CreateControls() {
   wxSlider *candidatesSlider = new wxSlider ( 
     this, 
     ID_CANDIDATES,
-    8000,
-    1000,
     50000,
+    1000,
+    100000,
     wxDefaultPosition, 
     wxDefaultSize, 
     wxSL_HORIZONTAL|wxSL_LABELS
@@ -346,7 +359,7 @@ void AutoLoopDialog::CreateControls() {
   wxSlider *loopSlider = new wxSlider ( 
     this, 
     ID_NR_LOOPS,
-    4,
+    6,
     1,
     8,
     wxDefaultPosition, 
@@ -374,7 +387,7 @@ void AutoLoopDialog::CreateControls() {
   wxSlider *multipleSlider = new wxSlider ( 
     this, 
     ID_LOOP_MULTIPLE,
-    5,
+    10,
     1,
     10,
     wxDefaultPosition, 
@@ -450,6 +463,12 @@ void AutoLoopDialog::SetStart(int start) {
 void AutoLoopDialog::SetEnd(int end) {
   m_endPercentage = end;
 }
+void AutoLoopDialog::SetBruteForce(bool b) {
+  if (b)
+    m_searchBruteForce = true;
+  else
+    m_searchBruteForce = false;
+}
 double AutoLoopDialog::GetThreshold() {
   return m_threshold;
 }
@@ -480,10 +499,14 @@ int AutoLoopDialog::GetStart() {
 int AutoLoopDialog::GetEnd() {
   return m_endPercentage;
 }
+bool AutoLoopDialog::GetBruteForce() {
+  return m_searchBruteForce;
+}
 
 // Override of transfer data to the window
 bool AutoLoopDialog::TransferDataToWindow() {
   wxCheckBox *autoCheck = (wxCheckBox*) FindWindow(ID_SEARCH_CHECK);
+  wxCheckBox *bruteCheck = (wxCheckBox*) FindWindow(ID_BRUTE_FORCE_CHECK);
   wxSlider *startSl = (wxSlider*) FindWindow(ID_SUSTAINSTART);
   wxSlider *endSl = (wxSlider*) FindWindow(ID_SUSTAINEND);
   wxSlider *thresholdSl = (wxSlider*) FindWindow(ID_THRESHOLD);
@@ -495,6 +518,7 @@ bool AutoLoopDialog::TransferDataToWindow() {
   wxSlider *multipleSl = (wxSlider*) FindWindow(ID_LOOP_MULTIPLE);
 
   autoCheck->SetValue(m_autoSearchSustain);
+  bruteCheck->SetValue(m_searchBruteForce);
   startSl->SetValue(m_startPercentage);
   endSl->SetValue(m_endPercentage);
   candidatesSl->SetValue(m_candidates);
@@ -516,6 +540,7 @@ bool AutoLoopDialog::TransferDataToWindow() {
 // Override of transfer data from the window
 bool AutoLoopDialog::TransferDataFromWindow() {
   wxCheckBox *autoCheck = (wxCheckBox*) FindWindow(ID_SEARCH_CHECK);
+  wxCheckBox *bruteCheck = (wxCheckBox*) FindWindow(ID_BRUTE_FORCE_CHECK);
   wxSlider *startSl = (wxSlider*) FindWindow(ID_SUSTAINSTART);
   wxSlider *endSl = (wxSlider*) FindWindow(ID_SUSTAINEND);
   wxSlider *thresholdSl = (wxSlider*) FindWindow(ID_THRESHOLD);
@@ -532,6 +557,7 @@ bool AutoLoopDialog::TransferDataFromWindow() {
   m_autoSearchSustain = autoCheck->GetValue();
   m_startPercentage = startSl->GetValue();
   m_endPercentage = endSl->GetValue();
+  m_searchBruteForce = bruteCheck->GetValue();
 
   double value = (double) thresholdSl->GetValue() / 1000.0;
   m_threshold = value;
@@ -559,6 +585,12 @@ void AutoLoopDialog::OnAutosearchCheck(wxCommandEvent& event) {
     endSl->Enable(true);
   }
 }
+
+void AutoLoopDialog::OnBruteForceCheck(wxCommandEvent& event) {
+  wxCheckBox *bruteCheck = (wxCheckBox*) FindWindow(ID_BRUTE_FORCE_CHECK);
+  m_searchBruteForce = bruteCheck->GetValue();
+}
+
 void AutoLoopDialog::OnStartSliderMove(wxCommandEvent& event) {
   wxSlider *startSl = (wxSlider*) FindWindow(ID_SUSTAINSTART);
   int value = startSl->GetValue();
@@ -569,6 +601,7 @@ void AutoLoopDialog::OnStartSliderMove(wxCommandEvent& event) {
   } else
     startSl->SetValue(m_startPercentage);
 }
+
 void AutoLoopDialog::OnEndSliderMove(wxCommandEvent& event) {
   wxSlider *endSl = (wxSlider*) FindWindow(ID_SUSTAINEND);
   int value = endSl->GetValue();
@@ -579,6 +612,7 @@ void AutoLoopDialog::OnEndSliderMove(wxCommandEvent& event) {
   } else
     endSl->SetValue(m_endPercentage);
 }
+
 void AutoLoopDialog::OnThresholdSlider(wxCommandEvent& event) {
   wxSlider *thresholdSl = (wxSlider*) FindWindow(ID_THRESHOLD);
 
@@ -587,6 +621,7 @@ void AutoLoopDialog::OnThresholdSlider(wxCommandEvent& event) {
 
   m_thresholdLabel->SetLabel(wxString::Format(wxT("Derivative threshold: %.3f"), m_threshold));
 }
+
 void AutoLoopDialog::OnDurationSlider(wxCommandEvent& event) {
   wxSlider *durationSl = (wxSlider*) FindWindow(ID_DURATION);
 
@@ -595,6 +630,7 @@ void AutoLoopDialog::OnDurationSlider(wxCommandEvent& event) {
 
   m_durationLabel->SetLabel(wxString::Format(wxT("Min. loop lenght: %.2f s"), m_minDuration));
 }
+
 void AutoLoopDialog::OnBetweenSlider(wxCommandEvent& event) {
   wxSlider *betweenSl = (wxSlider*) FindWindow(ID_BETWEEN);
 
@@ -603,6 +639,7 @@ void AutoLoopDialog::OnBetweenSlider(wxCommandEvent& event) {
 
   m_distanceLabel->SetLabel(wxString::Format(wxT("Min. time between loops: %.2f s"), m_betweenLoops));
 }
+
 void AutoLoopDialog::OnQuality(wxCommandEvent& event) {
   wxSlider *qualitySl = (wxSlider*) FindWindow(ID_QUALITY);
 
@@ -611,4 +648,3 @@ void AutoLoopDialog::OnQuality(wxCommandEvent& event) {
 
   m_qualityLabel->SetLabel(wxString::Format(wxT("Quality factor: %.1f"), m_quality));
 }
-

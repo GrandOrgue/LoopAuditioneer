@@ -22,6 +22,7 @@
 #define BATCHPROCESSDIALOG_H
 
 #include <wx/wx.h>
+#include "AutoLoopDialog.h"
 
 // Identifiers
 enum {
@@ -40,8 +41,9 @@ class BatchProcessDialog : public wxDialog {
 
 public:
   // Constructors
-  BatchProcessDialog();
+  BatchProcessDialog(AutoLoopDialog* autoloopSettings);
   BatchProcessDialog(
+    AutoLoopDialog* autoloopSettings,
     wxWindow* parent,
     wxWindowID id = wxID_ANY,
     const wxString& caption = wxT("Batch processing"),
@@ -51,7 +53,7 @@ public:
   );
 
   // Initialize our variables
-  void Init();
+  void Init(AutoLoopDialog* autoloopSettings);
 
   // Creation
   bool Create( 
@@ -77,6 +79,7 @@ private:
   wxTextCtrl *m_statusProgress;
   wxString m_lastSource;
   wxString m_lastTarget;
+  AutoLoopDialog *m_loopSettings;
 
   // Event methods
   void OnAddSource(wxCommandEvent& event);
