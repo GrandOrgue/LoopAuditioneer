@@ -26,11 +26,11 @@
 #include <wx/gdicmn.h>
 #include <wx/aboutdlg.h>
 #include "LoopParametersDialog.h"
-#include "BatchProcessDialog.h"
 #include <climits>
 #include "PitchDialog.h"
 #include "LoopOverlay.h"
 #include <wx/busyinfo.h>
+#include "sndfile.hh"
 
 bool MyFrame::loopPlay = true; // default to loop play
 int MyFrame::volumeMultiplier = 1; // default value
@@ -44,15 +44,18 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_MENU(wxID_SAVEAS, MyFrame::OnSaveFileAs)
   EVT_MENU(EDIT_LOOP, MyFrame::OnEditLoop)
   EVT_MENU(VIEW_LOOPPOINTS, MyFrame::OnViewLoop)
-  EVT_LISTBOX_DCLICK(ID_LISTBOX, MyFrame::OnDblClick)
-  EVT_LISTBOX(ID_LISTBOX, MyFrame::OnSelection)
-  EVT_TOOL(OPEN_SELECTED, MyFrame::OnDblClick)
+  EVT_MENU(LOOP_ONLY, MyFrame::OnLoopPlayback)
+  EVT_LIST_ITEM_ACTIVATED(ID_LISTCTRL, MyFrame::OnDblClick)
+  EVT_LIST_ITEM_SELECTED(ID_LISTCTRL, MyFrame::OnSelection)
+  EVT_TOOL(OPEN_SELECTED, MyFrame::OnOpenSelected)
   EVT_GRID_CMD_CELL_LEFT_CLICK(M_GRID, MyFrame::OnGridCellClick)
   EVT_GRID_CMD_CELL_LEFT_CLICK(CUE_GRID, MyFrame::OnCueGridCellClick)
   EVT_GRID_CMD_LABEL_LEFT_CLICK(M_GRID, MyFrame::OnGridCellClick)
   EVT_GRID_CMD_LABEL_LEFT_CLICK(CUE_GRID, MyFrame::OnCueGridCellClick)
   EVT_GRID_CMD_CELL_RIGHT_CLICK(M_GRID, MyFrame::OnLoopGridRightClick)
   EVT_GRID_CMD_LABEL_RIGHT_CLICK(M_GRID, MyFrame::OnLoopGridRightClick)
+  EVT_GRID_CMD_SELECT_CELL(M_GRID, MyFrame::OnGridCellSelect)
+  EVT_GRID_CMD_SELECT_CELL(CUE_GRID, MyFrame::OnCueGridCellSelect)
   EVT_TOOL(START_PLAYBACK, MyFrame::OnStartPlay)
   EVT_TOOL(wxID_STOP, MyFrame::OnStopPlay)
   EVT_TOOL(ADD_LOOP, MyFrame::OnAddLoop)
@@ -66,6 +69,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_SLIDER(ID_VOLUME_SLIDER, MyFrame::OnVolumeSlider)
   EVT_TOOL(X_FADE, MyFrame::OnCrossfade)
   EVT_TOOL(CUT_N_FADE, MyFrame::OnCutFade)
+  EVT_KEY_DOWN(MyFrame::OnKeyboardInput)
 END_EVENT_TABLE()
 
 void MyFrame::OnAbout(wxCommandEvent& event) {
@@ -88,26 +92,69 @@ void MyFrame::OnSelectDir(wxCommandEvent& event) {
     workingDir = dialog.GetPath();
     EmptyListOfFileNames();
     PopulateListOfFileNames();
-    m_fileListBox->Set(fileNames);
+    PopulateListCtrl();
     SetStatusText(workingDir, 2);
+    if (!fileNames.IsEmpty()) {
+      m_fileListCtrl->SetItemState(0, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+      m_panel->SetFocus();
+    }
   }
 }
 
 
 void MyFrame::OnQuit(wxCommandEvent& event) {
+  config->Write(wxT("General/LastWorkingDir"), workingDir);
+  wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
+  int vol = volumeSl->GetValue();
+  config->Write(wxT("General/LastVolume"), vol);
+  config->Write(wxT("General/LoopOnlyPlayback"), m_loopOnly);
+  config->Write(wxT("BatchProcess/LastSource"), m_batchProcess->GetLastSource());
+  config->Write(wxT("BatchProcess/LastTarget"), m_batchProcess->GetLastTarget());
+  config->Write(wxT("LoopSettings/AutoSearchSustain"), m_autoloopSettings->GetAutosearch());
+  config->Write(wxT("LoopSettings/BruteForce"), m_autoloopSettings->GetBruteForce());
+  config->Write(wxT("LoopSettings/SustainStart"), m_autoloopSettings->GetStart());
+  config->Write(wxT("LoopSettings/SustainEnd"), m_autoloopSettings->GetEnd());
+  config->Write(wxT("LoopSettings/Threshold"), m_autoloopSettings->GetThreshold());
+  config->Write(wxT("LoopSettings/MinDuration"), m_autoloopSettings->GetDuration());
+  config->Write(wxT("LoopSettings/MinDistance"), m_autoloopSettings->GetBetween());
+  config->Write(wxT("LoopSettings/Quality"), m_autoloopSettings->GetQuality());
+  config->Write(wxT("LoopSettings/Candidates"), m_autoloopSettings->GetCandidates());
+  config->Write(wxT("LoopSettings/LoopsToReturn"), m_autoloopSettings->GetNrLoops());
+  config->Write(wxT("LoopSettings/LoopPoolMultiple"), m_autoloopSettings->GetMultiple());
+  config->Flush();
   // Destroy the frame
   Close();
 }
 
-void MyFrame::OnDblClick(wxCommandEvent& event) {
-  int sel = m_fileListBox->GetSelection();
+void MyFrame::OnDblClick(wxListEvent& event) {
+  int sel = event.GetIndex();
   if (sel != -1) {
-    fileToOpen = m_fileListBox->GetString(sel);
+    wxListItem item;
+    item.SetId(sel);
+    item.SetMask(wxLIST_MASK_TEXT);
+    item.SetColumn(0);
+    m_fileListCtrl->GetItem(item);
+    fileToOpen = item.GetText();
     OpenAudioFile();
+    currentOpenFileIdx = sel;
   }
 }
 
-void MyFrame::OnSelection(wxCommandEvent& event) {
+void MyFrame::OnOpenSelected(wxCommandEvent& event) {
+  if (currentSelectedIdx != -1) {
+    wxListItem item;
+    item.SetId(currentSelectedIdx);
+    item.SetMask(wxLIST_MASK_TEXT);
+    item.SetColumn(0);
+    m_fileListCtrl->GetItem(item);
+    fileToOpen = item.GetText();
+    OpenAudioFile();
+    currentOpenFileIdx = currentSelectedIdx;
+  }
+}
+
+void MyFrame::OnSelection(wxListEvent& event) {
+  currentSelectedIdx = event.GetIndex();
   if (toolBar->GetToolEnabled(OPEN_SELECTED) == false)
     toolBar->EnableTool(OPEN_SELECTED, true);
   if (fileMenu->IsEnabled(OPEN_SELECTED) == false)
@@ -120,7 +167,8 @@ void MyFrame::OpenAudioFile() {
 
   if (m_audiofile->FileCouldBeOpened()) {
     wxString filePath;
-    filePath = workingDir.Append(wxT("/"));
+    filePath = workingDir;
+    filePath += wxFILE_SEP_PATH;
     filePath += fileToOpen;
     m_waveform = new WaveformDrawer(this, filePath);
     lowerBox->Add(m_waveform, 1, wxEXPAND, 0);
@@ -173,9 +221,20 @@ void MyFrame::OpenAudioFile() {
     toolBar->EnableTool(CUT_N_FADE, true);
     toolMenu->Enable(CUT_N_FADE, true);
 
+    // select first loop if such is present
+    if (m_panel->m_grid->GetNumberRows() > 0) {
+      m_panel->m_grid->SelectRow(0, false);
+      toolBar->EnableTool(wxID_STOP, false);
+      toolBar->EnableTool(START_PLAYBACK, true);
+      transportMenu->Enable(START_PLAYBACK, true);
+      transportMenu->Enable(wxID_STOP, false);
+    }
   } else {
     // libsndfile couldn't open the file or no audio data in file
-    wxString message = wxT("Sorry, libsndfile couldn't open selected file!");
+    wxString message = wxT("Sorry, libsndfile couldn't open selected file:\n");
+    message += workingDir;
+    message += wxFILE_SEP_PATH;
+    message += fileToOpen;
     wxMessageDialog *dialog = new wxMessageDialog(
       NULL,
       message,
@@ -242,10 +301,19 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
     m_panel->m_cueGrid->ClearSelection();
     m_panel->m_grid->SelectRow(event.GetRow());
 
-    // set the currently selected loops positions
+    // set/update the currently selected loops positions
     LOOPDATA currentLoop;
     m_audiofile->m_loops->GetLoopData(event.GetRow(), currentLoop);
-    m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+    if (!m_loopOnly)
+      m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+    else {
+      if (((double) (currentLoop.dwEnd - currentLoop.dwStart)) / (double) m_audiofile->GetSampleRate() > 0.5) {
+        unsigned pos = currentLoop.dwEnd - (m_audiofile->GetSampleRate() / 2);
+        m_sound->SetLoopPosition(pos, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+      } else {
+        m_sound->SetLoopPosition(currentLoop.dwStart, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+      }
+    }
 
     if (event.GetCol() == 4) {
       // User clicked in the save column
@@ -317,6 +385,21 @@ void MyFrame::OnSaveFile(wxCommandEvent& event) {
   m_audiofile->SaveAudioFile(fileToOpen, workingDir);
   toolBar->EnableTool(wxID_SAVE, false);
   fileMenu->Enable(wxID_SAVE, false);
+
+  // make sure to update the listCtrl columns as things might have changed
+  wxString loopNbr = wxString::Format(wxT("%i"), m_audiofile->m_loops->GetNumberOfLoops());
+  m_fileListCtrl->SetItem(currentOpenFileIdx, 1, loopNbr);
+
+  wxString cueNbr = wxString::Format(wxT("%i"), m_audiofile->m_cues->GetNumberOfCues());
+  m_fileListCtrl->SetItem(currentOpenFileIdx, 2, cueNbr);
+
+  int midiNote = (int) m_audiofile->m_loops->GetMIDIUnityNote();
+  wxString note = wxString::Format(wxT("%i"), midiNote);
+  m_fileListCtrl->SetItem(currentOpenFileIdx, 3, note);
+
+  double cents = (double) m_audiofile->m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
+  wxString fraction = wxString::Format(wxT("%.2f"), cents);
+  m_fileListCtrl->SetItem(currentOpenFileIdx, 4, fraction);
 }
 
 void MyFrame::OnSaveFileAs(wxCommandEvent& event) {
@@ -335,17 +418,39 @@ void MyFrame::OnSaveFileAs(wxCommandEvent& event) {
     // empty and repopulate file list in case user saved into the current directory
     EmptyListOfFileNames();
     PopulateListOfFileNames();
-    m_fileListBox->Set(fileNames);
+    PopulateListCtrl();
     SetStatusText(workingDir, 1);
+
+    // make sure to update current open file index and select it
+    currentOpenFileIdx = fileNames.Index(fileToOpen);
+    m_fileListCtrl->SetItemState(currentOpenFileIdx, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
   }
 }
 
 void MyFrame::OnStartPlay(wxCommandEvent& event) {
   m_timer.Start(50);
   // if it's a loop make sure start position is set to start of data
+  // or to within the loop if that option is ticked
   if (m_panel->m_grid->IsSelection()) {
-    m_sound->SetStartPosition(0, m_audiofile->m_channels);
-    m_waveform->SetPlayPosition(0);
+    // set the currently selected loops positions and prepare for playback
+    LOOPDATA currentLoop;
+    wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
+    int firstSelected = selectedRows[0];
+    m_audiofile->m_loops->GetLoopData(firstSelected, currentLoop);
+    m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+    if (!m_loopOnly) {
+      m_sound->SetStartPosition(0, m_audiofile->m_channels);
+      m_waveform->SetPlayPosition(0);
+    } else {
+      if (((double) (currentLoop.dwEnd - currentLoop.dwStart)) / (double) m_audiofile->GetSampleRate() > 0.5) {
+        unsigned pos = currentLoop.dwEnd - (m_audiofile->GetSampleRate() / 2);
+        m_sound->SetStartPosition(pos, m_audiofile->m_channels);
+        m_waveform->SetPlayPosition(pos);
+      } else {
+        m_sound->SetStartPosition(currentLoop.dwStart, m_audiofile->m_channels);
+        m_waveform->SetPlayPosition(currentLoop.dwStart);
+      }
+    }
   }
 
   // if it's a cue make sure start position is set to the selected cue's dwPosition
@@ -388,21 +493,23 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   m_autoloop = new AutoLooping();
   m_crossfades = new CrossfadeDialog(this);
   m_cutNFade = new CutNFadeDialog(this);
-
-  workingDir = wxEmptyString;
+  m_batchProcess = new BatchProcessDialog(m_autoloopSettings, this);
+  currentOpenFileIdx = -1;
+  currentSelectedIdx = -1;
+  config = new wxFileConfig(wxT("LoopAuditioneer"));
 
   // Create a file menu
   fileMenu = new wxMenu();
 
   // Add file menu items
-  fileMenu->Append(FILE_SELECT, wxT("&Choose folder\tCtrl+F"), wxT("Select working folder"));
-  fileMenu->Append(OPEN_SELECTED, wxT("&Open file\tCtrl+O"), wxT("Open selected file"));
+  fileMenu->Append(FILE_SELECT, wxT("&Choose folder\tCtrl+O"), wxT("Select working folder"));
+  fileMenu->Append(OPEN_SELECTED, wxT("&Open file\tCtrl+F"), wxT("Open selected file"));
   fileMenu->Append(wxID_SAVE, wxT("&Save\tCtrl+S"), wxT("Save current file"));
   fileMenu->Append(wxID_SAVEAS, wxT("Save &as...\tShift+Ctrl+S"), wxT("Save current file with new name"));
   fileMenu->AppendSeparator();
   fileMenu->Append(AUTOLOOP_SETTINGS, wxT("&Autoloop settings\tCtrl+A"), wxT("Adjust settings for loop searching"));
   fileMenu->AppendSeparator();
-  fileMenu->Append(wxID_EXIT, wxT("&Exit\tAlt-X"), wxT("Quit this program"));
+  fileMenu->Append(wxID_EXIT, wxT("&Exit\tCtrl+Q"), wxT("Quit this program"));
 
   fileMenu->Enable(OPEN_SELECTED, false);
   fileMenu->Enable(wxID_SAVE, false);
@@ -422,8 +529,9 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   transportMenu = new wxMenu();
 
   // Add transport menu items
-  transportMenu->Append(START_PLAYBACK, wxT("&Play\tSpace"), wxT("Start playback"));
-  transportMenu->Append(wxID_STOP, wxT("&Stop\tBack"), wxT("Stop playback"));
+  transportMenu->Append(START_PLAYBACK, wxT("&Play"), wxT("Start playback"));
+  transportMenu->Append(wxID_STOP, wxT("&Stop"), wxT("Stop playback"));
+  transportMenu->AppendCheckItem(LOOP_ONLY, wxT("&Loop only\tCtrl+V"), wxT("Start playback inside of loop"));
 
   transportMenu->Enable(START_PLAYBACK, false);
   transportMenu->Enable(wxID_STOP, false);
@@ -433,11 +541,11 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
 
   // Add items to the tool menu
   toolMenu->Append(ADD_LOOP, wxT("&New loop\tCtrl+N"), wxT("Create a new loop"));
-  toolMenu->Append(AUTOSEARCH_LOOPS, wxT("&Autoloop\tCtrl+L"), wxT("Search for loop(s)"));
+  toolMenu->Append(AUTOSEARCH_LOOPS, wxT("&Autoloop\tCtrl+Z"), wxT("Search for loop(s)"));
   toolMenu->Append(BATCH_PROCESS, wxT("&Batch processing\tCtrl+B"), wxT("Batch processing of files"));
-  toolMenu->Append(PITCH_SETTINGS, wxT("&Pitch info\tCtrl+P"), wxT("Find/set info about pitch"));
-  toolMenu->Append(X_FADE, wxT("&Crossfade\tAlt+C"), wxT("Crossfade the selected loop"));
-  toolMenu->Append(CUT_N_FADE, wxT("Cut and &fade\tAlt+F"), wxT("Cut & fade in/out"));
+  toolMenu->Append(PITCH_SETTINGS, wxT("&Pitch detection\tCtrl+D"), wxT("Find/set info about pitch"));
+  toolMenu->Append(X_FADE, wxT("&Crossfade\tCtrl+X"), wxT("Crossfade the selected loop"));
+  toolMenu->Append(CUT_N_FADE, wxT("Cut and &fade\tCtrl+C"), wxT("Cut & fade in/out"));
 
   toolMenu->Enable(ADD_LOOP, false);
   toolMenu->Enable(AUTOSEARCH_LOOPS, false);
@@ -553,19 +661,15 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   wxBoxSizer *hbox = new wxBoxSizer(wxHORIZONTAL);
   vbox->Add(hbox, 1, wxEXPAND, 0);
 
-  m_fileListBox = new wxListBox(
+  m_fileListCtrl = new MyListCtrl(
     this,
-    ID_LISTBOX,
-    wxDefaultPosition,
-    wxDefaultSize,
-    fileNames,
-    wxLB_SINGLE | wxLB_SORT
+    ID_LISTCTRL
   );
-  hbox->Add(m_fileListBox, 1, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, 10);
+  hbox->Add(m_fileListCtrl, 1, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, 10);
 
   m_panel = new MyPanel(this);
   m_panel->SetMinSize(wxSize(600,150));
-  hbox->Add(m_panel, 3, wxEXPAND | wxALL, 10);
+  hbox->Add(m_panel, 2, wxEXPAND | wxALL, 10);
 
   lowerBox = new wxBoxSizer(wxHORIZONTAL);
   vbox->Add(lowerBox, 1, wxEXPAND, 0);
@@ -573,11 +677,96 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   SetSizer(vbox);
   vbox->SetSizeHints(this);
   // Layout();
-  SetMinSize(wxSize(740,480));
+  SetMinSize(wxSize(1000,560));
   SetBackgroundColour(wxT("#f4f2ef"));
+
+  if (config->Read(wxT("General/LastWorkingDir"), &workingDir)) {
+    // if value was found it's now in the variable workingDir
+  } else {
+    // if it's not found default to an empty string
+    workingDir = wxEmptyString;
+  }
+
+  int readInt;
+  if (config->Read(wxT("General/LastVolume"), &readInt)) {
+    wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
+    volumeSl->SetValue(readInt);
+    volumeMultiplier = (int) (pow(2, (double) readInt));
+  }
+
+  bool b;
+  if (config->Read(wxT("General/LoopOnlyPlayback"), &b)) {
+    m_loopOnly = b;
+    if (m_loopOnly)
+      transportMenu->Check(LOOP_ONLY, true);
+    else
+      transportMenu->Check(LOOP_ONLY, false);
+  }
+
+  wxString str;
+  if (config->Read(wxT("BatchProcess/LastSource"), &str))
+    m_batchProcess->SetLastSource(str);
+
+  if (config->Read(wxT("BatchProcess/LastTarget"), &str))
+    m_batchProcess->SetLastTarget(str);
+
+  if (config->Read(wxT("LoopSettings/AutoSearchSustain"), &b))
+    m_autoloopSettings->SetAutosearch(b);
+
+  if (config->Read(wxT("LoopSettings/BruteForce"), &b)) {
+    m_autoloopSettings->SetBruteForce(b);
+    m_autoloop->SetBruteForce(b);
+  }
+
+  if (config->Read(wxT("LoopSettings/SustainStart"), &readInt))
+    m_autoloopSettings->SetStart(readInt);
+
+  if (config->Read(wxT("LoopSettings/SustainEnd"), &readInt))
+    m_autoloopSettings->SetEnd(readInt);
+
+  double dbl;
+  if (config->Read(wxT("LoopSettings/Threshold"), &dbl)) {
+    m_autoloopSettings->SetThreshold(dbl);
+    m_autoloop->SetThreshold(dbl);
+  }
+
+  if (config->Read(wxT("LoopSettings/MinDuration"), &dbl)) {
+    m_autoloopSettings->SetDuration(dbl);
+    m_autoloop->SetDuration(dbl);
+  }
+
+  if (config->Read(wxT("LoopSettings/MinDistance"), &dbl)) {
+    m_autoloopSettings->SetBetween(dbl);
+    m_autoloop->SetBetween(dbl);
+  }
+
+  if (config->Read(wxT("LoopSettings/Quality"), &dbl)) {
+    m_autoloopSettings->SetQuality(dbl);
+    m_autoloop->SetQuality(dbl);
+  }
+
+  if (config->Read(wxT("LoopSettings/Candidates"), &readInt)) {
+    m_autoloopSettings->SetCandidates(readInt);
+    m_autoloop->SetCandidates(readInt);
+  }
+
+  if (config->Read(wxT("LoopSettings/LoopsToReturn"), &readInt)) {
+    m_autoloopSettings->SetNrLoops(readInt);
+    m_autoloop->SetLoops(readInt);
+  }
+
+  if (config->Read(wxT("LoopSettings/LoopPoolMultiple"), &readInt)) {
+    m_autoloopSettings->SetMultiple(readInt);
+    m_autoloop->SetMultiple(readInt);
+  }
+
+  m_autoloopSettings->UpdateLabels();
+  m_panel->SetFocus();
 }
 
 MyFrame::~MyFrame() {
+  delete config;
+
   if (m_audiofile) {
     delete m_audiofile;
     m_audiofile = 0;
@@ -850,27 +1039,22 @@ void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
 void MyFrame::UpdateAllViews() {
   // force updates of wxGrids in m_panel by jiggling the size of the frame!
   wxSize size = GetSize();
-  size.DecBy(1, 1);
-  SetSize(size);
   size.IncBy(1, 1);
+  SetSize(size);
+  size.DecBy(1, 1);
   SetSize(size);
 
   if (m_waveform) {
     m_waveform->Refresh();
     m_waveform->Update();
   }
+
+  m_panel->SetFocus();
 }
 
 void MyFrame::OnBatchProcess(wxCommandEvent& event) {
-  BatchProcessDialog batchDialog(
-    m_autoloopSettings,
-    this,
-    wxID_ANY,
-    wxT("Batch processing"),
-    wxDefaultPosition,
-    wxDefaultSize
-  );
-  batchDialog.ShowModal();
+  m_batchProcess->ClearStatusProgress();
+  m_batchProcess->ShowModal();
 }
 
 void MyFrame::OnAutoLoop(wxCommandEvent& event) {
@@ -962,6 +1146,9 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
 }
 
 void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
+  int oldStart = m_autoloopSettings->GetStart();
+  int oldEnd = m_autoloopSettings->GetEnd();
+  bool oldAutoSustain = m_autoloopSettings->GetAutosearch();
   if (m_autoloopSettings->ShowModal() == wxID_OK) {
     // Update AutoLooping object
     m_autoloop->SetThreshold(m_autoloopSettings->GetThreshold());
@@ -972,6 +1159,20 @@ void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
     m_autoloop->SetLoops(m_autoloopSettings->GetNrLoops());
     m_autoloop->SetMultiple(m_autoloopSettings->GetMultiple());
     m_autoloop->SetBruteForce(m_autoloopSettings->GetBruteForce());
+  } else {
+    // Reset parameter values to actually used
+    m_autoloopSettings->SetThreshold(m_autoloop->GetThreshold());
+    m_autoloopSettings->SetDuration(m_autoloop->GetMinDuration());
+    m_autoloopSettings->SetBetween(m_autoloop->GetMinDistance());
+    m_autoloopSettings->SetQuality(m_autoloop->GetQuality());
+    m_autoloopSettings->SetCandidates(m_autoloop->GetCandidates());
+    m_autoloopSettings->SetNrLoops(m_autoloop->GetLoopsToReturn());
+    m_autoloopSettings->SetMultiple(m_autoloop->GetLoopMultiple());
+    m_autoloopSettings->SetAutosearch(oldAutoSustain);
+    m_autoloopSettings->SetStart(oldStart);
+    m_autoloopSettings->SetEnd(oldEnd);
+    m_autoloopSettings->SetBruteForce(m_autoloop->GetBruteForce());
+    m_autoloopSettings->UpdateLabels();
   }
 }
 
@@ -1352,4 +1553,331 @@ void MyFrame::OnCutFade(wxCommandEvent& event) {
   } else {
     // user clicked cancel...
   }
+}
+
+void MyFrame::OnLoopPlayback(wxCommandEvent& event) {
+  if (event.IsChecked())
+    m_loopOnly = true;
+  else
+    m_loopOnly = false;
+}
+
+void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
+  // spacebar should start or stop playback depending if playback or stop is activated
+  if (event.GetKeyCode() == WXK_SPACE) {
+    if (toolBar->GetToolEnabled(START_PLAYBACK)) {
+      wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, START_PLAYBACK);
+      ::wxGetApp().frame->AddPendingEvent(evt);
+      return;
+    } else if (toolBar->GetToolEnabled(wxID_STOP)) {
+      wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
+      ::wxGetApp().frame->AddPendingEvent(evt);
+      return;
+    } else
+      return;
+  }
+
+  // A move volume slider right (volume multiple up)
+  if (event.GetKeyCode() == 65) {
+    wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
+    int value = volumeSl->GetValue();
+    if (value < 4) {
+      volumeSl->SetValue(value + 1);
+      wxCommandEvent evt(wxEVT_COMMAND_SLIDER_UPDATED, ID_VOLUME_SLIDER);
+      ::wxGetApp().frame->AddPendingEvent(evt);
+    }
+    return;
+  }
+
+  // Z move volume slider (volume multiple down)
+  if (event.GetKeyCode() == 90) {
+    wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
+    int value = volumeSl->GetValue();
+    if (value > 0) {
+      volumeSl->SetValue(value - 1);
+      wxCommandEvent evt(wxEVT_COMMAND_SLIDER_UPDATED, ID_VOLUME_SLIDER);
+      ::wxGetApp().frame->AddPendingEvent(evt);
+    }
+    return;
+  }
+
+  // S moves selection up the filelist
+  if (event.GetKeyCode() == 83) {
+    if (currentSelectedIdx > 0 && currentSelectedIdx != wxNOT_FOUND) {
+      m_fileListCtrl->SetItemState(currentSelectedIdx - 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+      m_fileListCtrl->EnsureVisible(currentSelectedIdx);
+    }
+    return;
+  }
+
+  // X moves selection down the filelist
+  if (event.GetKeyCode() == 88) {
+    if (currentSelectedIdx < (fileNames.GetCount() - 1) && currentSelectedIdx != wxNOT_FOUND) {
+      m_fileListCtrl->SetItemState(currentSelectedIdx + 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+      m_fileListCtrl->EnsureVisible(currentSelectedIdx);
+    }
+    return;
+  }
+
+  // D moves selection up the looplist
+  if (event.GetKeyCode() == 68) {
+    if (m_panel->m_grid->GetNumberRows() > 0) {
+      wxArrayInt selection = m_panel->m_grid->GetSelectedRows();
+      if (!selection.IsEmpty()) {
+      int firstSelected = selection[0];
+        if (firstSelected > 0) {
+          m_panel->m_grid->SelectRow(firstSelected - 1, false);
+          m_panel->m_grid->SetGridCursor(firstSelected - 1, 1);
+
+          // set/update the currently selected loops positions
+          LOOPDATA currentLoop;
+          m_audiofile->m_loops->GetLoopData(firstSelected - 1, currentLoop);
+          if (!m_loopOnly)
+            m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+          else {
+            if (((double) (currentLoop.dwEnd - currentLoop.dwStart)) / (double) m_audiofile->GetSampleRate() > 0.5) {
+              unsigned pos = currentLoop.dwEnd - (m_audiofile->GetSampleRate() / 2);
+              m_sound->SetLoopPosition(pos, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+            } else {
+              m_sound->SetLoopPosition(currentLoop.dwStart, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+            }
+          }
+        }
+      } else {
+        m_panel->m_cueGrid->ClearSelection();
+        m_panel->m_grid->SelectRow(0, false);
+        m_panel->m_grid->SetGridCursor(0, 1);
+
+        // set/update the currently selected loops positions
+        LOOPDATA currentLoop;
+        m_audiofile->m_loops->GetLoopData(0, currentLoop);
+        if (!m_loopOnly)
+          m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+        else {
+          if (((double) (currentLoop.dwEnd - currentLoop.dwStart)) / (double) m_audiofile->GetSampleRate() > 0.5) {
+            unsigned pos = currentLoop.dwEnd - (m_audiofile->GetSampleRate() / 2);
+            m_sound->SetLoopPosition(pos, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+          } else {
+            m_sound->SetLoopPosition(currentLoop.dwStart, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+          }
+        }
+        SetLoopPlayback(true);
+      }
+    }
+    return;
+  }
+
+  // C moves selection down the looplist
+  if (event.GetKeyCode() == 67) {
+    if (m_panel->m_grid->GetNumberRows() > 0) {
+      wxArrayInt selection = m_panel->m_grid->GetSelectedRows();
+      if (!selection.IsEmpty()) {
+      int firstSelected = selection[0];
+        if (firstSelected < (m_panel->m_grid->GetNumberRows() - 1)) {
+          m_panel->m_grid->SelectRow(firstSelected + 1, false);
+          m_panel->m_grid->SetGridCursor(firstSelected + 1, 1);
+
+          // set/update the currently selected loops positions
+          LOOPDATA currentLoop;
+          m_audiofile->m_loops->GetLoopData(firstSelected + 1, currentLoop);
+          if (!m_loopOnly)
+            m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+          else {
+            if (((double) (currentLoop.dwEnd - currentLoop.dwStart)) / (double) m_audiofile->GetSampleRate() > 0.5) {
+              unsigned pos = currentLoop.dwEnd - (m_audiofile->GetSampleRate() / 2);
+              m_sound->SetLoopPosition(pos, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+            } else {
+              m_sound->SetLoopPosition(currentLoop.dwStart, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+            }
+          }
+        }
+      } else {
+        m_panel->m_cueGrid->ClearSelection();
+        m_panel->m_grid->SelectRow(0, false);
+        m_panel->m_grid->SetGridCursor(0, 1);
+
+        // set/update the currently selected loops positions
+        LOOPDATA currentLoop;
+        m_audiofile->m_loops->GetLoopData(0, currentLoop);
+        if (!m_loopOnly)
+          m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+        else {
+          if (((double) (currentLoop.dwEnd - currentLoop.dwStart)) / (double) m_audiofile->GetSampleRate() > 0.5) {
+            unsigned pos = currentLoop.dwEnd - (m_audiofile->GetSampleRate() / 2);
+            m_sound->SetLoopPosition(pos, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+          } else {
+            m_sound->SetLoopPosition(currentLoop.dwStart, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+          }
+        }
+        SetLoopPlayback(true);
+      }
+    }
+    return;
+  }
+
+  // F moves selection up the cuelist
+  if (event.GetKeyCode() == 70) {
+    if (m_panel->m_cueGrid->GetNumberRows() > 0) {
+      wxArrayInt selection = m_panel->m_cueGrid->GetSelectedRows();
+      if (!selection.IsEmpty()) {
+      int firstSelected = selection[0];
+        if (firstSelected > 0) {
+          m_panel->m_cueGrid->SelectRow(firstSelected - 1, false);
+          m_panel->m_cueGrid->SetGridCursor(firstSelected - 1, 1);
+
+          // set/update the currently selected cue position
+          CUEPOINT currentCue;
+          m_audiofile->m_cues->GetCuePoint(firstSelected - 1, currentCue);
+          m_sound->SetLoopPosition(currentCue.dwSampleOffset, currentCue.dwSampleOffset, currentCue.dwSampleOffset, m_audiofile->m_channels);
+
+          SetLoopPlayback(false); // set the playback to not be for loops
+        }
+      } else {
+        m_panel->m_grid->ClearSelection();
+        m_panel->m_cueGrid->SelectRow(0, false);
+        m_panel->m_cueGrid->SetGridCursor(0, 1);
+
+        // set/update the currently selected cue position
+        CUEPOINT currentCue;
+        m_audiofile->m_cues->GetCuePoint(0, currentCue);
+        m_sound->SetLoopPosition(currentCue.dwSampleOffset, currentCue.dwSampleOffset, currentCue.dwSampleOffset, m_audiofile->m_channels);
+
+        SetLoopPlayback(false); // set the playback to not be for loops
+      }
+    }
+    return;
+  }
+
+  // V moves selection down the cuelist
+  if (event.GetKeyCode() == 86) {
+    if (m_panel->m_cueGrid->GetNumberRows() > 0) {
+      wxArrayInt selection = m_panel->m_cueGrid->GetSelectedRows();
+      if (!selection.IsEmpty()) {
+      int firstSelected = selection[0];
+        if (firstSelected < (m_panel->m_cueGrid->GetNumberRows() - 1)) {
+          m_panel->m_cueGrid->SelectRow(firstSelected + 1, false);
+          m_panel->m_cueGrid->SetGridCursor(firstSelected + 1, 1);
+
+          // set/update the currently selected cue position
+          CUEPOINT currentCue;
+          m_audiofile->m_cues->GetCuePoint(firstSelected + 1, currentCue);
+          m_sound->SetLoopPosition(currentCue.dwSampleOffset, currentCue.dwSampleOffset, currentCue.dwSampleOffset, m_audiofile->m_channels);
+
+          SetLoopPlayback(false); // set the playback to not be for loops
+        }
+      } else {
+        m_panel->m_grid->ClearSelection();
+        m_panel->m_cueGrid->SelectRow(0, false);
+        m_panel->m_cueGrid->SetGridCursor(0, 1);
+
+        // set/update the currently selected cue position
+        CUEPOINT currentCue;
+        m_audiofile->m_cues->GetCuePoint(0, currentCue);
+        m_sound->SetLoopPosition(currentCue.dwSampleOffset, currentCue.dwSampleOffset, currentCue.dwSampleOffset, m_audiofile->m_channels);
+
+        SetLoopPlayback(false); // set the playback to not be for loops
+      }
+    }
+    return;
+  }
+
+  event.Skip();
+}
+
+void MyFrame::OnGridCellSelect(wxGridEvent& event) {
+  wxSize visibleSize = m_panel->GetClientSize();
+  int rowNbr = event.GetRow();
+  int adjustedRowNbr = rowNbr + 2;
+  int rowNbrInView = visibleSize.GetHeight() / m_panel->m_grid->GetRowSize(rowNbr);
+
+  if (adjustedRowNbr > rowNbrInView)
+    m_panel->Scroll(0, (m_panel->m_grid->GetRowSize(rowNbr) / 5) * (adjustedRowNbr + 2 - rowNbrInView));
+  else if (adjustedRowNbr < rowNbrInView)
+    m_panel->Scroll(0, (m_panel->m_grid->GetRowSize(rowNbr) / -5) * (rowNbrInView - (adjustedRowNbr)));
+}
+
+void MyFrame::OnCueGridCellSelect(wxGridEvent& event) {
+  wxSize visibleSize = m_panel->GetClientSize();
+  wxSize loopGridSize = m_panel->m_grid->GetClientSize();
+  int rowNbr = event.GetRow();
+  int adjustedRowNbr = rowNbr + 2;
+  int rowNbrInView = visibleSize.GetHeight() / m_panel->m_cueGrid->GetRowSize(rowNbr);
+
+  if (adjustedRowNbr > rowNbrInView)
+    m_panel->Scroll(0, (m_panel->m_cueGrid->GetRowSize(rowNbr) / 5) * (adjustedRowNbr + 2 - rowNbrInView) + loopGridSize.GetHeight() / 5 + m_panel->m_grid->GetRowSize(rowNbr) / 5 * 2);
+  else if (adjustedRowNbr < rowNbrInView)
+    m_panel->Scroll(0, (m_panel->m_cueGrid->GetRowSize(rowNbr) / -5) * (rowNbrInView - (adjustedRowNbr)) + loopGridSize.GetHeight() / 5 + m_panel->m_grid->GetRowSize(rowNbr) / 5 * 2);
+}
+
+void MyFrame::PopulateListCtrl() {
+  m_fileListCtrl->ClearAll();
+
+  wxListItem itemCol;
+  itemCol.SetText(wxT("File name"));
+  itemCol.SetImage(0);
+  m_fileListCtrl->InsertColumn(0, itemCol);
+
+  itemCol.SetText(wxT("Loops"));
+  itemCol.SetAlign(wxLIST_FORMAT_CENTRE);
+  m_fileListCtrl->InsertColumn(1, itemCol);
+
+  itemCol.SetText(wxT("Cues"));
+  m_fileListCtrl->InsertColumn(2, itemCol);
+
+  itemCol.SetText(wxT("Note"));
+  m_fileListCtrl->InsertColumn(3, itemCol);
+
+  itemCol.SetText(wxT("Fraction"));
+  m_fileListCtrl->InsertColumn(4, itemCol);
+
+  m_fileListCtrl->Hide();
+
+  if (!fileNames.IsEmpty()) {
+    for (int i = 0; i < fileNames.GetCount(); i++) {
+      m_fileListCtrl->InsertItem(i, fileNames[i]);
+
+      SF_INSTRUMENT instr;
+      SF_CUES cues;
+      SndfileHandle sfh;
+      wxString filePath;
+      filePath = workingDir;
+      filePath += wxFILE_SEP_PATH;
+      filePath += fileNames[i];
+      sfh = SndfileHandle(((const char*)filePath.mb_str()));
+
+      if (sfh) {
+        if (sfh.command(4304, &instr, sizeof(instr)) == SF_TRUE) {
+          wxString loopNbr = wxString::Format(wxT("%i"), instr.loop_count);
+          m_fileListCtrl->SetItem(i, 1, loopNbr);
+
+          int midiNote = (int) instr.basenote;
+          wxString note = wxString::Format(wxT("%i"), midiNote);
+          m_fileListCtrl->SetItem(i, 3, note);
+
+          double cents = (double) instr.dwMIDIPitchFraction / (double)UINT_MAX * 100.0;
+          wxString fraction = wxString::Format(wxT("%.2f"), cents);
+          m_fileListCtrl->SetItem(i, 4, fraction);
+        } else {
+          m_fileListCtrl->SetItem(i, 1, wxT("0"));
+          m_fileListCtrl->SetItem(i, 3, wxT("0"));
+          m_fileListCtrl->SetItem(i, 4, wxT("0"));
+        }
+
+        if (sfh.command(4302, &cues, sizeof(cues)) == SF_TRUE) {
+          wxString cueNbr = wxString::Format(wxT("%i"), cues.cue_count);
+          m_fileListCtrl->SetItem(i, 2, cueNbr);
+        } else {
+          m_fileListCtrl->SetItem(i, 2, wxT("0"));
+        }
+      }
+    }
+  }
+
+  m_fileListCtrl->SetColumnWidth(0, wxLIST_AUTOSIZE);
+  m_fileListCtrl->SetColumnWidth(1, wxLIST_AUTOSIZE_USEHEADER);
+  m_fileListCtrl->SetColumnWidth(2, wxLIST_AUTOSIZE_USEHEADER);
+  m_fileListCtrl->SetColumnWidth(3, wxLIST_AUTOSIZE_USEHEADER);
+  m_fileListCtrl->SetColumnWidth(4, wxLIST_AUTOSIZE_USEHEADER);
+
+  m_fileListCtrl->Show();
 }

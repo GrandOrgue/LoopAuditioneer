@@ -648,3 +648,12 @@ void AutoLoopDialog::OnQuality(wxCommandEvent& event) {
 
   m_qualityLabel->SetLabel(wxString::Format(wxT("Quality factor: %.1f"), m_quality));
 }
+
+void AutoLoopDialog::UpdateLabels() {
+  m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %i %%"), m_startPercentage));
+  m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %i %%"), m_endPercentage));
+  m_thresholdLabel->SetLabel(wxString::Format(wxT("Derivative threshold: %.3f"), m_threshold));
+  m_durationLabel->SetLabel(wxString::Format(wxT("Min. loop lenght: %.2f s"), m_minDuration));
+  m_distanceLabel->SetLabel(wxString::Format(wxT("Min. time between loops: %.2f s"), m_betweenLoops));
+  m_qualityLabel->SetLabel(wxString::Format(wxT("Quality factor: %.1f"), m_quality));
+}

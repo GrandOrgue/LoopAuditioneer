@@ -1,6 +1,6 @@
 /* 
- * MyPanel.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2014 Lars Palo 
+ * MyListCtrl.h is a part of LoopAuditioneer software
+ * Copyright (C) 2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,31 +18,38 @@
  * You can contact the author on larspalo(at)yahoo.se
  */
 
-#ifndef MYPANEL_H
-#define MYPANEL_H
+#ifndef MYLISTCTRL_H
+#define MYLISTCTRL_H
 
-#include <wx/wx.h>
-#include <wx/stattext.h>
-#include <wx/grid.h>
+#include <wx/listctrl.h>
 
-class MyPanel : public wxScrolledWindow {
+class MyListCtrl : public wxListCtrl {
 public:
-  MyPanel(wxFrame *parent);
-  ~MyPanel();
+  // Constructors
+  MyListCtrl();
+  MyListCtrl(
+    wxWindow* parent,
+    wxWindowID id,
+    const wxPoint& pos = wxDefaultPosition,
+    const wxSize& size = wxDefaultSize,
+    long style = wxLC_REPORT | wxLC_SINGLE_SEL
+  );
+  ~MyListCtrl();
 
-  wxStaticText *fileNameLabel;
-  wxBoxSizer *vbox;
-  wxGrid *m_grid;
-  wxGrid *m_cueGrid;
-  void SetFileNameLabel(wxString name);
-  void EmptyTable();
-  void FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bool toSave, int index);
-  void FillRowWithCueData(unsigned int id, unsigned int position, bool save, int index);
-  void ChangeCueData(unsigned int offset, int index);
-  void ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int index);
+  // Two step creation
+  bool Create(
+    wxWindow* parent,
+    wxWindowID id,
+    const wxPoint& pos = wxDefaultPosition,
+    const wxSize& size = wxDefaultSize,
+    long style = wxLC_REPORT | wxLC_SINGLE_SEL
+  );
+
+  // Event handler
   void OnKeyDown(wxKeyEvent& event);
 
 private:
+  // This class handles events
   DECLARE_EVENT_TABLE()
 };
 

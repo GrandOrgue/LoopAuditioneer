@@ -62,6 +62,15 @@ public:
   void SetMultiple(int m);
   void SetBruteForce(bool b);
 
+  double GetThreshold();
+  double GetMinDuration();
+  double GetMinDistance();
+  double GetQuality();
+  unsigned GetCandidates();
+  unsigned GetLoopsToReturn();
+  unsigned GetLoopMultiple();
+  bool GetBruteForce();
+
 private:
   double m_derivativeThreshold;  // 0.03 (3 %)
   double m_minLoopDuration;      // 1.0 seconds
