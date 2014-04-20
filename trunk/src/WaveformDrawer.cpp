@@ -31,6 +31,8 @@ BEGIN_EVENT_TABLE(WaveformDrawer, wxPanel)
   EVT_RIGHT_DOWN(WaveformDrawer::OnRightClick)
   EVT_MENU(ADD_CUE, WaveformDrawer::OnClickAddCue)
   EVT_LEFT_DOWN(WaveformDrawer::OnLeftClick)
+  EVT_KEY_DOWN(WaveformDrawer::OnKeyDown)
+  EVT_CHAR(WaveformDrawer::OnKeyDown)
 END_EVENT_TABLE()
 
 WaveformDrawer::WaveformDrawer(wxFrame *parent, wxString fileName) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE), m_buffer(NULL) {
@@ -720,4 +722,9 @@ void WaveformDrawer::UpdateWaveTracks(double audio[], int nrChannels, unsigned a
       if (index == nrChannels)
         index = 0;
     }
+}
+
+void WaveformDrawer::OnKeyDown(wxKeyEvent& event) {
+  MyFrame *myParent = (MyFrame *) GetParent();
+  myParent->OnKeyboardInput(event);
 }

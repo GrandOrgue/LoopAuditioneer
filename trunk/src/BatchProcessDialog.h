@@ -68,6 +68,12 @@ public:
   // Creates the controls and sizers
   void CreateControls();
 
+  void ClearStatusProgress();
+  wxString GetLastSource();
+  wxString GetLastTarget();
+  void SetLastSource(wxString source);
+  void SetLastTarget(wxString target);
+
 private:
   wxArrayString m_batchProcessesAvailable;
   wxButton *m_selectSource;

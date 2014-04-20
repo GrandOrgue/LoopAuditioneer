@@ -108,6 +108,9 @@ public:
   void OnBetweenSlider(wxCommandEvent& event);
   void OnQuality(wxCommandEvent& event);
 
+  // Update labels
+  void UpdateLabels();
+
 private:
   double m_threshold;  // 0.03 (3 %)
   double m_minDuration;      // 1.0 seconds

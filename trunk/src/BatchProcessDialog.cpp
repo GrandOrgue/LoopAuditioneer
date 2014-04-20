@@ -376,14 +376,16 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     search = dir.GetNext(&fileName);
   }
 
-  // sort the files and remove doubles for windows...
-  filesToProcess.Sort();
-  size_t lineCounter = 0;
-  while (lineCounter < filesToProcess.GetCount() - 1) {
-    if (filesToProcess[lineCounter] == filesToProcess[lineCounter + 1])
-      filesToProcess.RemoveAt(lineCounter + 1);
-    else
-      lineCounter++;
+  // sort the files and remove doubles for windows... if there are any!
+  if (!filesToProcess.IsEmpty()) {
+    filesToProcess.Sort();
+    size_t lineCounter = 0;
+    while (lineCounter < filesToProcess.GetCount() - 1) {
+      if (filesToProcess[lineCounter] == filesToProcess[lineCounter + 1])
+        filesToProcess.RemoveAt(lineCounter + 1);
+      else
+        lineCounter++;
+    }
   }
 
   // Depending on selected process do
@@ -490,49 +492,56 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
           if (fh.FileCouldBeOpened()) {
-            m_statusProgress->AppendText(wxT("\tFile opened.\n"));
+            int nbLoops = fh.m_loops->GetNumberOfLoops();
+            m_statusProgress->AppendText(wxString::Format(wxT("\tFile opened, it already contains %i loop(s)\n"), nbLoops));
+            if (nbLoops < 16) {
+              // now we need to search for loops and for that we need data as doubles
+              wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
+              SndfileHandle sfh;
+              sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
+              double *audioData = new double[sfh.frames() * sfh.channels()];
+              sfh.read(audioData, sfh.frames() * sfh.channels());
+              // vector to receive found loops
+              std::vector<std::pair<std::pair<unsigned, unsigned>, double> > addLoops;
+              // call to search for loops
+              bool foundLoops = autoloop->AutoFindLoops(
+                audioData,
+                fh.ArrayLength,
+                fh.m_channels,
+                fh.GetSampleRate(),
+                addLoops,
+                m_loopSettings->GetAutosearch(),
+                m_loopSettings->GetStart(),
+                m_loopSettings->GetEnd()
+              );
+              // delete the now unneccessary array of double audio data
+              delete[] audioData;
 
-            // now we need to search for loops and for that we need data as doubles
-            wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
-            SndfileHandle sfh;
-            sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
-            double *audioData = new double[sfh.frames() * sfh.channels()];
-            sfh.read(audioData, sfh.frames() * sfh.channels());
-            // vector to receive found loops
-            std::vector<std::pair<std::pair<unsigned, unsigned>, double> > addLoops;
-            // call to search for loops
-            bool foundLoops = autoloop->AutoFindLoops(
-              audioData,
-              fh.ArrayLength,
-              fh.m_channels,
-              fh.GetSampleRate(),
-              addLoops,
-              m_loopSettings->GetAutosearch(),
-              m_loopSettings->GetStart(),
-              m_loopSettings->GetEnd()
-            );
-            // delete the now unneccessary array of double audio data
-            delete[] audioData;
-
-            if (foundLoops) {
-              for (unsigned i = 0; i < addLoops.size(); i++) {
-                // Add the new loop to the loop vector
-                LOOPDATA newLoop;
-                newLoop.dwType = SF_LOOP_FORWARD;
-                newLoop.dwStart = addLoops[i].first.first;
-                newLoop.dwEnd = addLoops[i].first.second;
-                newLoop.dwPlayCount = 0;
-                newLoop.shouldBeSaved = true;
-                fh.m_loops->AddLoop(newLoop);
+              if (foundLoops) {
+                for (unsigned i = 0; i < addLoops.size(); i++) {
+                  // Add the new loop to the loop vector
+                  LOOPDATA newLoop;
+                  newLoop.dwType = SF_LOOP_FORWARD;
+                  newLoop.dwStart = addLoops[i].first.first;
+                  newLoop.dwEnd = addLoops[i].first.second;
+                  newLoop.dwPlayCount = 0;
+                  newLoop.shouldBeSaved = true;
+                  fh.m_loops->AddLoop(newLoop);
+                }
+                m_statusProgress->AppendText(wxString::Format(wxT("\t%i loop(s) found.\n"), addLoops.size()));
+                if (nbLoops + addLoops.size() > 16)
+                  m_statusProgress->AppendText(wxString::Format(wxT("\tOnly %i first loops could be saved.\n"), 16 - nbLoops));
+              } else {
+                // no loops found!
+                m_statusProgress->AppendText(wxT("\tNo loops found!\n"));
               }
-              m_statusProgress->AppendText(wxString::Format(wxT("\t%i loops found.\n"), addLoops.size()));
-            } else {
-              // no loops found!
-              m_statusProgress->AppendText(wxT("\tNo loops found!\n"));
-            }
 
-            fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
-            m_statusProgress->AppendText(wxT("\tDone!\n"));
+              fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+              m_statusProgress->AppendText(wxT("\tDone!\n"));
+            } else {
+              // file already contained max number of loops
+              m_statusProgress->AppendText(wxT("\tCannot save any more loops! Done!\n"));
+            }
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
@@ -1172,4 +1181,36 @@ wxString BatchProcessDialog::MyDoubleToString(double dbl) {
   }
 
   return returnString;
+}
+
+void BatchProcessDialog::ClearStatusProgress() {
+  m_statusProgress->Clear();
+}
+
+wxString BatchProcessDialog::GetLastSource() {
+  return m_lastSource;
+}
+
+wxString BatchProcessDialog::GetLastTarget() {
+  return m_lastTarget;
+}
+
+void BatchProcessDialog::SetLastSource(wxString source) {
+  if (wxDir::Exists(source)) {
+    m_lastSource = source;
+    m_sourceField->ChangeValue(m_lastSource);
+  } else {
+    m_lastSource = wxEmptyString;
+    m_sourceField->ChangeValue(m_lastSource);
+  }
+}
+
+void BatchProcessDialog::SetLastTarget(wxString target) {
+  if (wxDir::Exists(target)) {
+    m_lastTarget = target;
+    m_targetField->ChangeValue(m_lastTarget);
+  } else {
+    m_lastTarget = wxEmptyString;
+    m_targetField->ChangeValue(m_lastTarget);
+  }
 }

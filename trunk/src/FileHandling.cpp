@@ -26,7 +26,8 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
   m_loops = new LoopMarkers();
   m_cues = new CueMarkers();
   wxString filePath;
-  filePath = path.Append(wxT("/"));
+  filePath = path;
+  filePath += wxFILE_SEP_PATH;
   filePath += fileName;
 
   // Here we get all the info about the file to be able to later open new file in write mode if changes should be saved
@@ -131,7 +132,8 @@ FileHandling::~FileHandling() {
 
 void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
   wxString filePath;
-  filePath = path.Append(wxT("/"));
+  filePath = path;
+  filePath += wxFILE_SEP_PATH;
   filePath += fileName;
 
   // This we open the file write
@@ -141,10 +143,12 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
   m_loops->ExportLoops();
   instr.basenote = m_loops->GetMIDIUnityNote();
   instr.dwMIDIPitchFraction = m_loops->GetMIDIPitchFraction();
-  instr.loop_count = m_loops->loopsOut.size();
+  int loopCount = m_loops->loopsOut.size();
+  if (loopCount > 16)
+    instr.loop_count = 16;
+  else
+    instr.loop_count = loopCount;
   for (int i = 0; i < instr.loop_count; i++) {
-    if (i > 15)
-      break;
     instr.loops[i].mode = m_loops->loopsOut[i].dwType;
     instr.loops[i].start = m_loops->loopsOut[i].dwStart;
     instr.loops[i].end = m_loops->loopsOut[i].dwEnd;
@@ -154,10 +158,12 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
 
   // Then take care of the cues
   m_cues->ExportCues();
-  cues.cue_count = m_cues->exportedCues.size();
+  int cueCount = m_cues->exportedCues.size();
+  if (cueCount > 99)
+    cues.cue_count = 99;
+  else
+    cues.cue_count = cueCount;
   for (int i = 0; i < cues.cue_count; i++) {
-    if (i > 99)
-      break;
     cues.cue_points[i].dwName =  m_cues->exportedCues[i].dwName;
     cues.cue_points[i].dwPosition =  m_cues->exportedCues[i].dwPosition;
     cues.cue_points[i].fccChunk =  m_cues->exportedCues[i].fccChunk;

@@ -352,27 +352,66 @@ bool AutoLooping::AutoFindLoops(
 void AutoLooping::SetThreshold(double th) {
   m_derivativeThreshold = th;
 }
+
 void AutoLooping::SetDuration(double d) {
   m_minLoopDuration = d;
 }
+
 void AutoLooping::SetBetween(double b) {
   m_distanceBetweenLoops = b;
 }
+
 void AutoLooping::SetQuality(double q) {
   m_qualityFactor = q;
 }
+
 void AutoLooping::SetCandidates(int c) {
   m_maxCandidates = c;
 }
+
 void AutoLooping::SetLoops(int l) {
   m_loopsToReturn = l;
 }
+
 void AutoLooping::SetMultiple(int m) {
   m_maxLoopsMultiple = m;
 }
+
 void AutoLooping::SetBruteForce(bool b) {
   if (b)
     m_useBruteForce = true;
   else
     m_useBruteForce = false;
+}
+
+double AutoLooping::GetThreshold() {
+  return m_derivativeThreshold;
+}
+
+double AutoLooping::GetMinDuration() {
+  return m_minLoopDuration;
+}
+
+double AutoLooping::GetMinDistance() {
+  return m_distanceBetweenLoops;
+}
+
+double AutoLooping::GetQuality() {
+  return m_qualityFactor;
+}
+
+unsigned AutoLooping::GetCandidates() {
+  return m_maxCandidates;
+}
+
+unsigned AutoLooping::GetLoopsToReturn() {
+  return m_loopsToReturn;
+}
+
+unsigned AutoLooping::GetLoopMultiple() {
+  return m_maxLoopsMultiple;
+}
+
+bool AutoLooping::GetBruteForce() {
+  return m_useBruteForce;
 }

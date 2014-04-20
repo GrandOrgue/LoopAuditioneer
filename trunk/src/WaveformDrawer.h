@@ -61,6 +61,7 @@ public:
   void ChangeLoopPositions(unsigned int start, unsigned int end, int idx);
   void ClearMetadata();
   void CalculateLayout();
+  void OnKeyDown(wxKeyEvent& event);
 
   // Get audio data as doubles
   bool GetDoubleAudioData(double audio[], unsigned arrayLength);

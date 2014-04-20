@@ -23,7 +23,7 @@
 
 #include <wx/wx.h>
 #include <wx/toolbar.h>
-#include <wx/listbox.h>
+#include "MyListCtrl.h"
 #include "MyPanel.h"
 #include "FileHandling.h"
 #include "MySound.h"
@@ -32,6 +32,8 @@
 #include "AutoLooping.h"
 #include "CrossfadeDialog.h"
 #include "CutNFadeDialog.h"
+#include "BatchProcessDialog.h"
+#include <wx/fileconf.h>
 
 class MyFrame : public wxFrame {
 public:
@@ -43,11 +45,14 @@ public:
   void OnQuit(wxCommandEvent& event);
   void OnAbout(wxCommandEvent& event);
   void OnSelectDir(wxCommandEvent& event);
-  void OnDblClick(wxCommandEvent& event);
-  void OnSelection(wxCommandEvent& event);
+  void OnOpenSelected(wxCommandEvent& event);
+  void OnDblClick(wxListEvent& event);
+  void OnSelection(wxListEvent& event);
   void OnGridCellClick(wxGridEvent& event);
   void OnCueGridCellClick(wxGridEvent& event);
   void OnLoopGridRightClick(wxGridEvent& event);
+  void OnGridCellSelect(wxGridEvent& event);
+  void OnCueGridCellSelect(wxGridEvent& event);
   void OnSaveFile(wxCommandEvent& event);
   void OnSaveFileAs(wxCommandEvent& event);
   void OnStartPlay(wxCommandEvent& event);
@@ -66,6 +71,8 @@ public:
   void OnEditLoop(wxCommandEvent& event);
   void OnViewLoop(wxCommandEvent& event);
   void OnCutFade(wxCommandEvent& event);
+  void OnLoopPlayback(wxCommandEvent& event);
+  void OnKeyboardInput(wxKeyEvent& event);
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
@@ -91,7 +98,7 @@ private:
   wxBoxSizer *vbox;
   wxBoxSizer *lowerBox;
   wxTimer m_timer;
-  wxListBox *m_fileListBox;
+  MyListCtrl *m_fileListCtrl;
   MyPanel *m_panel;
   wxToolBar *toolBar;
   wxMenu *fileMenu;
@@ -106,8 +113,14 @@ private:
   AutoLooping *m_autoloop;
   CrossfadeDialog *m_crossfades;
   CutNFadeDialog *m_cutNFade;
+  BatchProcessDialog *m_batchProcess;
+  bool m_loopOnly;
+  int currentOpenFileIdx;
+  int currentSelectedIdx;
+  wxFileConfig *config;
 
   void PopulateListOfFileNames();
+  void PopulateListCtrl();
   void UpdateAllViews();
 
   static bool loopPlay;
@@ -115,4 +128,3 @@ private:
 };
 
 #endif
-

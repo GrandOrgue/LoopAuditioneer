@@ -24,7 +24,7 @@
 #include <wx/wx.h>
 
 enum {
-  ID_LISTBOX = wxID_HIGHEST + 1,
+  ID_LISTCTRL = wxID_HIGHEST + 1,
   FILE_SELECT = wxID_HIGHEST + 2,
   M_GRID = wxID_HIGHEST + 3,
   OPEN_SELECTED = wxID_HIGHEST + 4,
@@ -43,10 +43,11 @@ enum {
   X_FADE = wxID_HIGHEST + 17,
   EDIT_LOOP = wxID_HIGHEST + 18,
   VIEW_LOOPPOINTS = wxID_HIGHEST + 19,
-  CUT_N_FADE = wxID_HIGHEST + 20
+  CUT_N_FADE = wxID_HIGHEST + 20,
+  LOOP_ONLY = wxID_HIGHEST +21
 };
 
 const wxString appName = wxT("LoopAuditioneer");
-const wxString appVersion = wxT("0.7.5.0");
+const wxString appVersion = wxT("0.8.0.0");
 
 #endif

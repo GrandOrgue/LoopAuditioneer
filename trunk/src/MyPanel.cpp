@@ -1,6 +1,6 @@
 /* 
  * MyPanel.cpp is a part of LoopAuditioneer
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,12 @@
 
 #include "MyPanel.h"
 #include "LoopAuditioneerDef.h"
+#include "MyFrame.h"
+
+BEGIN_EVENT_TABLE(MyPanel , wxScrolledWindow)
+  EVT_KEY_DOWN(MyPanel::OnKeyDown)
+  EVT_CHAR(MyPanel::OnKeyDown)
+END_EVENT_TABLE()
 
 MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,  wxFULL_REPAINT_ON_RESIZE | wxVSCROLL) {
   vbox = new wxBoxSizer(wxVERTICAL);
@@ -75,6 +81,7 @@ MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefault
   vbox->SetSizeHints(this);
   FitInside();
   SetScrollRate(5, 5);
+  SetBackgroundColour(wxT("#f4f2ef"));
 }
 
 MyPanel::~MyPanel() {
@@ -177,3 +184,7 @@ void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int ind
   m_grid->SetReadOnly(index, 3);
 }
 
+void MyPanel::OnKeyDown(wxKeyEvent& event) {
+  MyFrame *myParent = (MyFrame *) GetParent();
+  myParent->OnKeyboardInput(event);
+}
