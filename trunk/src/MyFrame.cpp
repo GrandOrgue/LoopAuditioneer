@@ -228,6 +228,8 @@ void MyFrame::OpenAudioFile() {
       toolBar->EnableTool(START_PLAYBACK, true);
       transportMenu->Enable(START_PLAYBACK, true);
       transportMenu->Enable(wxID_STOP, false);
+      toolBar->EnableTool(X_FADE, true);
+      toolMenu->Enable(X_FADE, true);
     }
   } else {
     // libsndfile couldn't open the file or no audio data in file
@@ -331,7 +333,7 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
         fileMenu->Enable(wxID_SAVE, true);
       }
     }
-    m_panel->m_grid->SetGridCursor(0, 4); // this is to hide the highlight box
+    m_panel->m_grid->SetGridCursor(event.GetRow(), 4); // this is to move scrolling
     SetLoopPlayback(true); // set the playback to be for loops
     if (toolBar->GetToolEnabled(wxID_STOP) == false) {
       toolBar->EnableTool(START_PLAYBACK, true);
@@ -387,11 +389,19 @@ void MyFrame::OnSaveFile(wxCommandEvent& event) {
   fileMenu->Enable(wxID_SAVE, false);
 
   // make sure to update the listCtrl columns as things might have changed
-  wxString loopNbr = wxString::Format(wxT("%i"), m_audiofile->m_loops->GetNumberOfLoops());
-  m_fileListCtrl->SetItem(currentOpenFileIdx, 1, loopNbr);
+  if (!m_audiofile->m_loops->loopsOut.empty()) {
+    wxString loopNbr = wxString::Format(wxT("%i"), m_audiofile->m_loops->loopsOut.size());
+    m_fileListCtrl->SetItem(currentOpenFileIdx, 1, loopNbr);
+  } else {
+    m_fileListCtrl->SetItem(currentOpenFileIdx, 1, wxT("0"));
+  }
 
-  wxString cueNbr = wxString::Format(wxT("%i"), m_audiofile->m_cues->GetNumberOfCues());
-  m_fileListCtrl->SetItem(currentOpenFileIdx, 2, cueNbr);
+  if (!m_audiofile->m_cues->exportedCues.empty()) {
+    wxString cueNbr = wxString::Format(wxT("%i"), m_audiofile->m_cues->exportedCues.size());
+    m_fileListCtrl->SetItem(currentOpenFileIdx, 2, cueNbr);
+  } else {
+    m_fileListCtrl->SetItem(currentOpenFileIdx, 2, wxT("0"));
+  }
 
   int midiNote = (int) m_audiofile->m_loops->GetMIDIUnityNote();
   wxString note = wxString::Format(wxT("%i"), midiNote);
@@ -1662,6 +1672,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           }
         }
         SetLoopPlayback(true);
+        toolBar->EnableTool(X_FADE, true);
+        toolMenu->Enable(X_FADE, true);
       }
     }
     return;
@@ -1710,6 +1722,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           }
         }
         SetLoopPlayback(true);
+        toolBar->EnableTool(X_FADE, true);
+        toolMenu->Enable(X_FADE, true);
       }
     }
     return;
@@ -1743,6 +1757,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         m_sound->SetLoopPosition(currentCue.dwSampleOffset, currentCue.dwSampleOffset, currentCue.dwSampleOffset, m_audiofile->m_channels);
 
         SetLoopPlayback(false); // set the playback to not be for loops
+        toolBar->EnableTool(X_FADE, false);
+        toolMenu->Enable(X_FADE, false);
       }
     }
     return;
@@ -1776,7 +1792,91 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         m_sound->SetLoopPosition(currentCue.dwSampleOffset, currentCue.dwSampleOffset, currentCue.dwSampleOffset, m_audiofile->m_channels);
 
         SetLoopPlayback(false); // set the playback to not be for loops
+        toolBar->EnableTool(X_FADE, false);
+        toolMenu->Enable(X_FADE, false);
       }
+    }
+    return;
+  }
+
+  // W toggles currently selected loop/cue save option on/off
+  if (event.GetKeyCode() == 87) {
+    if (m_panel->m_grid->IsSelection()) {
+      wxArrayInt selection = m_panel->m_grid->GetSelectedRows();
+      if (!selection.IsEmpty()) {
+        int firstSelected = selection[0];
+        if (m_panel->m_grid->GetCellValue(firstSelected, 4) == wxT("1")) {
+          // Equals to a true value to begin with
+          m_panel->m_grid->SetCellValue(firstSelected, 4, wxT("0"));
+          m_audiofile->m_loops->SetSaveOption(false, firstSelected);
+          toolBar->EnableTool(wxID_SAVE, true);
+          fileMenu->Enable(wxID_SAVE, true);
+        } else {
+          // The value was false
+          m_panel->m_grid->SetCellValue(firstSelected, 4, wxT("1"));
+          m_audiofile->m_loops->SetSaveOption(true, firstSelected);
+          toolBar->EnableTool(wxID_SAVE, true);
+          fileMenu->Enable(wxID_SAVE, true);
+        }
+      }
+    } else if (m_panel->m_cueGrid->IsSelection()) {
+      wxArrayInt selection = m_panel->m_cueGrid->GetSelectedRows();
+      if (!selection.IsEmpty()) {
+        int firstSelected = selection[0];
+        if (m_panel->m_cueGrid->GetCellValue(firstSelected, 2) == wxT("1")) {
+          // Equals to a true value to begin with
+          m_panel->m_cueGrid->SetCellValue(firstSelected, 2, wxT("0"));
+          m_audiofile->m_cues->SetSaveOption(false, firstSelected);
+          toolBar->EnableTool(wxID_SAVE, true);
+          fileMenu->Enable(wxID_SAVE, true);
+        } else {
+          // The value was false
+          m_panel->m_cueGrid->SetCellValue(firstSelected, 2, wxT("1"));
+          m_audiofile->m_cues->SetSaveOption(true, firstSelected);
+          toolBar->EnableTool(wxID_SAVE, true);
+          fileMenu->Enable(wxID_SAVE, true);
+        }
+      }
+    }
+    return;
+  }
+
+  // E toggles all loop(s) save option on/off
+  if (event.GetKeyCode() == 69) {
+    if (m_audiofile->m_loops->GetNumberOfLoops() > 0) {
+      for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
+        if (m_panel->m_grid->GetCellValue(i, 4) == wxT("1")) {
+          // Equals to a true value to begin with
+          m_panel->m_grid->SetCellValue(i, 4, wxT("0"));
+          m_audiofile->m_loops->SetSaveOption(false, i);
+        } else {
+          // The value was false
+          m_panel->m_grid->SetCellValue(i, 4, wxT("1"));
+          m_audiofile->m_loops->SetSaveOption(true, i);
+        }
+      }
+      toolBar->EnableTool(wxID_SAVE, true);
+      fileMenu->Enable(wxID_SAVE, true);
+    }
+    return;
+  }
+
+  // Q toggles all cue(s) save option on/off
+  if (event.GetKeyCode() == 81) {
+    if (m_audiofile->m_cues->GetNumberOfCues() > 0) {
+      for (unsigned i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
+        if (m_panel->m_cueGrid->GetCellValue(i, 2) == wxT("1")) {
+          // Equals to a true value to begin with
+          m_panel->m_cueGrid->SetCellValue(i, 2, wxT("0"));
+          m_audiofile->m_cues->SetSaveOption(false, i);
+        } else {
+          // The value was false
+          m_panel->m_cueGrid->SetCellValue(i, 2, wxT("1"));
+          m_audiofile->m_cues->SetSaveOption(true, i);
+        }
+      }
+      toolBar->EnableTool(wxID_SAVE, true);
+      fileMenu->Enable(wxID_SAVE, true);
     }
     return;
   }
