@@ -1,6 +1,6 @@
 /*
  * BatchProcessDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2014 Lars Palo
+ * Copyright (C) 2011-2015 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 #include "AutoLooping.h"
 #include "FileHandling.h"
 #include "CutNFadeDialog.h"
+#include "CrossfadeDialog.h"
 #include "sndfile.hh"
 #include <wx/statline.h>
 #include <wx/listctrl.h>
@@ -74,14 +75,17 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("List existing pitch info in file(s)"));
   m_batchProcessesAvailable.Add(wxT("Set pitch info from file name nr."));
   m_batchProcessesAvailable.Add(wxT("Copy pitch info from corresponding file(s)"));
-  m_batchProcessesAvailable.Add(wxT("Create Pipe999PitchTuning= lines from file(s)"));
+  m_batchProcessesAvailable.Add(wxT("Write PitchTuning lines from embedded pitch"));
   m_batchProcessesAvailable.Add(wxT("Remove sound between last loop and cue"));
   m_batchProcessesAvailable.Add(wxT("Cut & Fade in/out"));
+  m_batchProcessesAvailable.Add(wxT("Crossfade all loops"));
 
   m_lastSource = wxEmptyString;
   m_lastTarget = wxEmptyString;
+  m_mustRefreshMainDir = false;
 
   m_loopSettings = autoloopSettings;
+  m_currentWorkingDir = wxEmptyString;
 }
 
 bool BatchProcessDialog::Create(
@@ -303,6 +307,8 @@ void BatchProcessDialog::OnAddSource(wxCommandEvent& event) {
     if (pathToAdd != wxEmptyString) {
       m_sourceField->ChangeValue(pathToAdd);
       m_lastSource = pathToAdd;
+      m_targetField->ChangeValue(pathToAdd);
+      m_lastTarget = pathToAdd;
     }
   }
 
@@ -397,7 +403,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 1:
       // This removes all loops from the wav files!
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
@@ -422,7 +428,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 2:
       // This removes all cues from the wav files!
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
@@ -447,7 +453,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 3:
       // This removes both loops and cues from the wav files!
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
@@ -486,7 +492,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
       autoloop->SetMultiple(m_loopSettings->GetMultiple());
       autoloop->SetBruteForce(m_loopSettings->GetBruteForce());
 
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
@@ -555,7 +561,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 5:
       // This is for autosearching pitch information with FFT and store it in smpl chunk
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
@@ -605,12 +611,25 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     break;
 
     case 6:
-      // This is for autosearching pitch information with FFT and list deviations in cent
-      if (filesToProcess.IsEmpty() == false) {
+      // This is for autosearching pitch information with FFT and list it and lines to specify it in an ODF
+      if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
+
+        int lastMidiNr = 0;
+        int pipeNr = 0;
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          // get midi number from file name
+          wxString currentFileName = filesToProcess.Item(i);
+          wxString midiNrStr = currentFileName.Mid(0, 3);
+          int midiNr = wxAtoi(midiNrStr);
+          if (midiNr == 0 || midiNr == lastMidiNr)
+            continue;
+          else {
+            lastMidiNr = midiNr;
+            pipeNr++;
+          }
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -630,15 +649,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             int midi_note = (69 + 12 * (log10(fftPitches[0] / 440.0) / log10(2)));
             double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
             double cent_deviation = 1200 * (log10(fftPitches[0] / midi_note_pitch) / log10(2));
-            double deviationToRaise = 100.0 - cent_deviation;
-            double deviationToLower = -cent_deviation;
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tFFT detected pitch = %.2f Hz\n"), fftPitches[0]));
-            m_statusProgress->AppendText(wxT("\tCents to tune up = "));
-            m_statusProgress->AppendText(MyDoubleToString(deviationToRaise));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uMIDIKeyNumber=%u"), pipeNr, midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxT("\tCents to tune down = "));
-            m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uPitchFraction="), pipeNr));
+            m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
             // delete the now unneccessary array of double audio data
@@ -656,7 +672,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 7:
       // This is for autosearching pitch information with HPS and store it in smpl chunk
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
@@ -707,11 +723,24 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 8:
       // This is for autosearching pitch information with HPS and list deviations in cent
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
+
+        int lastMidiNr = 0;
+        int pipeNr = 0;
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          // get midi number from file name
+          wxString currentFileName = filesToProcess.Item(i);
+          wxString midiNrStr = currentFileName.Mid(0, 3);
+          int midiNr = wxAtoi(midiNrStr);
+          if (midiNr == 0 || midiNr == lastMidiNr)
+            continue;
+          else {
+            lastMidiNr = midiNr;
+            pipeNr++;
+          }
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -731,15 +760,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             int midi_note = (69 + 12 * (log10(fftPitches[1] / 440.0) / log10(2)));
             double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
             double cent_deviation = 1200 * (log10(fftPitches[1] / midi_note_pitch) / log10(2));
-            double deviationToRaise = 100.0 - cent_deviation;
-            double deviationToLower = -cent_deviation;
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tHPS detected pitch = %.2f Hz\n"), fftPitches[1]));
-            m_statusProgress->AppendText(wxT("\tCents to tune up = "));
-            m_statusProgress->AppendText(MyDoubleToString(deviationToRaise));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uMIDIKeyNumber=%u"), pipeNr, midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxT("\tCents to tune down = "));
-            m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uPitchFraction="), pipeNr));
+            m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
             // delete the now unneccessary array of double audio data
@@ -757,7 +783,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 9:
       // This is for autosearching pitch information in timedomain and store it in smpl chunk
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
@@ -816,11 +842,24 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 10:
       // This is for autosearching pitch information in timedomain and list deviations in cent
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
+
+        int lastMidiNr = 0;
+        int pipeNr = 0;
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          // get midi number from file name
+          wxString currentFileName = filesToProcess.Item(i);
+          wxString midiNrStr = currentFileName.Mid(0, 3);
+          int midiNr = wxAtoi(midiNrStr);
+          if (midiNr == 0 || midiNr == lastMidiNr)
+            continue;
+          else {
+            lastMidiNr = midiNr;
+            pipeNr++;
+          }
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -837,28 +876,21 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             int midi_note;
             double midi_note_pitch;
             double cent_deviation;
-            double deviationToRaise;
-            double deviationToLower;
             if (pitch != 0) {
               midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
               midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
               cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
-              deviationToRaise = 100.0 - cent_deviation;
-              deviationToLower = -cent_deviation;
             } else {
               midi_note = 0;
               midi_note_pitch = 0;
               cent_deviation = 0;
-              deviationToRaise = 0;
-              deviationToLower = 0;
             }
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch in time domain = %.2f Hz\n"), pitch));
-            m_statusProgress->AppendText(wxT("\tCents to tune up = "));
-            m_statusProgress->AppendText(MyDoubleToString(deviationToRaise));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uMIDIKeyNumber=%u"), pipeNr, midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxT("\tCents to tune down = "));
-            m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uPitchFraction="), pipeNr));
+            m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
             // delete the now unneccessary array of double audio data
@@ -876,7 +908,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 11:
       // This is for listing existing pitch information in file(s)
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
@@ -897,10 +929,10 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction (in cents) = %.2f\n"), cents));
             m_statusProgress->AppendText(wxString::Format(wxT("\tResulting Frequency = %.2f\n"), resultingPitch));
             m_statusProgress->AppendText(wxT("\tTo raise in ODF: Pipe999PitchTuning="));
-            m_statusProgress->AppendText(MyDoubleToString(deviationToRaise));
+            m_statusProgress->AppendText(MyDoubleToString(deviationToRaise, 6));
             m_statusProgress->AppendText(wxT("\n"));
             m_statusProgress->AppendText(wxT("\tTo lower in ODF Pipe999PitchTuning="));
-            m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
+            m_statusProgress->AppendText(MyDoubleToString(deviationToLower, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
           } else {
@@ -916,7 +948,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 12:
       // This is for setting pitch info from file name
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         // Create a dialog to select foot to use
         StopHarmonicDialog harmDlg(this);
         if (harmDlg.ShowModal() == wxID_OK) {
@@ -978,7 +1010,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 13:
       // This is for copying pitch information from corresponding file(s)
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(wxT("Reading source from "));
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
@@ -1020,34 +1052,50 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
     break;
 
     case 14:
-      // This is for writing out the Pipe999PitchTuning lines for GO ODFs
-      if (filesToProcess.IsEmpty() == false) {
-        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
-          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
-          if (fh.FileCouldBeOpened()) {
-            // get pitch info and calculate resulting pitch frequency
-            double cents = (double) fh.m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
-            int midiNote = (int) fh.m_loops->GetMIDIUnityNote();
-            double midi_note_pitch = 440.0 * pow(2, ((double)(midiNote - 69) / 12.0));
-            double resultingPitch = midi_note_pitch * pow(2, (cents / 1200.0));
-            double deviationToRaise = 100 - cents;
-            double deviationToLower = -cents;
-
-            if (fabs(deviationToRaise) < fabs(deviationToLower)) {
-              m_statusProgress->AppendText(
-                wxString::Format(wxT("Pipe%03uPitchTuning="), i + 1)
-              );
-              m_statusProgress->AppendText(MyDoubleToString(deviationToRaise));
-              m_statusProgress->AppendText(wxT("\n"));
-            } else {
-              m_statusProgress->AppendText(
-                wxString::Format(wxT("Pipe%03uPitchTuning="), i + 1)
-              );
-              m_statusProgress->AppendText(MyDoubleToString(deviationToLower));
-              m_statusProgress->AppendText(wxT("\n"));
+      // This is for writing out the Pipe999PitchTuning lines for GO ODFs from embedded pitch
+      if (!filesToProcess.IsEmpty()) {
+        // Create a dialog to select harmonic number for the rank/stop to use
+        StopHarmonicDialog harmDlg(this);
+        if (harmDlg.ShowModal() == wxID_OK) {
+          int harmonicNr = harmDlg.GetSelectedHarmonic();
+          int lastMidiNr = 0;
+          int pipeNr = 0;
+          for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+            FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+            // get midi number from file name
+            wxString currentFileName = filesToProcess.Item(i);
+            wxString midiNrStr = currentFileName.Mid(0, 3);
+            int midiNr = wxAtoi(midiNrStr);
+            if (midiNr == 0 || midiNr == lastMidiNr)
+              continue;
+            else {
+              lastMidiNr = midiNr;
+              pipeNr++;
             }
-          } else {
-            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+            if (fh.FileCouldBeOpened()) {
+              // Calculate pitch for detected MIDI note
+              double midiPitch = 440.0 * pow(2, ((double)(midiNr - 69) / 12.0));
+              // Adjust pitch from harmonic number
+              double actualPitch = midiPitch * (8.0 / (64.0 / (double) harmonicNr));
+              // Compare with embedded pitch
+              double centsEmbedded = (double) fh.m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
+              int midiNoteEmbedded = (int) fh.m_loops->GetMIDIUnityNote();
+              double embeddedPitch = 440.0 * pow(2, ((double)(midiNoteEmbedded - 69) / 12.0)) * pow(2, (centsEmbedded / 1200.0));
+              double cent_deviation = 1200 * (log10(actualPitch / embeddedPitch) / log10(2));
+              if (cent_deviation < -1200 || cent_deviation > 1200) {
+                // Warn that this is not allowed
+                m_statusProgress->AppendText(wxString::Format(wxT("PitchTuning value for %s is outside allowed range!\n"), currentFileName));
+              } else {
+                // Write the pitch tuning line
+                m_statusProgress->AppendText(
+                  wxString::Format(wxT("Pipe%03uPitchTuning="), pipeNr)
+                );
+                m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
+                m_statusProgress->AppendText(wxT("\n"));
+              }
+            } else {
+              m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+            }
           }
         }
         m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
@@ -1059,7 +1107,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 15:
       // This is for deleting sound after last loop and before cue marker (if existing)
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
           if (fh.FileCouldBeOpened()) {
@@ -1083,7 +1131,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     case 16:
       // This is for cutting and fading in/out
-      if (filesToProcess.IsEmpty() == false) {
+      if (!filesToProcess.IsEmpty()) {
 
         // create the cut & fade dialog
         CutNFadeDialog cfDlg(this);
@@ -1166,15 +1214,149 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
     break;
 
+    case 17:
+      // This is for crossfading all existing loops
+      if (!filesToProcess.IsEmpty()) {
+
+        // create the crossfade dialog
+        CrossfadeDialog cDlg(this);
+        // show the crossfade dialog to get parameters
+        if (cDlg.ShowModal() == wxID_OK) {
+          // get values
+          double crossfadeTime = cDlg.GetFadeduration();
+          int crossfadetype = cDlg.GetFadetype();
+
+          for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+            FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+            if (fh.FileCouldBeOpened()) {
+              if (fh.m_loops->GetNumberOfLoops() > 0) {
+                double *audioData = new double[fh.ArrayLength];
+
+                // convert audio data into doubles
+                if (fh.shortAudioData != NULL) {
+                  for (unsigned i = 0; i < fh.ArrayLength; i++)
+                    audioData[i] = (double) fh.shortAudioData[i] / (1.0 * 0x7FFF);
+                } else if (fh.intAudioData != NULL) {
+                  for (unsigned i = 0; i < fh.ArrayLength; i++)
+                    audioData[i] = (double) fh.intAudioData[i] / (1.0 * 0x7FFFFFFF);
+                } else if (fh.doubleAudioData != NULL) {
+                  for (unsigned i = 0; i < fh.ArrayLength; i++)
+                    audioData[i] = fh.doubleAudioData[i];
+                }
+
+                if (fh.m_loops->GetNumberOfLoops() > 1) {
+                  // crossfading should be done in order of loop end point appearance
+                  int crossfadeOrder[fh.m_loops->GetNumberOfLoops()];
+                  for (int j = 0; j < fh.m_loops->GetNumberOfLoops(); j++)
+                    crossfadeOrder[j] = j;
+
+                  for (int j = 0; j < fh.m_loops->GetNumberOfLoops() - 1; j++) {
+                    LOOPDATA l1;
+                    fh.m_loops->GetLoopData(crossfadeOrder[j], l1);
+                    unsigned lowestEndValue = l1.dwEnd;
+                    
+                    for (int k = j + 1; k < fh.m_loops->GetNumberOfLoops(); k++) {
+                      LOOPDATA l2;
+                      fh.m_loops->GetLoopData(crossfadeOrder[k], l2);
+
+                      if (l2.dwEnd < lowestEndValue) {
+                        lowestEndValue = l2.dwEnd;
+                        int tempIdx = crossfadeOrder[j];
+                        crossfadeOrder[j] = k;
+                        crossfadeOrder[k] = tempIdx;
+                      }
+                    }
+                  }
+
+                  // now we know in which order the crossfades should be made
+                  // but for every crossfade we must check if either another loop
+                  // has a start or end point that might be affected by the crossfade
+                  // and if so adjust the crossfade length
+                  for (int j = 0; j < fh.m_loops->GetNumberOfLoops(); j++) {
+                    LOOPDATA l1;
+                    fh.m_loops->GetLoopData(crossfadeOrder[j], l1);
+                    double actualFadeTime = crossfadeTime;
+                    for (int k = 0; k < fh.m_loops->GetNumberOfLoops(); k++) {
+                      if (k == j)
+                        break;
+
+                      LOOPDATA l2;
+                      fh.m_loops->GetLoopData(crossfadeOrder[k], l2);
+
+                      if (fabs((double) l2.dwEnd - (double) l1.dwEnd) / (double) fh.GetSampleRate() < actualFadeTime) {
+                        actualFadeTime = fabs((double) l2.dwEnd - (double) l1.dwEnd) / (double) fh.GetSampleRate();
+                        actualFadeTime -= 2.0 / (double) fh.GetSampleRate();
+                      }
+
+                      if (fabs((double) l2.dwStart - (double) l1.dwEnd) / (double) fh.GetSampleRate() < actualFadeTime) {
+                        actualFadeTime = fabs((double) l2.dwStart - (double) l1.dwEnd) / (double) fh.GetSampleRate();
+                        actualFadeTime -= 2.0 / (double) fh.GetSampleRate();
+                      }
+                    }
+                    
+                    if (actualFadeTime > 0) {
+                      m_statusProgress->AppendText(wxString::Format(wxT("\t\tCrossfading loop %i with fadetime %.3f ms.\n"), crossfadeOrder[j] + 1, actualFadeTime));
+                      // perform crossfading on the current loop with selected method
+                      fh.PerformCrossfade(audioData, crossfadeOrder[j], actualFadeTime, crossfadetype);
+                    } else {
+                      m_statusProgress->AppendText(wxString::Format(wxT("\tCouldn't crossfade loop %i!\n"), crossfadeOrder[j]));
+                    }
+                  }
+                } else {
+                  // just one loop to crossfade
+                  fh.PerformCrossfade(audioData, 0, crossfadeTime, crossfadetype);
+                }
+
+                // update the current audiodata in m_audiofile
+                if (fh.shortAudioData != NULL) {
+                  for (unsigned i = 0; i < fh.ArrayLength; i++)
+                    fh.shortAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFF));
+                } else if (fh.intAudioData != NULL) {
+                  for (unsigned i = 0; i < fh.ArrayLength; i++)
+                  fh.intAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFFFFFF));
+                } else if (fh.doubleAudioData != NULL) {
+                  for (unsigned i = 0; i < fh.ArrayLength; i++)
+                    fh.doubleAudioData[i] = audioData[i];
+                }
+
+                delete[] audioData;
+
+                // save file
+                fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+                m_statusProgress->AppendText(wxT("\tDone crossfading "));
+                m_statusProgress->AppendText(filesToProcess.Item(i));
+                m_statusProgress->AppendText(wxT("\n"));
+              } else {
+                m_statusProgress->AppendText(wxT("\tNo loops to crossfade!\n"));
+              }
+            } else {
+              m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+            }
+          }
+          m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
+        } else {
+          m_statusProgress->AppendText(wxT("\nBatch process aborted!\n"));
+        }
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
     default:
       // This should be impossible as well!
       m_statusProgress->AppendText(wxT("No process selected!\n"));
   }
   delete autoloop;
+
+  if (m_currentWorkingDir.IsSameAs(m_targetField->GetValue()))
+    m_mustRefreshMainDir = true;
 }
 
-wxString BatchProcessDialog::MyDoubleToString(double dbl) {
-  wxString returnString = wxString::Format(wxT("%.2f"), dbl);
+wxString BatchProcessDialog::MyDoubleToString(double dbl, int precision) {
+  wxString formatString;
+  formatString << wxT("%.") << precision << wxT("f");
+  wxString returnString = wxString::Format(formatString, dbl);
 
   if (returnString.Find(wxT(',')) != wxNOT_FOUND) {
     returnString.Replace(wxT(","), wxT("."));
@@ -1213,4 +1395,15 @@ void BatchProcessDialog::SetLastTarget(wxString target) {
     m_lastTarget = wxEmptyString;
     m_targetField->ChangeValue(m_lastTarget);
   }
+}
+
+bool BatchProcessDialog::NeedToRefreshFileList() {
+  if (m_mustRefreshMainDir)
+    return true;
+  else
+    return false;
+}
+
+void BatchProcessDialog::SetCurrentWorkingDir(wxString str) {
+  m_currentWorkingDir = str;
 }

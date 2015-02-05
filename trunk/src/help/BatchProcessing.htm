@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<Title>Batch processing</Title>
+</HEAD>
+<BODY>
+<h2>Batch processing</h2>
+<p>The different batch processes that LoopAuditioneer can do are efficient ways to work on all the
+.wav files in a folder chosen by the user. Correctly done it really can save some time, but always
+check the results to ensure good quality.</p>
+<p><img src="images/Batch.jpg" alt="A screenshot showing the batch process dialog" /></p>
+<p>If the batch process dialog is invoked, either by toolbar icon, from the Tools menu or keyboard
+shortcut Ctrl + B, the user has the possibility to select a source folder from which every .wav file
+will be processed and saved to the target folder if so indicated by the batch process chosen. The
+destination can be the same as the source (effectively overwriting the file on disc !!!) or any other
+folder. The user even has the option to create a new folder for the target (for natural reasons the
+source folder must already exist!).</p>
+<p>The different batch processes that can be chosen at the moment are explained below. Just remember
+that when batch searching for loop points the same settings will be used for the whole batch and the
+settings must be set from the main window if they should be changed.</p>
+<p>Already existing loops and cues will not be overwritten when running the batch, but the number
+limitation of maximum 16 loops still apply. This makes it possible to run the same batch with
+different settings to get different results that later should be evaluated.</p>
+<p>The available batch processes are:</p>
+<h3>Kill all loops</h3>
+<p>This batch process removes all loops existing in the file. It just modify the metadata of the file.</p>
+<h3>Kill all cues</h3>
+<p>Use this to remove all cues existing in file. It just modify the metadata of the file.</p>
+<h3>Kill loops & cues</h3>
+<p>This batch process removes all loops and cues in file. It just modify the metadata of the file.</p>
+<h3>Search for loops</h3>
+<p>This batch process runs the autoloop search on all files with the current settings. It just modify the metadata of the file.</p>
+<h3>Store FFT detected pitch info</h3>
+<p>This process runs the FFT pitch detection on all files and stores the pitch info in the smpl chunk.
+It just modify the metadata of the file.</p>
+<h3>List FFT pitch deviations</h3>
+<p>This process runs the FFT pitch detection on the files but doesn't modify them, just writes the detected
+pitch and the lines necessary to describe the pitch in the GrandOrgue ODF.</p>
+<h3>Store HPS detected pitch info</h3>
+<p>This process runs the HPS (harmonic product spectrum) pitch detection on the files and stores the pitch
+info in the smpl chunk. It just modify the metadata of the file.</p>
+<h3>List HPS pitch deviations</h3>
+<p>This process runs the HPS pitch detection on the files but doesn't modify them, just writes the detected
+pitch and the lines necessary to describe the pitch in the GrandOrgue ODF.</p>
+<h3>Store time domain detected pitch info</h3>
+<p>This process runs the time domain pitch detection on the files and stores the pitch
+info in the smpl chunk. It just modify the metadata of the file.</p>
+<h3>List time domain pitch deviations</h3>
+<p>This process runs the time domain pitch detection on the files but doesn't modify them, just writes the detected
+pitch and the lines necessary to describe the pitch in the GrandOrgue ODF.</p>
+<h3>List existing pitch info in file(s)</h3>
+<p>This process display what pitch info already exist in the file. It doesn't modify the file.</p>
+<h3>Set pitch info from file name nr.</h3>
+<p>This batch process stores the pitch info based on the user selected Harmonic and the first numbers in the
+file name that describe what MIDI key this sample is used from. The harmonic is specified in a dialog where
+the foot length of the lowest pipe is specified (like 8' or 16'). This process is only to be used if you
+know that the samples are already tuned perfectly to equal beating temperament at a1=440 Hz. The process
+only modify the metadata of the file.</p>
+<h3>Copy pitch info from corresponding file(s)</h3>
+<p>This process takes the pitch info from the source file and try to copy it to the target file with the
+same name. The typical use case for this batch process is to ensure that additional release samples do
+have the same pitch info as the main attack sample.</p>
+<h3>Write PitchTuning lines from embedded pitch</h3>
+<p>This process writes the PitchTuning lines to be used in a GrandOrgue ODF to adjust this sample to
+equal temperament at a1=440. It doesn't modify the file(s) in any way. The user is first asked to specify
+what foot length the lowest pipe has (like 8' or 4') in a separate dialog.</p>
+<h3>Remove sound between last loop and cue</h3>
+<p>This batch process removes almoast all unused audio data between the last loop and the first (and
+hopefully only) cue marker. This saves some size of the sample but of course it does modify the audio
+data in the process.</p>
+<h3>Cut & Fade in/out</h3>
+<p>This process performs the user selected cuts and fades on all the .wav files in the source folder. The
+cuts and fades are specified in a separate dialog just like it's done in the main window. This process
+of course modifies the audio data of the file.</p>
+<h3>Crossfade all loops</h3>
+<p>This process performs the user selected crossfade type and length on all loops present in the files.
+The process is however somewhat intelligent and adjustes the crossfade length so that it won't interfer
+with other loops or ends of the sample. It does modify the audio data in the file permanently, though.
+I highly recommend that you always work on a copy or specify another folder as target when doing this
+as sometimes the fades won't fix every problem. In any case the crossfades should be a last resort,
+many times it's possible to find better loops if the search settings are modified suitably.</p>
+</BODY>
+</HTML>

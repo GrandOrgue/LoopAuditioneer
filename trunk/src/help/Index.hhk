@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+</HEAD>
+<BODY>
+<UL>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="LoopAuditioneerHelp.htm">
+		<param name="Name" value="LoopAuditioneer Help">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="GettingStarted.htm">
+		<param name="Name" value="Getting started">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="Introduction.htm">
+		<param name="Name" value="Introduction">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="Features.htm">
+		<param name="Name" value="Features">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="Requirements.htm">
+		<param name="Name" value="Requirements">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="Credits.htm">
+		<param name="Name" value="Credits">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="UserInterface.htm">
+		<param name="Name" value="User Interface">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="MenuBar.htm">
+		<param name="Name" value="Menu bar">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="ToolBar.htm">
+		<param name="Name" value="Tool bar">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="MainPanel.htm">
+		<param name="Name" value="Client area">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="StatusBar.htm">
+		<param name="Name" value="Status bar">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="AutoLoop.htm">
+		<param name="Name" value="Automatic loopsearch">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="LoopSettings.htm">
+		<param name="Name" value="Loopsearch settings">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="SearchAlgorithm.htm">
+		<param name="Name" value="Search algorithm">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="NoLoops.htm">
+		<param name="Name" value="No loops found">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="LoopsNoGood.htm">
+		<param name="Name" value="The loops are no good">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="CrossfadeLoop.htm">
+		<param name="Name" value="Crossfading loops">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="CueCreation.htm">
+		<param name="Name" value="Cue creation and editing">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="PitchDetection.htm">
+		<param name="Name" value="Pitch detection and editing">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="CutFade.htm">
+		<param name="Name" value="Cutting and fading">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="KeyboardShortcuts.htm">
+		<param name="Name" value="Keyboard shortcuts">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="BatchProcessing.htm">
+		<param name="Name" value="Batch processing">
+	</OBJECT>
+</UL>
+</BODY>
+</HTML>

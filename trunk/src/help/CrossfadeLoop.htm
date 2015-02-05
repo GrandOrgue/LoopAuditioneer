@@ -1,0 +1,34 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<Title>Crossfading loop(s)</Title>
+</HEAD>
+<BODY>
+<h2>Crossfading loops</h2>
+<p>As a last resort if no seamless loops can be found there's a possibility that a crossfade might
+fix the issue and remove offending clicks in a loop.</p>
+<p>To perform a crossfade a loop must be present in the file and selected in the Loop table. There
+are different ways to bring up the crossfade dialog. One way is to right click on the loop in the 
+loop table which brings up a pop-up menu where the option to crossfade can be found. Other ways are to
+use the crossfade item in the Tools menu or the crossfade icon in the toolbar. The keyboard combination
+of Ctrl + X also invokes the crossfade dialog.</p>
+<p><img src="images/CrossfadeDialog.jpg" alt="An image of the crossfade dialog" /></p>
+<p>In the crossfade dialog one can select the type of crossfade to perform. The choices are Linear,
+S-curve (cos), Equal power/gain and Equal power (sin). As the loops found by LoopAuditioneer have the
+loop points generally very well correlated the linear or possibly S-curve fades will give the best
+results.</p>
+<p>With the slider below the radio buttons the length of the crossfade can be set in milliseconds. As
+all crossfades do affect the original sound it's generally wise to keep them as short as possible to 
+achieve a good loop that destroys as little of the sample as possible. However, please note that this
+feature always will change the audio data so use it with care, possibly saving as to not destroy the
+original sample or only working on a copy to begin with.</p>
+<p>If the crossfade is still not resulting in a good loop you can discard it by re-loading the sample
+from file (open selected file again from menu or tool bar or with Ctrl + F). From this can be deduced
+that it's wise to first save the loops in the file without any crossfades and only then experiment with
+the crossfades if necessary.</p>
+<p><img src="images/Crossfades.jpg" alt="An image comparing the different crossfades" /></p>
+<p>In the image above one can see how the shapes of the different crossfades look like graphically. The
+linear crossfade is dark blue, the S-shaped in violet, the equal power in orange and the equal power (sin)
+in green.</p>
+</BODY>
+</HTML>

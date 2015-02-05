@@ -1,0 +1,64 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<Title>Loopsearch settings</Title>
+</HEAD>
+<BODY>
+<h2>Loopsearch settings</h2>
+<p>The settings for automatic loop detection can easily be adjusted in the dialog and any changes
+will be saved when the application is closed. To adjust the settings no
+file will even have to be loaded, and the settings used in single file mode will also be
+used for batch processing where the user won't be asked for the settings before the
+batch is run. Thus, to alter any settings when searching in batch mode you must return to the
+main window.</p>
+<p><img src="images/searchparameters.jpg" alt="A screenshot showing the settings dialog for autosearching loop points" /></p>
+<p>When the user is happy with the settings and have stored them, there's no need to revisit the
+settings dialog unless one wants to change the settings. Instead it's just to click on the
+magnifying glass to start automatic search for loops (or selecting the option from the menu
+or by using keyboard shortcut).</p>
+<h3>How the settings control loop detection</h3>
+<p>First of all one have the choice of letting the application detecting the sustain section or
+if one wants to have manual control of where in the audio data loops should be searched. If the
+autodetection checkbox is unchecked the start and end sliders can be moved to what percentage
+of the audio data respecive position should have. This can sometimes be useful if there are
+defects in the audio data that should not be within a loop, or if one really wants finer
+control of where the loop should be. When autodetecting the sustain section the application
+will scan the file both from the start and from the end and try to find all the stable part
+of the note, with just a little offset from the beginning to let the note stabilize itself.</p>
+<p>Please note that if the sample is very short then it's best to not use the auto detection of
+sustainsection, but instead use the sliders to assure that a usable section is searched.</p>
+<p>The checkbox labeled "Search w. brute force" will alter the search algorithm described later and
+will instead search all loops matching the minimum looplength, and quality before finally 
+making a selection of the best quality ranking ones matching the minimum loop distance.
+Enabling this feature will result in longer search times but should make it possible to find
+high quality loops.</p>
+<p>The derivative threshold will decide which parts of the audio data that will be considered
+suitable for being loop point candidates. Increasing the threshold will allow more points to be
+candidates and lowering it will reduce the amount of candidates.</p>
+<p>The minimum loop length simply tells the program to not search for loops shorter than this
+value. A lower value will result in more loops found and longer search time. A higher value
+will make sure that no loop will be shorter than that value and speed up the search process as
+fewer candidates will be matched against each other.</p>
+<p>The minimum time between loops will make sure than no loop start will be closer to another loop
+start than this value. Increasing this value will of course increase the distance between loop starts
+and speed up the loop searching, while decreasing the value will allow more loops to be considered and
+also increase the processing time.</p>
+<p>The quality factor will control which loop candidates will actually be considered good enough.
+The value as such is used in the (cross) correlation of the start and end points, and is expressed
+as total number of sample differences in the correlation window (two samples before start or end
+point and two samples after) for 16 bit short data, but since the searching is
+actually done with floating point data instead the value is internally converted to the correct
+scaling no matter what audio format the file uses. Higher values will allow bigger differences
+between start and end, and also increase the numbers of loops that will be found, but then the
+loopstart and end can possibly be less correlated to each other.</p>
+<p>The number of candidates value will control the maximum number of candidates to check. A higher
+value will of course mean more points to check and match to each other, which in turn means 
+longer processing time.</p>
+<p>Loops to return value controls how many loops will actually be shown to the user after searching
+is complete. The value can be between one and 16. Do note that LoopAuditioneer can handle
+any amount of loops in the application but only 16 max will actually be saved to file!</p>
+<p>Loop pool multiple tell the program to stop looking for loops when it has found this number
+multiplied with loops to return value of loops with correlation better (lower) than the
+quality value. Higher value means more loops to choose between but also longer search time.</p>
+</BODY>
+</HTML>

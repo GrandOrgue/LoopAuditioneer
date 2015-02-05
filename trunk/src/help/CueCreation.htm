@@ -1,0 +1,22 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<Title>Cue creation</Title>
+</HEAD>
+<BODY>
+<h2>Cue creation/editing</h2>
+<p>A cue marker is usually used to mark in the sample where the release begins - the point where the
+key is (was) released during sampling. A sample player like GrandOrgue will also jump to this position
+when the user releases the key. A correct placement is important for the playing experience!</p>
+<p><img src="images/AddCue.jpg" alt="An image of add cue pop-up menu" /></p>
+<p>Rightclicking on the waveform will result in a dotted green line drawn on the waveform and a context
+menu with the Add cue option shown at that location. If the Add cue option is clicked a cue will be
+automatically placed at the point with the lowest RMS power around where the user clicked. This also
+means that it's possible that the marker moves a little in it's creation.</p>
+<p>Leftclicking in a cue marker flag gives the user a possibility to move that marker to a new position. If
+so is desired leftclick again at that position on the waveform. This is the way a cue marker can be edited.</p>
+<p>Just like with the cue creation the application will calculate which position closest
+around where the user clicked that will have the lowest RMS power (and thus be closest to zero)
+and place the marker there automatically.</p>
+</BODY>
+</HTML>

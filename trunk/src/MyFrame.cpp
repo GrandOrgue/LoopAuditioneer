@@ -1,6 +1,6 @@
 /*
  * MyFrame.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2014 Lars Palo
+ * Copyright (C) 2011-2015 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ int MyFrame::volumeMultiplier = 1; // default value
 
 // Event table
 BEGIN_EVENT_TABLE(MyFrame, wxFrame)
+  EVT_CLOSE(MyFrame::OnClose)
   EVT_MENU(wxID_ABOUT, MyFrame::OnAbout)
   EVT_MENU(wxID_EXIT, MyFrame::OnQuit)
   EVT_MENU(FILE_SELECT, MyFrame::OnSelectDir)
@@ -45,6 +46,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_MENU(EDIT_LOOP, MyFrame::OnEditLoop)
   EVT_MENU(VIEW_LOOPPOINTS, MyFrame::OnViewLoop)
   EVT_MENU(LOOP_ONLY, MyFrame::OnLoopPlayback)
+  EVT_MENU(SAVE_AND_OPEN_NEXT, MyFrame::OnSaveOpenNext)
+  EVT_MENU(wxID_HELP, MyFrame::OnHelp)
   EVT_LIST_ITEM_ACTIVATED(ID_LISTCTRL, MyFrame::OnDblClick)
   EVT_LIST_ITEM_SELECTED(ID_LISTCTRL, MyFrame::OnSelection)
   EVT_TOOL(OPEN_SELECTED, MyFrame::OnOpenSelected)
@@ -77,7 +80,7 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
   info.SetName(appName);
   info.SetVersion(appVersion);
   info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files."));
-  info.SetCopyright(wxT("Copyright (C) 2011-2014 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
+  info.SetCopyright(wxT("Copyright (C) 2011-2015 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
   info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
 
   wxAboutBox(info);
@@ -101,8 +104,7 @@ void MyFrame::OnSelectDir(wxCommandEvent& event) {
   }
 }
 
-
-void MyFrame::OnQuit(wxCommandEvent& event) {
+void MyFrame::OnClose(wxCloseEvent & event) {
   config->Write(wxT("General/LastWorkingDir"), workingDir);
   wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
   int vol = volumeSl->GetValue();
@@ -122,7 +124,12 @@ void MyFrame::OnQuit(wxCommandEvent& event) {
   config->Write(wxT("LoopSettings/LoopsToReturn"), m_autoloopSettings->GetNrLoops());
   config->Write(wxT("LoopSettings/LoopPoolMultiple"), m_autoloopSettings->GetMultiple());
   config->Flush();
-  // Destroy the frame
+
+  Destroy();
+}
+
+void MyFrame::OnQuit(wxCommandEvent& event) {
+  // Close the frame by calling OnClose() via event generation
   Close();
 }
 
@@ -150,6 +157,7 @@ void MyFrame::OnOpenSelected(wxCommandEvent& event) {
     fileToOpen = item.GetText();
     OpenAudioFile();
     currentOpenFileIdx = currentSelectedIdx;
+    m_fileListCtrl->EnsureVisible(currentSelectedIdx);
   }
 }
 
@@ -171,6 +179,7 @@ void MyFrame::OpenAudioFile() {
     filePath += wxFILE_SEP_PATH;
     filePath += fileToOpen;
     m_waveform = new WaveformDrawer(this, filePath);
+    lowerBox->Clear();
     lowerBox->Add(m_waveform, 1, wxEXPAND, 0);
     vbox->Layout();
 
@@ -262,6 +271,7 @@ void MyFrame::CloseOpenAudioFile() {
   // disable save
   toolBar->EnableTool(wxID_SAVE, false);
   fileMenu->Enable(wxID_SAVE, false);
+  fileMenu->Enable(SAVE_AND_OPEN_NEXT, false);
 
   // disable save as...
   toolBar->EnableTool(wxID_SAVEAS, false);
@@ -299,8 +309,10 @@ void MyFrame::CloseOpenAudioFile() {
 
 void MyFrame::OnGridCellClick(wxGridEvent& event) {
   if (event.GetRow() >= 0) {
-    m_panel->m_grid->ClearSelection();
-    m_panel->m_cueGrid->ClearSelection();
+    if (m_panel->m_grid->IsSelection())
+      m_panel->m_grid->ClearSelection();
+    if (m_panel->m_cueGrid->IsSelection())
+      m_panel->m_cueGrid->ClearSelection();
     m_panel->m_grid->SelectRow(event.GetRow());
 
     // set/update the currently selected loops positions
@@ -325,12 +337,14 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
         m_audiofile->m_loops->SetSaveOption(false, event.GetRow());
         toolBar->EnableTool(wxID_SAVE, true);
         fileMenu->Enable(wxID_SAVE, true);
+        fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
       } else {
         // The value was false
         m_panel->m_grid->SetCellValue(event.GetRow(), event.GetCol(), wxT("1"));
         m_audiofile->m_loops->SetSaveOption(true, event.GetRow());
         toolBar->EnableTool(wxID_SAVE, true);
         fileMenu->Enable(wxID_SAVE, true);
+        fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
       }
     }
     m_panel->m_grid->SetGridCursor(event.GetRow(), 4); // this is to move scrolling
@@ -346,8 +360,10 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
 
 void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
   if (event.GetRow() >= 0) {
-    m_panel->m_grid->ClearSelection();
-    m_panel->m_cueGrid->ClearSelection();
+    if (m_panel->m_grid->IsSelection())
+      m_panel->m_grid->ClearSelection();
+    if (m_panel->m_cueGrid->IsSelection())
+      m_panel->m_cueGrid->ClearSelection();
     m_panel->m_cueGrid->SelectRow(event.GetRow());
 
     // set the current position for the selected cue
@@ -365,12 +381,14 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
         m_audiofile->m_cues->SetSaveOption(false, event.GetRow());
         toolBar->EnableTool(wxID_SAVE, true);
         fileMenu->Enable(wxID_SAVE, true);
+        fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
       } else {
         // The value was false
         m_panel->m_cueGrid->SetCellValue(event.GetRow(), event.GetCol(), wxT("1"));
         m_audiofile->m_cues->SetSaveOption(true, event.GetRow());
         toolBar->EnableTool(wxID_SAVE, true);
         fileMenu->Enable(wxID_SAVE, true);
+        fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
       }
     }
     m_panel->m_cueGrid->SetGridCursor(event.GetRow(), 2); // this is to hide the highlight box and easily find selected row
@@ -383,12 +401,7 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
   }
 }
 
-void MyFrame::OnSaveFile(wxCommandEvent& event) {
-  m_audiofile->SaveAudioFile(fileToOpen, workingDir);
-  toolBar->EnableTool(wxID_SAVE, false);
-  fileMenu->Enable(wxID_SAVE, false);
-
-  // make sure to update the listCtrl columns as things might have changed
+void MyFrame::UpdateCurrentFileInfo() {
   if (!m_audiofile->m_loops->loopsOut.empty()) {
     wxString loopNbr = wxString::Format(wxT("%i"), m_audiofile->m_loops->loopsOut.size());
     m_fileListCtrl->SetItem(currentOpenFileIdx, 1, loopNbr);
@@ -410,6 +423,34 @@ void MyFrame::OnSaveFile(wxCommandEvent& event) {
   double cents = (double) m_audiofile->m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
   wxString fraction = wxString::Format(wxT("%.2f"), cents);
   m_fileListCtrl->SetItem(currentOpenFileIdx, 4, fraction);
+}
+
+void MyFrame::OnSaveFile(wxCommandEvent& event) {
+  m_audiofile->SaveAudioFile(fileToOpen, workingDir);
+
+  // make sure to update the listCtrl columns as things might have changed
+  UpdateCurrentFileInfo();
+
+  // open the file again to remove old leftovers in grids etc.
+  OpenAudioFile();
+}
+
+void MyFrame::OnSaveOpenNext(wxCommandEvent& event) {
+  m_audiofile->SaveAudioFile(fileToOpen, workingDir);
+
+  // make sure to update the listCtrl columns as things might have changed
+  UpdateCurrentFileInfo();
+
+  // open next file if possible
+  if (currentSelectedIdx < (fileNames.GetCount() - 1) && currentSelectedIdx != wxNOT_FOUND) {
+    m_fileListCtrl->SetItemState(currentSelectedIdx + 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+    m_fileListCtrl->EnsureVisible(currentSelectedIdx);
+
+    wxCommandEvent evt(wxEVT_TOOL, OPEN_SELECTED);
+    ::wxGetApp().frame->AddPendingEvent(evt);
+  } else {
+    OpenAudioFile();
+  }
 }
 
 void MyFrame::OnSaveFileAs(wxCommandEvent& event) {
@@ -506,6 +547,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   m_batchProcess = new BatchProcessDialog(m_autoloopSettings, this);
   currentOpenFileIdx = -1;
   currentSelectedIdx = -1;
+  fileToOpen = wxEmptyString;
   config = new wxFileConfig(wxT("LoopAuditioneer"));
 
   // Create a file menu
@@ -516,6 +558,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   fileMenu->Append(OPEN_SELECTED, wxT("&Open file\tCtrl+F"), wxT("Open selected file"));
   fileMenu->Append(wxID_SAVE, wxT("&Save\tCtrl+S"), wxT("Save current file"));
   fileMenu->Append(wxID_SAVEAS, wxT("Save &as...\tShift+Ctrl+S"), wxT("Save current file with new name"));
+  fileMenu->Append(SAVE_AND_OPEN_NEXT, wxT("Save, open next\tCtrl+Alt+S"), wxT("Save current file and open next"));
   fileMenu->AppendSeparator();
   fileMenu->Append(AUTOLOOP_SETTINGS, wxT("&Autoloop settings\tCtrl+A"), wxT("Adjust settings for loop searching"));
   fileMenu->AppendSeparator();
@@ -524,6 +567,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   fileMenu->Enable(OPEN_SELECTED, false);
   fileMenu->Enable(wxID_SAVE, false);
   fileMenu->Enable(wxID_SAVEAS, false);
+  fileMenu->Enable(SAVE_AND_OPEN_NEXT, false);
 
   // Create a view menu
   viewMenu = new wxMenu();
@@ -567,7 +611,8 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   helpMenu = new wxMenu();
 
   // Add help menu items
-  helpMenu->Append(wxID_ABOUT, wxT("&About...\tF1"), wxT("Show about dialog"));
+  helpMenu->Append(wxID_HELP, wxT("&LoopAuditioneer Help \tF1"), wxT("Show application help"));
+  helpMenu->Append(wxID_ABOUT, wxT("&About..."), wxT("Show about dialog"));
 
   // Create a menu bar and append the menus to it
   menuBar = new wxMenuBar();
@@ -609,24 +654,24 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   wxBitmap zoomOutAmp(wxT("../icons/24x24/Zoom_out.png"), wxBITMAP_TYPE_PNG);
   wxBitmap crossfade(wxT("../icons/24x24/Wizard.png"), wxBITMAP_TYPE_PNG);
   wxBitmap cutfade(wxT("../icons/24x24/Software.png"), wxBITMAP_TYPE_PNG);
-  toolBar->AddTool(FILE_SELECT, selectFolder, wxT("Select working folder"), wxT("Select working folder"));
-  toolBar->AddTool(OPEN_SELECTED, openSelectedFile, wxT("Open selected file"), wxT("Open selected file"));
-  toolBar->AddTool(wxID_SAVE, saveFile, wxT("Save file"), wxT("Save file"));
-  toolBar->AddTool(wxID_SAVEAS, saveFileAs, wxT("Save as..."), wxT("Save file with new name"));
+  toolBar->AddTool(FILE_SELECT, wxT("Select working folder"), selectFolder, wxT("Select working folder"));
+  toolBar->AddTool(OPEN_SELECTED, wxT("Open selected file"), openSelectedFile, wxT("Open selected file"));
+  toolBar->AddTool(wxID_SAVE, wxT("Save file"), saveFile, wxT("Save file"));
+  toolBar->AddTool(wxID_SAVEAS, wxT("Save as..."), saveFileAs, wxT("Save file with new name"));
   toolBar->AddSeparator();
-  toolBar->AddTool(START_PLAYBACK, startPlayback, wxT("Play"), wxT("Play"));
-  toolBar->AddTool(wxID_STOP, stopPlayback, wxT("Stop"), wxT("Stop"));
+  toolBar->AddTool(START_PLAYBACK, wxT("Play"), startPlayback, wxT("Play"));
+  toolBar->AddTool(wxID_STOP, wxT("Stop"), stopPlayback, wxT("Stop"));
   toolBar->AddSeparator();
-  toolBar->AddTool(ADD_LOOP, loopCreation, wxT("New loop"), wxT("Create a new loop"));
-  toolBar->AddTool(AUTOSEARCH_LOOPS, autoLoop, wxT("Autoloop"), wxT("Search for loop(s)"));
-  toolBar->AddTool(AUTOLOOP_SETTINGS, autoLoopSettings, wxT("Autoloop settings"), wxT("Change settings for auto loopsearching"));
-  toolBar->AddTool(BATCH_PROCESS, batchProcess, wxT("Batch processing"), wxT("Batch processing of files/folders"));
-  toolBar->AddTool(PITCH_SETTINGS, pitchInfo, wxT("Pitch settings"), wxT("Find/set information about pitch"));
-  toolBar->AddTool(X_FADE, crossfade, wxT("Crossfade"), wxT("Crossfade a selected loop"));
-  toolBar->AddTool(CUT_N_FADE, cutfade, wxT("Cut & Fade"), wxT("Cut & Fade in/out"));
+  toolBar->AddTool(ADD_LOOP, wxT("New loop"), loopCreation, wxT("Create a new loop"));
+  toolBar->AddTool(AUTOSEARCH_LOOPS, wxT("Autoloop"), autoLoop, wxT("Search for loop(s)"));
+  toolBar->AddTool(AUTOLOOP_SETTINGS, wxT("Autoloop settings"), autoLoopSettings, wxT("Change settings for auto loopsearching"));
+  toolBar->AddTool(BATCH_PROCESS, wxT("Batch processing"), batchProcess, wxT("Batch processing of files/folders"));
+  toolBar->AddTool(PITCH_SETTINGS, wxT("Pitch settings"), pitchInfo, wxT("Find/set information about pitch"));
+  toolBar->AddTool(X_FADE, wxT("Crossfade"), crossfade, wxT("Crossfade a selected loop"));
+  toolBar->AddTool(CUT_N_FADE, wxT("Cut & Fade"), cutfade, wxT("Cut & Fade in/out"));
   toolBar->AddSeparator();
-  toolBar->AddTool(ZOOM_IN_AMP, zoomInAmp, wxT("Zoom in"), wxT("Zoom in on amplitude"));
-  toolBar->AddTool(ZOOM_OUT_AMP, zoomOutAmp, wxT("Zoom out"), wxT("Zoom out on amplitude"));
+  toolBar->AddTool(ZOOM_IN_AMP, wxT("Zoom in"), zoomInAmp, wxT("Zoom in on amplitude"));
+  toolBar->AddTool(ZOOM_OUT_AMP, wxT("Zoom out"), zoomOutAmp, wxT("Zoom out on amplitude"));
 
   // Text label for volume slider
   wxStaticText *volumeLabel = new wxStaticText (
@@ -675,6 +720,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
     this,
     ID_LISTCTRL
   );
+  m_fileListCtrl->SetMinSize(wxSize(385,150));
   hbox->Add(m_fileListCtrl, 1, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, 10);
 
   m_panel = new MyPanel(this);
@@ -682,6 +728,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   hbox->Add(m_panel, 2, wxEXPAND | wxALL, 10);
 
   lowerBox = new wxBoxSizer(wxHORIZONTAL);
+  lowerBox->AddStretchSpacer();
   vbox->Add(lowerBox, 1, wxEXPAND, 0);
   
   SetSizer(vbox);
@@ -981,6 +1028,7 @@ void MyFrame::AddNewCue(unsigned int offset) {
 
   toolBar->EnableTool(wxID_SAVE, true);
   fileMenu->Enable(wxID_SAVE, true);
+  fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 }
 
 void MyFrame::ChangeCuePosition(unsigned int offset, int index) {
@@ -991,6 +1039,7 @@ void MyFrame::ChangeCuePosition(unsigned int offset, int index) {
 
   toolBar->EnableTool(wxID_SAVE, true);
   fileMenu->Enable(wxID_SAVE, true);
+  fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 }
 
 void MyFrame::OnAddLoop(wxCommandEvent& event) {
@@ -1019,6 +1068,7 @@ void MyFrame::OnAddLoop(wxCommandEvent& event) {
     // Enable save icon and menu
     toolBar->EnableTool(wxID_SAVE, true);
     fileMenu->Enable(wxID_SAVE, true);
+    fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
     UpdateAllViews();
   }
@@ -1026,15 +1076,17 @@ void MyFrame::OnAddLoop(wxCommandEvent& event) {
 
 void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
   if (event.GetRow() >= 0) {
-    m_panel->m_grid->ClearSelection();
-    m_panel->m_cueGrid->ClearSelection();
+    if (m_panel->m_grid->IsSelection())
+      m_panel->m_grid->ClearSelection();
+    if (m_panel->m_cueGrid->IsSelection())
+      m_panel->m_cueGrid->ClearSelection();
     m_panel->m_grid->SelectRow(event.GetRow());
 
     // Enable x-fade as now a loop is selected
     toolBar->EnableTool(X_FADE, true);
     toolMenu->Enable(X_FADE, true);
 
-    m_panel->m_grid->SetGridCursor(0, 4); // this is to hide the highlight box
+    m_panel->m_grid->SetGridCursor(event.GetRow(), 4); // this is to fix scrolling issues
     SetLoopPlayback(true); // set the playback to be for loops
     if (toolBar->GetToolEnabled(wxID_STOP) == false) {
       toolBar->EnableTool(START_PLAYBACK, true);
@@ -1064,7 +1116,17 @@ void MyFrame::UpdateAllViews() {
 
 void MyFrame::OnBatchProcess(wxCommandEvent& event) {
   m_batchProcess->ClearStatusProgress();
+  m_batchProcess->SetCurrentWorkingDir(workingDir);
   m_batchProcess->ShowModal();
+  if (workingDir != wxEmptyString && m_batchProcess->NeedToRefreshFileList()) {
+    EmptyListOfFileNames();
+    PopulateListOfFileNames();
+    PopulateListCtrl();
+
+    // also reload any open file to update any changes too
+    if (fileToOpen != wxEmptyString)
+      OpenAudioFile();
+  }
 }
 
 void MyFrame::OnAutoLoop(wxCommandEvent& event) {
@@ -1127,6 +1189,7 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
       // Enable save icon and menu
       toolBar->EnableTool(wxID_SAVE, true);
       fileMenu->Enable(wxID_SAVE, true);
+      fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
       UpdateAllViews();
 
@@ -1283,6 +1346,7 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
     // enable save icon and menu
     toolBar->EnableTool(wxID_SAVE, true);
     fileMenu->Enable(wxID_SAVE, true);
+    fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
   }
 
   delete[] audioData;
@@ -1354,6 +1418,7 @@ void MyFrame::OnCrossfade(wxCommandEvent& event) {
     // Enable save icon and menu
     toolBar->EnableTool(wxID_SAVE, true);
     fileMenu->Enable(wxID_SAVE, true);
+    fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
     // then we should make sure to update the views
     UpdateAllViews();
@@ -1409,6 +1474,7 @@ void MyFrame::OnEditLoop(wxCommandEvent& event) {
     // Enable save icon and menu
     toolBar->EnableTool(wxID_SAVE, true);
     fileMenu->Enable(wxID_SAVE, true);
+    fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
     UpdateAllViews();
   }
@@ -1536,6 +1602,7 @@ void MyFrame::OnCutFade(wxCommandEvent& event) {
     // Enable save icon and menu
     toolBar->EnableTool(wxID_SAVE, true);
     fileMenu->Enable(wxID_SAVE, true);
+    fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
     // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
     m_panel->EmptyTable();
@@ -1588,7 +1655,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // A move volume slider right (volume multiple up)
-  if (event.GetKeyCode() == 65) {
+  if (event.GetKeyCode() == 65 && event.GetModifiers() == wxMOD_NONE) {
     wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
     int value = volumeSl->GetValue();
     if (value < 4) {
@@ -1600,7 +1667,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // Z move volume slider (volume multiple down)
-  if (event.GetKeyCode() == 90) {
+  if (event.GetKeyCode() == 90 && event.GetModifiers() == wxMOD_NONE) {
     wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
     int value = volumeSl->GetValue();
     if (value > 0) {
@@ -1612,7 +1679,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // S moves selection up the filelist
-  if (event.GetKeyCode() == 83) {
+  if (event.GetKeyCode() == 83 && event.GetModifiers() == wxMOD_NONE) {
     if (currentSelectedIdx > 0 && currentSelectedIdx != wxNOT_FOUND) {
       m_fileListCtrl->SetItemState(currentSelectedIdx - 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
       m_fileListCtrl->EnsureVisible(currentSelectedIdx);
@@ -1621,7 +1688,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // X moves selection down the filelist
-  if (event.GetKeyCode() == 88) {
+  if (event.GetKeyCode() == 88 && event.GetModifiers() == wxMOD_NONE) {
     if (currentSelectedIdx < (fileNames.GetCount() - 1) && currentSelectedIdx != wxNOT_FOUND) {
       m_fileListCtrl->SetItemState(currentSelectedIdx + 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
       m_fileListCtrl->EnsureVisible(currentSelectedIdx);
@@ -1630,7 +1697,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // D moves selection up the looplist
-  if (event.GetKeyCode() == 68) {
+  if (event.GetKeyCode() == 68 && event.GetModifiers() == wxMOD_NONE) {
     if (m_panel->m_grid->GetNumberRows() > 0) {
       wxArrayInt selection = m_panel->m_grid->GetSelectedRows();
       if (!selection.IsEmpty()) {
@@ -1654,7 +1721,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           }
         }
       } else {
-        m_panel->m_cueGrid->ClearSelection();
+        if (m_panel->m_cueGrid->IsSelection())
+          m_panel->m_cueGrid->ClearSelection();
         m_panel->m_grid->SelectRow(0, false);
         m_panel->m_grid->SetGridCursor(0, 1);
 
@@ -1680,7 +1748,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // C moves selection down the looplist
-  if (event.GetKeyCode() == 67) {
+  if (event.GetKeyCode() == 67 && event.GetModifiers() == wxMOD_NONE) {
     if (m_panel->m_grid->GetNumberRows() > 0) {
       wxArrayInt selection = m_panel->m_grid->GetSelectedRows();
       if (!selection.IsEmpty()) {
@@ -1704,7 +1772,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           }
         }
       } else {
-        m_panel->m_cueGrid->ClearSelection();
+        if (m_panel->m_cueGrid->IsSelection())
+          m_panel->m_cueGrid->ClearSelection();
         m_panel->m_grid->SelectRow(0, false);
         m_panel->m_grid->SetGridCursor(0, 1);
 
@@ -1730,7 +1799,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // F moves selection up the cuelist
-  if (event.GetKeyCode() == 70) {
+  if (event.GetKeyCode() == 70 && event.GetModifiers() == wxMOD_NONE) {
     if (m_panel->m_cueGrid->GetNumberRows() > 0) {
       wxArrayInt selection = m_panel->m_cueGrid->GetSelectedRows();
       if (!selection.IsEmpty()) {
@@ -1747,7 +1816,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           SetLoopPlayback(false); // set the playback to not be for loops
         }
       } else {
-        m_panel->m_grid->ClearSelection();
+        if (m_panel->m_grid->IsSelection())
+          m_panel->m_grid->ClearSelection();
         m_panel->m_cueGrid->SelectRow(0, false);
         m_panel->m_cueGrid->SetGridCursor(0, 1);
 
@@ -1765,7 +1835,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // V moves selection down the cuelist
-  if (event.GetKeyCode() == 86) {
+  if (event.GetKeyCode() == 86 && event.GetModifiers() == wxMOD_NONE) {
     if (m_panel->m_cueGrid->GetNumberRows() > 0) {
       wxArrayInt selection = m_panel->m_cueGrid->GetSelectedRows();
       if (!selection.IsEmpty()) {
@@ -1782,7 +1852,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           SetLoopPlayback(false); // set the playback to not be for loops
         }
       } else {
-        m_panel->m_grid->ClearSelection();
+        if (m_panel->m_grid->IsSelection())
+          m_panel->m_grid->ClearSelection();
         m_panel->m_cueGrid->SelectRow(0, false);
         m_panel->m_cueGrid->SetGridCursor(0, 1);
 
@@ -1800,8 +1871,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // W toggles currently selected loop/cue save option on/off
-  if (event.GetKeyCode() == 87) {
-    if (m_panel->m_grid->IsSelection()) {
+  if (event.GetKeyCode() == 87 && event.GetModifiers() == wxMOD_NONE) {
+    if (m_panel->m_grid->IsSelection() && m_panel->m_grid->GetNumberRows() > 0) {
       wxArrayInt selection = m_panel->m_grid->GetSelectedRows();
       if (!selection.IsEmpty()) {
         int firstSelected = selection[0];
@@ -1811,15 +1882,17 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           m_audiofile->m_loops->SetSaveOption(false, firstSelected);
           toolBar->EnableTool(wxID_SAVE, true);
           fileMenu->Enable(wxID_SAVE, true);
+          fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
         } else {
           // The value was false
           m_panel->m_grid->SetCellValue(firstSelected, 4, wxT("1"));
           m_audiofile->m_loops->SetSaveOption(true, firstSelected);
           toolBar->EnableTool(wxID_SAVE, true);
           fileMenu->Enable(wxID_SAVE, true);
+          fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
         }
       }
-    } else if (m_panel->m_cueGrid->IsSelection()) {
+    } else if (m_panel->m_cueGrid->IsSelection() && m_panel->m_cueGrid->GetNumberRows() > 0) {
       wxArrayInt selection = m_panel->m_cueGrid->GetSelectedRows();
       if (!selection.IsEmpty()) {
         int firstSelected = selection[0];
@@ -1829,12 +1902,14 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           m_audiofile->m_cues->SetSaveOption(false, firstSelected);
           toolBar->EnableTool(wxID_SAVE, true);
           fileMenu->Enable(wxID_SAVE, true);
+          fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
         } else {
           // The value was false
           m_panel->m_cueGrid->SetCellValue(firstSelected, 2, wxT("1"));
           m_audiofile->m_cues->SetSaveOption(true, firstSelected);
           toolBar->EnableTool(wxID_SAVE, true);
           fileMenu->Enable(wxID_SAVE, true);
+          fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
         }
       }
     }
@@ -1842,8 +1917,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   }
 
   // E toggles all loop(s) save option on/off
-  if (event.GetKeyCode() == 69) {
-    if (m_audiofile->m_loops->GetNumberOfLoops() > 0) {
+  if (event.GetKeyCode() == 69 && event.GetModifiers() == wxMOD_NONE) {
+    if (m_audiofile != NULL) {
       for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
         if (m_panel->m_grid->GetCellValue(i, 4) == wxT("1")) {
           // Equals to a true value to begin with
@@ -1857,13 +1932,14 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
       }
       toolBar->EnableTool(wxID_SAVE, true);
       fileMenu->Enable(wxID_SAVE, true);
+      fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
     }
     return;
   }
 
   // Q toggles all cue(s) save option on/off
-  if (event.GetKeyCode() == 81) {
-    if (m_audiofile->m_cues->GetNumberOfCues() > 0) {
+  if (event.GetKeyCode() == 81 && event.GetModifiers() == wxMOD_NONE) {
+    if (m_audiofile != NULL) {
       for (unsigned i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
         if (m_panel->m_cueGrid->GetCellValue(i, 2) == wxT("1")) {
           // Equals to a true value to begin with
@@ -1877,6 +1953,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
       }
       toolBar->EnableTool(wxID_SAVE, true);
       fileMenu->Enable(wxID_SAVE, true);
+      fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
     }
     return;
   }
@@ -1897,16 +1974,19 @@ void MyFrame::OnGridCellSelect(wxGridEvent& event) {
 }
 
 void MyFrame::OnCueGridCellSelect(wxGridEvent& event) {
-  wxSize visibleSize = m_panel->GetClientSize();
-  wxSize loopGridSize = m_panel->m_grid->GetClientSize();
-  int rowNbr = event.GetRow();
-  int adjustedRowNbr = rowNbr + 2;
-  int rowNbrInView = visibleSize.GetHeight() / m_panel->m_cueGrid->GetRowSize(rowNbr);
+  if (m_panel->m_cueGrid->GetNumberRows() > 0) {
+    int rowNbr = event.GetRow();
+    wxSize visibleSize = m_panel->GetClientSize();
+    wxSize loopGridSize = m_panel->m_grid->GetClientSize();
+    int adjustedRowNbr = rowNbr + 2;
+    int rowSize = m_panel->m_cueGrid->GetRowSize(rowNbr);
+    int rowNbrInView = visibleSize.GetHeight() / rowSize;
 
-  if (adjustedRowNbr > rowNbrInView)
-    m_panel->Scroll(0, (m_panel->m_cueGrid->GetRowSize(rowNbr) / 5) * (adjustedRowNbr + 2 - rowNbrInView) + loopGridSize.GetHeight() / 5 + m_panel->m_grid->GetRowSize(rowNbr) / 5 * 2);
-  else if (adjustedRowNbr < rowNbrInView)
-    m_panel->Scroll(0, (m_panel->m_cueGrid->GetRowSize(rowNbr) / -5) * (rowNbrInView - (adjustedRowNbr)) + loopGridSize.GetHeight() / 5 + m_panel->m_grid->GetRowSize(rowNbr) / 5 * 2);
+    if (adjustedRowNbr > rowNbrInView)
+      m_panel->Scroll(0, (rowSize / 5) * (adjustedRowNbr + 2 - rowNbrInView) + loopGridSize.GetHeight() / 5 + rowSize / 5 * 2);
+    else if (adjustedRowNbr < rowNbrInView)
+      m_panel->Scroll(0, (rowSize / -5) * (rowNbrInView - (adjustedRowNbr)) + loopGridSize.GetHeight() / 5 + rowSize / 5 * 2);
+  }
 }
 
 void MyFrame::PopulateListCtrl() {
@@ -1980,4 +2060,8 @@ void MyFrame::PopulateListCtrl() {
   m_fileListCtrl->SetColumnWidth(4, wxLIST_AUTOSIZE_USEHEADER);
 
   m_fileListCtrl->Show();
+}
+
+void MyFrame::OnHelp(wxCommandEvent& event) {
+  ::wxGetApp().m_helpController->DisplayContents();
 }

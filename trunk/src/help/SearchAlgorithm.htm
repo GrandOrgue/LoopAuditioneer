@@ -1,0 +1,49 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<Title>Loopsearch algorithm</Title>
+</HEAD>
+<BODY>
+<h2>Loopsearch algorithm description</h2>
+<p>The following description of the loopsearch algorithm can be somewhat lengthy and tiresom to read
+but knowledge of what happens inside helps selecting appropriate parameters for the settings that
+control the loopsearch.</p>
+<h3>Without brute force search enabled</h3>
+<p>The searching is done on a copy of the audio data in floating points (doubles scaled between 1 and
+-1) that is passed to the function doing the loopsearch.</p>
+<p>The first step is to find out which channel is the loudest, then the sustainsection - the part of
+the audio that is stable and in which a loop should be found - is decided. If the sustainsection is
+set manually by the sliders in the settings dialog they will simply be converted to samples. If the
+automatic sustainsection search is enabled then a scanning from both start and end will be performed
+to see where the audio doesn't increase in amplitude so much anymore, then some safety margins will
+be added to the final sustainsection.</p>
+<p>The next step is to search for the maximum change from sample to sample in the audio data. This will
+be adjusted by the derivative threshold in the search settings and every sample that is changing less
+will be added to a pool of candidates. If the number of candidates is greater than the max number of
+candidates in the loopsearch settings the program will select an evenly spaced amount of candidates that
+the search settings allow as maximum number of candidates.</p>
+<p>Next the candidates (actually a window of two samples before and two after each candidate) will be compared against other
+candidates that's at least the minimum loop length away and as soon as a match is at least as good as the
+quality requirement the loop will be added to the loop pool. Then the algorithm will jump to the next
+start candidate that's at least the minimum distance away from the last start and repeat the search.</p>
+<p>As soon as the loop pool is full the search will abort. Loop pool size is determined by the number
+of loops to return multiplied by the loop pool multiple.</p>
+<p>After the search is done the loops will be sorted according to comparative quality and then the final
+number of loops to return will be presented to the user after having made sure that every loop at least
+overlap another one.</p>
+<h3>If brute force search is enabled</h3>
+<p>With brute force enabled every candidate will be matched against every other candidate that is at
+least the minimum loop distance away. All the loops that have sufficient quality will be added to
+the loop pool that now have no size limit.</p>
+<p>The loop pool will be sorted according to quality and in a later step when the final selection is
+done it will make sure that no loop start will be too close to another loop start as set by the minimum
+distance between loops.</p>
+<p>The same requirement that every loop at least should overlap another one is still in effect even when
+brute force search is enabled.</p>
+<h3>Final notice</h3>
+<p>Even though the found loops will be sorted according to correlation quality and the ones with the best
+values will be first to be returned, it's not necessarily the best ones nevertheless, only your ears will
+be able to tell if a loop is good enough or not! Therefore it's necessary that you listen to every loop
+that you intend to save in the sample if you want to be sure that they are good!</p>
+</BODY>
+</HTML>

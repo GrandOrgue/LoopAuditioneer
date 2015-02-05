@@ -1,6 +1,6 @@
 /* 
  * MyFrame.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2014 Lars Palo 
+ * Copyright (C) 2011-2015 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ public:
   ~MyFrame();
 
   // Event Handlers
+  void OnClose(wxCloseEvent & event);
   void OnQuit(wxCommandEvent& event);
   void OnAbout(wxCommandEvent& event);
   void OnSelectDir(wxCommandEvent& event);
@@ -55,6 +56,8 @@ public:
   void OnCueGridCellSelect(wxGridEvent& event);
   void OnSaveFile(wxCommandEvent& event);
   void OnSaveFileAs(wxCommandEvent& event);
+  void OnSaveOpenNext(wxCommandEvent& event);
+  void OnHelp(wxCommandEvent& event);
   void OnStartPlay(wxCommandEvent& event);
   void OnStopPlay(wxCommandEvent& event);
   void DoStopPlay();
@@ -122,6 +125,7 @@ private:
   void PopulateListOfFileNames();
   void PopulateListCtrl();
   void UpdateAllViews();
+  void UpdateCurrentFileInfo();
 
   static bool loopPlay;
   static int volumeMultiplier;

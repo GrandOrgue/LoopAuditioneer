@@ -1,5 +1,5 @@
-This is LoopAuditioneer 0.8.0.1
-Copyright (C) 2011-2014 Lars Palo
+This is LoopAuditioneer 0.8.1
+Copyright (C) 2011-2015 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
 LoopAuditioneer is a software for evaluating loops and cues existing in wav 
@@ -31,13 +31,14 @@ distributed under a Creative Commons 3.0 license.
 
 Basic installation instructions are available in the InstallInstructions.txt
 file. At the moment the program developed and mostly tested under Linux
-(Ubuntu 12.04).
+(XUbuntu 14.04).
 
 OTHER DEPENDENCIES
 ------------------
 
 LoopAuditioneer requires wxWidgets, available at http://www.wxwidgets.org/. The
 repository unicode version of wxWidgets that Ubuntu offer should work as well.
+From 0.8.0.2 the 3.0+ version of wxWidgets is needed.
 
 CONTACT THE AUTHOR:
 -------------------

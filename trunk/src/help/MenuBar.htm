@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<Title>Menu bar</Title>
+</HEAD>
+<BODY>
+<h2>Menu bar</h2>
+<p>The menu bar has five menus:</p>
+<ul>
+  <li>File: file operations, loopsearch settings and exit
+  <li>View: zoom options
+  <li>Transport: play, stop, loop play option
+  <li>Tools: various things to do with an open file
+  <li>Help: help and about
+</ul>
+<h3>File menu</h3>
+<p>The file menu contains commands for choosing working directory, opening and saving files,
+adjusting loopsearch settings and exiting the program.</p>
+<h4>Choose folder</h4>
+<p>This item open a file chooser dialog where the current working directory is selected. When
+a folder is chosen the file list will be populated with all .wav files in that directory.</p>
+<h4>Open file</h4>
+<p>This command opens the currently selected file in the file list. The command can also be
+used to "undo" any work on the file and reload it from disk.</p>
+<h4>Save</h4>
+<p>The currently open file will be saved and overwrite the file on disk.</p>
+<h4>Save as...</h4>
+<p>This command opens a dialog that gives the user a choice to save the file with another name
+and in another folder if that is desired.</p>
+<h4>Save, open next</h4>
+<p>Selecting this command saves the currently open file and proceeds to open next file in the
+file list thus allowing swifter work when processing many files.</p>
+<h4>Autoloop settings</h4>
+<p>This item opens up the settings dialog where all parameters for automatic loopsearch can be
+adjusted.</p>
+<h4>Exit</h4>
+<p>This command immediately shuts the program down without saving currently opened file or asking the user
+to save.</p>
+<h3>View menu</h3>
+<p>The view menu has options to zoom in and out on the waveform in amplitude (not in time).</p>
+<h4>Zoom in</h4>
+<p>Every time this option is selected the waveform will be scaled twice as large (in height). The
+maximum zoom level is 64 times the natural size scaling.</p>
+<h4>Zoom out</h4>
+<p>This command reduces the zoom level by half, thus making the waveform smaller. The lowest zoom
+level is the natural 1:1 size.</p>
+<h3>Transport menu</h3>
+<p>In the transport menu the options to control playback of the selected loop or cue of an opened file
+can be found.</p>
+<h4>Start</h4>
+<p>Selecting this item starts playback of the selected loop or cue. A loop or cue must exist and be
+selected or else playback won't be possible.</p>
+<h4>Stop</h4>
+<p>This item stops the playback of the selected loop or cue.</p>
+<h4>Loop only</h4>
+<p>If this menu item is selected the playback won't start at the beginning of the file. Instead it will
+start just before the end of the loop. If it's de-selected again the playback will be from the beginning
+of the file.</p>
+<h3>Tools menu</h3>
+<p>In the tools menu most of the operations that can be done on a file can be found. Also the batch dialog
+can be invoked from this menu.</p>
+<h4>New loop</h4>
+<p>This opens up the loop parameter dialog where the user can set the start and end of a new loop. The values
+are given in samples and can be written into the value boxes or stepped up/down with the spinner arrows.</p>
+<h4>Autoloop</h4>
+<p>When selected this item starts an automatic search of loops in the opened file with the currently used
+loopsearch settings. Depending on the settings this can take some time until completed, have patience.</p>
+<h4>Batch processing</h4>
+<p>This is the only tool that always is available for usage, even if no file is opened. When selected the
+batch process dialog will be opened where different operations can be done on all .wav files in a folder.</p>
+<h4>Pitch detection</h4>
+<p>When selected this item will attempt a pitch detection on the currently opened file with three different
+methods. It's also possible to manually set the pitch information in the dialog that opens.</p>
+<h4>Crossfade</h4>
+<p>The crossfade option affects the currently selected loop and opens up a dialog in which different methods
+and lengths of the crossfade can be chosen.</p>
+<h4>Cut and fade</h4>
+<p>The cut and fade dialog that opens when this item is selected makes it possible to trim start and end of
+a file as well as performing fades in and out. Every operation can be done independently or all at once.</p>
+<h3>Help menu</h3>
+<p>The help menu contans this help as well as an option to display a little information about this program.</p>
+<h4>Help</h4>
+<p>When selected this help will be displayed in it's own window.</p>
+<h4>About</h4>
+<p>This item opens the about dialog that display some brief information about this program.</p>
+</BODY>
+</HTML>

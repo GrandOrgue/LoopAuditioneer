@@ -1,7 +1,7 @@
 /* 
  * LoopAuditioneer is a tool for evaluating loops (and cues) in wav files
  * especially useful for samples intended for organ samplesets
- * Copyright (C) 2011 Lars Palo 
+ * Copyright (C) 2011-2015 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 
 #include <wx/wx.h>
 #include "MyFrame.h"
+#include <wx/html/helpctrl.h>
 
 class LoopAuditioneerApp : public wxApp {
 public:
@@ -31,6 +32,7 @@ public:
   int OnExit();
   MyFrame *frame;
   wxIconBundle m_icons;
+  wxHtmlHelpController *m_helpController;
 };
 
 DECLARE_APP(LoopAuditioneerApp)

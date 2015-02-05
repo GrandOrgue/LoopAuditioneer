@@ -151,10 +151,12 @@ void MyPanel::FillRowWithCueData(unsigned int id, unsigned int position, bool sa
 
 void MyPanel::EmptyTable() {
   int gridRows = m_grid->GetNumberRows();
-  m_grid->DeleteRows(0, gridRows, true);
+  if (gridRows > 0)
+    m_grid->DeleteRows(0, gridRows, true);
 
   int cueGridRows = m_cueGrid->GetNumberRows();
-  m_cueGrid->DeleteRows(0, cueGridRows, true);
+  if (cueGridRows > 0)
+    m_cueGrid->DeleteRows(0, cueGridRows, true);
 }
 
 void MyPanel::ChangeCueData(unsigned int offset, int index) {

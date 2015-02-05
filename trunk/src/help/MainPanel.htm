@@ -1,0 +1,50 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<Title>Main panel - Client area</Title>
+</HEAD>
+<BODY>
+<h2>Main panel - Client area</h2>
+<p><img src="images/MainPanel.jpg" alt="An image of main panel or client area" /></p>
+<p>The main panel or client area is actually divided up in three parts. The file list to the left,
+the loop and cue tables to the right and below them the waveform will be displayed.</p>
+<h3>File list</h3>
+<p>The file list will display all the .wav files in the selected folder/directory the user has
+specified with the menu item Choose folder from the File menu, the Open folder from the tool bar
+or by keyboard shortcut Ctrl + O.</p>
+<p>In the file list one will see the file name, the number of loops, the number of cues, the MIDI note
+and the pitch fraction in cents. This makes it easy to see if a certain file needs more attention.</p>
+<p>It's possible to open a file by double clicking on it in the file list as well as using the menu option,
+the toolbar option or by keyboard shortcut Ctrl + F. Navigation in the file list can be done with keyboard
+keys S for moving up the list and X for moving down the list.</p>
+<h3>Loops and cues tables</h3>
+<p>Above the loops and cues tables the currently opened files file name will be displayed. This part of the
+client area can grow long and if so a scrollbar will be available to the right.</p>
+<h4>Loops table</h4>
+<p>In the loops table all the loops will be displayed in the order they appear. The start sample, end sample,
+lenght of loop in samples and duration in seconds can all be seen. The last column holds a checkbox that
+decides if a loop should be saved when the file is saved.</p>
+<p>Right clicking on a row of the loop table results in a pop-up menu that gives the choices to edit the
+loop in question, crossfade the loop or view the loop points overlayed in a new window.</p>
+<p>If many loops are present and a loop selected it's possible to navigate and change the selection of loop
+in the loop table with the keyboard keys D for up and C for down.</p>
+<p>It's also possible to toggle the save option for the selected loop with keyboard key W. To toggle all
+loops on/off the keyboard key E can be used, for this to work no loop needs to be selected.</p>
+<h4>Cues table</h4>
+<p>The cues table lists all the cues present in the file. As the cue points usually are used for specifying
+where the release part of the sample starts, there should normally be only one present. However if many are
+present and one is selected one can navigate the selection upwards and downwards with keyboard keys F and V
+respectively.</p>
+<p>Every cue present in the file will be listed in order of appearance in file with their id, position in
+samples and a save checkbox that decide if the loop should be stored when the file is saved. The same keyboard
+key W (as with a selected loop) can toggle the save checkbox on/off for a selected cue. The keyboard key Q
+can toggle the save checkbox on/off for all cues present and no cue needs to be selected for this to work.</p>
+<h3>Waveform display</h3>
+<p>The waveform display shows all the channels of the file opened with a scaling to the left of an amplitude
+scaled between 1 and -1 at normal (default) zoom level. Below the channels a timeline in seconds is outlined
+and above the channels a playback marker shows the current playback position.</p>
+<p>If loops are present in the file they will be drawn in on the waveform in dotted red with start and end
+point having flags showing the loop number after an L. Cues will be shown with a dotted green line that has
+a flag with a M and the cue order number.</p>
+</BODY>
+</HTML>

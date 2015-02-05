@@ -1,6 +1,6 @@
 /* 
  * LoopOverlay.cpp displays the waveforms overlayed at looppoints
- * Copyright (C) 2012 Lars Palo 
+ * Copyright (C) 2012-14 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "LoopOverlay.h"
 
 BEGIN_EVENT_TABLE(LoopOverlay, wxDialog)
+  EVT_ERASE_BACKGROUND(LoopOverlay::OnEraseBackground)
   EVT_PAINT(LoopOverlay::OnPaintEvent)
 END_EVENT_TABLE()
 
@@ -79,37 +80,20 @@ LoopOverlay::LoopOverlay(
   m_channels = channels;
 
   // Layout issues
-  this->SetSizeHints(wxDefaultSize, wxDefaultSize);
-
-  wxBoxSizer* topSizer;
-  topSizer = new wxBoxSizer(wxVERTICAL);
-
-  m_drawPanel = new wxPanel(
-    this,
-    wxID_ANY,
-    wxDefaultPosition,
-    wxDefaultSize,
-    wxFULL_REPAINT_ON_RESIZE
-  );
-  m_drawPanel->SetMinSize(wxSize(400, 300));
-
-  topSizer->Add(m_drawPanel, 1, wxEXPAND|wxALL, 1);
-
-  this->SetSizer(topSizer);
-  this->Layout();
-  topSizer->Fit(this);
+  this->SetMinSize(wxSize(400, 300));
+  this->SetAutoLayout(true);
 }
 
 LoopOverlay::~LoopOverlay() {
 }
 
 void LoopOverlay::OnPaintEvent(wxPaintEvent & evt) {
-    wxPaintDC dc(m_drawPanel);
+    wxPaintDC dc(this);
     OnPaint(dc);
 }
 
 void LoopOverlay::OnPaint(wxDC& dc) {
-  wxSize size = m_drawPanel->GetSize();
+  wxSize size = this->GetClientSize();
   int leftMargin = 20;
   int rightMargin = 10;
   int topMargin = 10;
@@ -217,3 +201,5 @@ void LoopOverlay::OnPaint(wxDC& dc) {
   }
 }
 
+void LoopOverlay::OnEraseBackground(wxEraseEvent& WXUNUSED(event)) {
+}

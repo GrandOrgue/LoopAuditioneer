@@ -1,9 +1,9 @@
 Install (compilation) instructions for LoopAuditioneer under Linux
 ------------------------------------------------------------------
 
-You'll need standard development tools for c++, wxWidgets and ALSA, be sure to
+You'll need standard development tools for c++, wxWidgets 3.0 and ALSA, be sure to
 check the external libraries installation files for more details on what might
-be needed.
+be needed. (apt-get build-dep for the programs can be used too)
 
 Compile and prepare libsndfile:
 
