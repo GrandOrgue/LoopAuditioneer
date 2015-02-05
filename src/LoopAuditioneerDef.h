@@ -44,10 +44,11 @@ enum {
   EDIT_LOOP = wxID_HIGHEST + 18,
   VIEW_LOOPPOINTS = wxID_HIGHEST + 19,
   CUT_N_FADE = wxID_HIGHEST + 20,
-  LOOP_ONLY = wxID_HIGHEST +21
+  LOOP_ONLY = wxID_HIGHEST + 21,
+  SAVE_AND_OPEN_NEXT = wxID_HIGHEST + 22
 };
 
 const wxString appName = wxT("LoopAuditioneer");
-const wxString appVersion = wxT("0.8.0.1");
+const wxString appVersion = wxT("0.8.1.0");
 
 #endif

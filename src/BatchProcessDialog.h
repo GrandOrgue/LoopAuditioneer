@@ -1,6 +1,6 @@
 /* 
  * BatchProcessDialog.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2014 Lars Palo 
+ * Copyright (C) 2011-2015 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,6 +73,8 @@ public:
   wxString GetLastTarget();
   void SetLastSource(wxString source);
   void SetLastTarget(wxString target);
+  void SetCurrentWorkingDir(wxString str);
+  bool NeedToRefreshFileList();
 
 private:
   wxArrayString m_batchProcessesAvailable;
@@ -86,6 +88,8 @@ private:
   wxString m_lastSource;
   wxString m_lastTarget;
   AutoLoopDialog *m_loopSettings;
+  wxString m_currentWorkingDir;
+  bool m_mustRefreshMainDir;
 
   // Event methods
   void OnAddSource(wxCommandEvent& event);
@@ -93,7 +97,7 @@ private:
   void OnChoiceSelected(wxCommandEvent& event);
   void OnRunBatch(wxCommandEvent& event);
 
-  wxString MyDoubleToString(double dbl);
+  wxString MyDoubleToString(double dbl, int precision);
 
   void ReadyToRockAndRoll();
 };

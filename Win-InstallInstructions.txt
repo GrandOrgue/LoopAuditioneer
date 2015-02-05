@@ -6,13 +6,13 @@ from Linux with mingw-w64
 
 Requires:
 
-Linux (The author uses Ubuntu 12.04) with usual development tools
+Linux (The author uses XUbuntu 14.04) with usual development tools
 mingw-w64
 wxWidgets 
-	(The author used wxGTK-2.8.12 cross-compiled like this:
+	(The author used wxGTK-3.0.0 cross-compiled like this:
 	1. In the extracted wx source folder a new win-ur-static folder was created
 	2. cd into the new folder and run:
-../configure --host=i686-w64-mingw32 --prefix=/PATH_TO_WX_SOURCE/win-ur-static/inst --enable-unicode --disable-shared
+../configure --host=i686-w64-mingw32 --build=i686-linux --prefix=/PATH_TO_WX_SOURCE/win-ur-static/inst --enable-unicode --disable-shared
 	3. make
 	4. make install
 )

@@ -1,6 +1,6 @@
 /* 
  * LoopPointOverlay.h displays the waveforms overlayed at looppoints
- * Copyright (C) 2012 Lars Palo 
+ * Copyright (C) 2012-2014 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,15 +44,11 @@ public:
     const wxString& title = wxT("Waveform overlay at looppoints"),
     const wxPoint& pos = wxDefaultPosition,
     const wxSize& size = wxDefaultSize,
-    long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER|wxFULL_REPAINT_ON_RESIZE
+    long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER|wxBG_STYLE_PAINT|wxFULL_REPAINT_ON_RESIZE
   );
   ~LoopOverlay();
 
-  void OnPaintEvent(wxPaintEvent& evt);
-  void OnPaint(wxDC& dc);
-
 private:
-  wxPanel* m_drawPanel;
   std::vector<STARTAUDIO> m_startTracks;
   std::vector<ENDAUDIO> m_endTracks;
   int m_channels;
@@ -60,9 +56,12 @@ private:
   double m_minValue;
   double m_valueRange;
 
+  void OnEraseBackground(wxEraseEvent& WXUNUSED(event));
+  void OnPaintEvent(wxPaintEvent& evt);
+  void OnPaint(wxDC& dc);
+
   // handle events
   DECLARE_EVENT_TABLE()
 };
 
 #endif
-

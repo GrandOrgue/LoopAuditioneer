@@ -361,7 +361,7 @@ void AutoLoopDialog::CreateControls() {
     ID_NR_LOOPS,
     6,
     1,
-    8,
+    16,
     wxDefaultPosition, 
     wxDefaultSize, 
     wxSL_HORIZONTAL|wxSL_LABELS

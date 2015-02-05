@@ -602,28 +602,32 @@ void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double f
   LOOPDATA loopToCrossfade;
   m_loops->GetLoopData(loopNumber, loopToCrossfade);
   unsigned samplesToFade = m_samplerate * fadeLength;
+  unsigned samplesToFadeOut = m_samplerate * fadeLength;
 
   // check to not read outside the audiodata array
   if (samplesToFade > loopToCrossfade.dwStart)
     samplesToFade = loopToCrossfade.dwStart;
 
   // check to not write outside the audiodata array
-  if ((samplesToFade + loopToCrossfade.dwEnd + 1) * m_channels > ArrayLength)
-    samplesToFade = (ArrayLength - (loopToCrossfade.dwEnd + 1)) / m_channels;
+  if ((samplesToFadeOut + loopToCrossfade.dwEnd + 1) * m_channels > ArrayLength)
+    samplesToFadeOut = (ArrayLength / m_channels) - (loopToCrossfade.dwEnd + 1);
 
   unsigned firstTargetIdx = (loopToCrossfade.dwEnd - (samplesToFade - 1)) * m_channels;
   unsigned firstSourceIdx = (loopToCrossfade.dwStart - samplesToFade) * m_channels;
   unsigned secondTargetIdx = (loopToCrossfade.dwEnd + 1) * m_channels;
   unsigned secondSourceIdx = loopToCrossfade.dwStart * m_channels;
 
-  // prepare an array for the crossfade curve data
+  // prepare arrays for the crossfade curve data
   double fadeData[samplesToFade];
+  double fadeOutData[samplesToFadeOut];
 
   switch(fadeType) {
     case 0:
       // linear data from 0 to 1
       for (int i = 0; i < samplesToFade; i++)
         fadeData[i] = i * 1.0 / (samplesToFade - 1);
+      for (int i = 0; i < samplesToFadeOut; i++)
+        fadeOutData[i] = i * 1.0 / (samplesToFadeOut - 1);
       break;
 
     case 1:
@@ -631,6 +635,10 @@ void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double f
       for (int i = 0; i < samplesToFade; i++) {
         double linear = i * 1.0 / (samplesToFade - 1);
         fadeData[i] = 0.5 * (1.0 + cos((1.0 - linear) * M_PI));
+      }
+      for (int i = 0; i < samplesToFadeOut; i++) {
+        double linear = i * 1.0 / (samplesToFadeOut - 1);
+        fadeOutData[i] = 0.5 * (1.0 + cos((1.0 - linear) * M_PI));
       }
       break;
 
@@ -640,6 +648,10 @@ void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double f
         double linear = i * 1.0 / (samplesToFade - 1);
         fadeData[i] = linear / sqrt( pow(linear, 2) + pow((1 - linear), 2) );
       }
+      for (int i = 0; i < samplesToFadeOut; i++) {
+        double linear = i * 1.0 / (samplesToFadeOut - 1);
+        fadeOutData[i] = linear / sqrt( pow(linear, 2) + pow((1 - linear), 2) );
+      }
       break;
 
     case 3:
@@ -648,12 +660,18 @@ void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double f
         double linear = i * 1.0 / (samplesToFade - 1);
         fadeData[i] = sin(M_PI / 2 * linear);
       }
+      for (int i = 0; i < samplesToFadeOut; i++) {
+        double linear = i * 1.0 / (samplesToFadeOut - 1);
+        fadeOutData[i] = sin(M_PI / 2 * linear);
+      }
       break;
 
     default:
       // linear data from 0 to 1
       for (int i = 0; i < samplesToFade; i++)
-      fadeData[i] = i * 1.0 / (samplesToFade - 1);
+        fadeData[i] = i * 1.0 / (samplesToFade - 1);
+      for (int i = 0; i < samplesToFadeOut; i++)
+        fadeOutData[i] = i * 1.0 / (samplesToFadeOut - 1);
   }
 
   // crossfade around the endpoint so that the audio won't click
@@ -666,13 +684,18 @@ void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double f
       audioData[firstTargetIdx + j] = 
         audioData[firstTargetIdx + j] * fadeData[samplesToFade - 1 - i] +
         audioData[firstSourceIdx + j] * fadeData[i];
-      audioData[secondTargetIdx + j] = 
-        audioData[secondTargetIdx + j] * fadeData[i] +
-        audioData[secondSourceIdx + j] * fadeData[samplesToFade - 1 - i];
     }
     firstTargetIdx += m_channels;
-    secondTargetIdx += m_channels;
     firstSourceIdx += m_channels;
+  }
+
+  for (unsigned i = 0; i < samplesToFadeOut; i++) {
+    for (int j = 0; j < m_channels; j++) {
+      audioData[secondTargetIdx + j] = 
+        audioData[secondTargetIdx + j] * fadeOutData[i] +
+        audioData[secondSourceIdx + j] * fadeOutData[samplesToFadeOut - 1 - i];
+    }
+    secondTargetIdx += m_channels;
     secondSourceIdx += m_channels;
   }
 }

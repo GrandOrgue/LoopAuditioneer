@@ -1,0 +1,35 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<Title>Pitch detection/editing</Title>
+</HEAD>
+<BODY>
+<h2>Pitch detection and editing</h2>
+<p>Storing the information about the pitch of the sample is a convenient way to let a sample player
+like GrandOrgue know the pitch and thus be able to re-pitch it for tuning purposes and different
+temperaments.</p>
+<p>This pitch information is saved in the smpl chunk as dwMIDIUnityNote and dwMIDIPitchFraction
+and is purely metadata that won't affect the audio data in any way when it's saved to the file.</p>
+<p><img src="images/PitchDialog.jpg" alt="A screenshot of the auto pitch detection dialog" /></p>
+<p>From the toolbar bell icon or from the menu item (or keyboard Ctrl + D) it's possible to invoke
+the pitch dialog as soon as an audio file is open. The program will automatically try to detect the
+pitch in the sample by FFT-based-, it's relative HPS (harmonic product spectrum) and Time domain
+based algorithms. This information is also presented as dwMIDIUnityNote and dwMIDIPitchFraction
+that will be saved to the file. It's also possible to instead manually edit or set the values that
+describe the pitch from this dialog if the existing/manual radio button is selected.</p>
+<p>Also note that already existing information in the audio file will be presented in this dialog in
+the lower (initially disabled) part. The MIDI note and Pitch fraction that already exist in the file
+will also show up in the file list in the main window. A file must be saved for the information to 
+be updated.</p>
+<p>When to use what type of detection? The time domain pitch detection is generally more accurate with
+single pipe samples of lower to medium frequencies. The FFT based detection on the other hand is better
+with multiple pipes (like a mixture) and higher frequencies (say around the 072-C of a 8' stop) and in
+some instances the HPS method will give the best average. It all depends on the sample what method
+will give the truest detection.</p>
+<p>With very difficult samples I still use another analysis software (like Praat) to detect the correct
+pitch peaks and set it with the manual method. As a side note I can mention that in Praat I use the
+function "To Spectrum" and zoom in on the correct peak with selection until it's clearly visible. Then
+I use the Ctrl + K to snap to closest peak and read the frequency value for it. After that I set it
+manually in LoopAuditioneer.</p>
+</BODY>
+</HTML>
