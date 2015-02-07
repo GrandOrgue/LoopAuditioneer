@@ -50,7 +50,8 @@ bool AutoLooping::AutoFindLoops(
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
   bool autosearchSustainsection,
   int startPercentage,
-  int endPercentage) {
+  int endPercentage,
+  std::vector<std::pair<unsigned, unsigned> > &loopsAlreadyInFile) {
 
   // find out which channel is strongest
   int strongestChannel = 0;
@@ -236,15 +237,31 @@ bool AutoLooping::AutoFindLoops(
       // if the quality of the correlation is above quality threshold add the loop
       // but remove one sample from end index for a better loop match
       if (correlationValue < m_qualityFactor / 32767.0 * numberOfChannels) {
-        foundLoops.push_back(
-          std::make_pair(
+        // make sure the loop doesn't already exist in file, or that it's too close to an existing!
+        bool loopAlreadyExist = false;
+        for (unsigned k = 0; k < loopsAlreadyInFile.size(); k++) {
+          unsigned startDifference = (loopsAlreadyInFile[k].first < (loopStartIndex / numberOfChannels)) ? ((loopStartIndex / numberOfChannels) - loopsAlreadyInFile[k].first) : (loopsAlreadyInFile[k].first - (loopStartIndex / numberOfChannels));
+          if (loopsAlreadyInFile[k].first == (loopStartIndex / numberOfChannels) &&
+            loopsAlreadyInFile[k].second == ((loopEndIndex / numberOfChannels) - 1)
+          ) {
+            loopAlreadyExist = true;
+            break;
+          } else if (startDifference < (samplerate * m_distanceBetweenLoops)) {
+            loopAlreadyExist = true;
+            break;
+          }
+        }
+        if (!loopAlreadyExist) {
+          foundLoops.push_back(
             std::make_pair(
-              (loopStartIndex / numberOfChannels),
-              ((loopEndIndex / numberOfChannels) - 1)
-            ),
-            correlationValue
-          )
-        );
+              std::make_pair(
+                (loopStartIndex / numberOfChannels),
+                ((loopEndIndex / numberOfChannels) - 1)
+              ),
+              correlationValue
+            )
+          );
+        }
         break;
       }
     }

@@ -455,7 +455,21 @@ void AutoLoopDialog::SetMultiple(int m) {
   m_loopMultiple = m;
 }
 void AutoLoopDialog::SetAutosearch(bool search) {
-  m_autoSearchSustain = search;
+  wxCheckBox *autoCheck = (wxCheckBox*) FindWindow(ID_SEARCH_CHECK);
+  wxSlider *startSl = (wxSlider*) FindWindow(ID_SUSTAINSTART);
+  wxSlider *endSl = (wxSlider*) FindWindow(ID_SUSTAINEND);
+
+  if (search) {
+    startSl->Enable(false);
+    endSl->Enable(false);
+    m_autoSearchSustain = true;
+    autoCheck->SetValue(true);
+  } else {
+    startSl->Enable(true);
+    endSl->Enable(true);
+    m_autoSearchSustain = false;
+    autoCheck->SetValue(false);
+  }
 }
 void AutoLoopDialog::SetStart(int start) {
   m_startPercentage = start;
