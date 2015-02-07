@@ -1,6 +1,6 @@
 /*
  * FileHandling.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2014 Lars Palo
+ * Copyright (C) 2011-2015 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
       sfHandle.read(doubleAudioData, ArrayLength);
 
       fileOpenWasSuccessful = true;
-    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
+    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
       ArrayLength = sfHandle.frames() * sfHandle.channels();
       shortAudioData = new short[ArrayLength];
       sfHandle.read(shortAudioData, ArrayLength);
@@ -176,7 +176,7 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
   // Finally write the data back
   if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
     sfh.write(doubleAudioData, ArrayLength);
-  } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
+  } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
     sfh.write(shortAudioData, ArrayLength);
   } else {
     sfh.write(intAudioData, ArrayLength);
@@ -948,7 +948,7 @@ void FileHandling::TrimExcessData() {
         doubleAudioData[i] = audioData[i];
 
       delete[] audioData;
-    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
+    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
       short *audioData = new short[newArrayLength];
 
       for (unsigned i = 0; i < (lastEndSample + 3) * m_channels; i++)
@@ -1019,7 +1019,7 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
         doubleAudioData[i] = audioData[i];
 
       delete[] audioData;
-    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
+    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
       short *audioData = new short[newArrayLength];
 
       for (unsigned i = 0; i < newArrayLength; i++)
@@ -1082,7 +1082,7 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
         doubleAudioData[i] = audioData[i];
 
       delete[] audioData;
-    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8)) {
+    } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
       short *audioData = new short[newArrayLength];
 
       for (unsigned i = 0; i < newArrayLength; i++)
