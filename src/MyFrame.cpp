@@ -958,7 +958,38 @@ int MyFrame::AudioCallback(void *outputBuffer,
     }
 
     return 0;
-  } else if (::wxGetApp().frame->m_audiofile->doubleAudioData) {
+  } else if (::wxGetApp().frame->m_audiofile->doubleAudioData && ::wxGetApp().frame->m_audiofile->GetAudioFormat() == SF_FORMAT_FLOAT) {
+    float *buffer = static_cast<float*>(outputBuffer);
+
+    // keep track of position, see pos in MySound.h
+    unsigned int *position = (unsigned int *) userData;
+
+    // Loop that feeds the outputBuffer with data
+    if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
+      for (unsigned int i = 0; i < nBufferFrames * nChannels; i++) {
+        *buffer++ = ::wxGetApp().frame->m_audiofile->doubleAudioData[(position[0])] * volumeMultiplier;
+        position[0] += 1;
+
+        if (loopPlay) {
+          // Check to control loop playback, see MySound.h pos member and MyFrame.h loopPlay member
+          if (position[0] > position[2])
+            position[0] = position[1];
+        }
+
+        // stop if end of file data is reached and reset current position to start of the cue
+        if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
+          wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
+          ::wxGetApp().frame->AddPendingEvent(evt);
+
+          return 0;
+        }
+      }
+    }  else {
+      // we end up here until buffer is drained?
+    }
+
+    return 0;
+  }  else if (::wxGetApp().frame->m_audiofile->doubleAudioData && ::wxGetApp().frame->m_audiofile->GetAudioFormat() == SF_FORMAT_DOUBLE) {
     double *buffer = static_cast<double*>(outputBuffer);
 
     // keep track of position, see pos in MySound.h

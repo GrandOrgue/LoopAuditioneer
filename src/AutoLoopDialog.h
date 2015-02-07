@@ -1,6 +1,6 @@
 /* 
  * AutoLoopDialog.h provide a GUI for setting parameters for AutoLooping
- * Copyright (C) 2011-2014 Lars Palo 
+ * Copyright (C) 2011-2015 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
