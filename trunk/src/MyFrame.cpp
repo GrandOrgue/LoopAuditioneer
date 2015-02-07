@@ -1172,6 +1172,14 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
     bool foundSomeLoops = false;
 
     if (!foundSomeLoops) {
+      // first get all loops already in file
+      std::vector<std::pair<unsigned, unsigned> > loopsAlreadyInFile;
+      for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
+        LOOPDATA aLoop;
+        m_audiofile->m_loops->GetLoopData(i, aLoop);
+        loopsAlreadyInFile.push_back(std::make_pair(aLoop.dwStart, aLoop.dwEnd));
+      }
+
       // stop other windows and set a busyinfo to calm user if it takes some time
       wxWindowDisabler disableAll;
 
@@ -1187,7 +1195,8 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
         loops,
         m_autoloopSettings->GetAutosearch(),
         m_autoloopSettings->GetStart(),
-        m_autoloopSettings->GetEnd()
+        m_autoloopSettings->GetEnd(),
+        loopsAlreadyInFile
       );
     }
 

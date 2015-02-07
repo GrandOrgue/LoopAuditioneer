@@ -49,7 +49,8 @@ public:
     std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
     bool autosearchSustainsection,
     int startPercentage,
-    int endPercentage
+    int endPercentage,
+    std::vector<std::pair<unsigned, unsigned> > &loopsAlreadyInFile
   );
 
   // Functions for setting private variables
