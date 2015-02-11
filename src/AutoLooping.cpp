@@ -298,14 +298,21 @@ bool AutoLooping::AutoFindLoops(
   // but we should make sure that all returned loops must overlap at least one other
   if (!foundLoops.empty()) {
     std::vector<unsigned> alreadyStoredLoopIndexes;
+    bool addedLoop;
+    // the first loop should be the best quality and is automatically added if no loops already exist
+    if (loopsAlreadyInFile.empty()) {
+      loops.push_back(foundLoops[0]);
+      alreadyStoredLoopIndexes.push_back(0);
+    } else {
+      // we temporarily add the already existing loops to the vector
+      for (unsigned i = 0; i < loopsAlreadyInFile.size(); i++) {
+        loops.push_back(std::make_pair(std::make_pair(loopsAlreadyInFile[i].first, loopsAlreadyInFile[i].second), 0));
+      }
+    }
 
-    // the first loop should be the best quality and is added
-    loops.push_back(foundLoops[0]);
+    addedLoop = true;
 
-    alreadyStoredLoopIndexes.push_back(0);
-    bool addedLoop = true;
-
-    while (loops.size() < m_loopsToReturn && addedLoop) {
+    while ((loops.size() < (m_loopsToReturn + loopsAlreadyInFile.size())) && addedLoop) {
       addedLoop = false;
 
       for (unsigned i = 0; i < foundLoops.size(); i++) {
@@ -360,7 +367,15 @@ bool AutoLooping::AutoFindLoops(
         }
       }
     }
-    return true;
+    // now remove the temporarily added already existing loops (if previously added)
+    if (!loopsAlreadyInFile.empty()) {
+      int loopsToRemove = loopsAlreadyInFile.size();
+      loops.erase(loops.begin(), loops.begin() + loopsToRemove);
+    }
+    if (!loops.empty())
+      return true;
+    else
+      return false;
   } else {
     return false;
   }
