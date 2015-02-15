@@ -31,6 +31,7 @@
 #include "LoopOverlay.h"
 #include <wx/busyinfo.h>
 #include "sndfile.hh"
+#include <wx/settings.h>
 
 bool MyFrame::loopPlay = true; // default to loop play
 int MyFrame::volumeMultiplier = 1; // default value
@@ -736,6 +737,15 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   // Layout();
   SetMinSize(wxSize(1000,560));
   SetBackgroundColour(wxT("#f4f2ef"));
+
+  // adjust width of the list control columns
+  int colWidth = m_fileListCtrl->GetClientSize().GetWidth() / 5;
+
+  m_fileListCtrl->InsertColumn(0, wxT("File name"), wxLIST_FORMAT_LEFT, colWidth);
+  m_fileListCtrl->InsertColumn(1, wxT("Loops"), wxLIST_FORMAT_CENTRE, colWidth);
+  m_fileListCtrl->InsertColumn(2, wxT("Cues"), wxLIST_FORMAT_CENTRE, colWidth);
+  m_fileListCtrl->InsertColumn(3, wxT("Note"), wxLIST_FORMAT_CENTRE, colWidth);
+  m_fileListCtrl->InsertColumn(4, wxT("Fraction"), wxLIST_FORMAT_CENTRE, colWidth);
 
   if (config->Read(wxT("General/LastWorkingDir"), &workingDir)) {
     // if value was found it's now in the variable workingDir
@@ -2030,25 +2040,7 @@ void MyFrame::OnCueGridCellSelect(wxGridEvent& event) {
 }
 
 void MyFrame::PopulateListCtrl() {
-  m_fileListCtrl->ClearAll();
-
-  wxListItem itemCol;
-  itemCol.SetText(wxT("File name"));
-  itemCol.SetImage(0);
-  m_fileListCtrl->InsertColumn(0, itemCol);
-
-  itemCol.SetText(wxT("Loops"));
-  itemCol.SetAlign(wxLIST_FORMAT_CENTRE);
-  m_fileListCtrl->InsertColumn(1, itemCol);
-
-  itemCol.SetText(wxT("Cues"));
-  m_fileListCtrl->InsertColumn(2, itemCol);
-
-  itemCol.SetText(wxT("Note"));
-  m_fileListCtrl->InsertColumn(3, itemCol);
-
-  itemCol.SetText(wxT("Fraction"));
-  m_fileListCtrl->InsertColumn(4, itemCol);
+  m_fileListCtrl->DeleteAllItems();
 
   m_fileListCtrl->Hide();
 
@@ -2098,6 +2090,30 @@ void MyFrame::PopulateListCtrl() {
   m_fileListCtrl->SetColumnWidth(2, wxLIST_AUTOSIZE_USEHEADER);
   m_fileListCtrl->SetColumnWidth(3, wxLIST_AUTOSIZE_USEHEADER);
   m_fileListCtrl->SetColumnWidth(4, wxLIST_AUTOSIZE_USEHEADER);
+
+  int availableWidth;
+
+  if (m_fileListCtrl->GetSize() != m_fileListCtrl->GetVirtualSize())
+    availableWidth = m_fileListCtrl->GetClientSize().GetWidth() - wxSystemSettings::GetMetric(wxSYS_VSCROLL_X);
+  else
+    availableWidth = m_fileListCtrl->GetClientSize().GetWidth();
+
+  // adjust width of the list control columns
+  if (m_fileListCtrl->GetColumnWidth(0) +
+    m_fileListCtrl->GetColumnWidth(1) +
+    m_fileListCtrl->GetColumnWidth(2) +
+    m_fileListCtrl->GetColumnWidth(3) +
+    m_fileListCtrl->GetColumnWidth(4) < availableWidth
+  ) {
+    int sizeLeft = availableWidth - (
+      m_fileListCtrl->GetColumnWidth(1) +
+      m_fileListCtrl->GetColumnWidth(2) +
+      m_fileListCtrl->GetColumnWidth(3) +
+      m_fileListCtrl->GetColumnWidth(4)
+    );
+    if (sizeLeft > m_fileListCtrl->GetColumnWidth(0))
+      m_fileListCtrl->SetColumnWidth(0, sizeLeft);
+  }
 
   m_fileListCtrl->Show();
 }
