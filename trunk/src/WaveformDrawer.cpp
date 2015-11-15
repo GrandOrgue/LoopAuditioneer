@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011-2015 Lars Palo 
+ * Copyright (C) 2011-2015 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -136,7 +136,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
     CalculateLayout();
 
     dc.SetBrush(wxBrush(white));
-    dc.SetPen(wxPen(black, 1, wxSOLID));
+    dc.SetPen(wxPen(black, 1, wxPENSTYLE_SOLID));
     dc.SetFont(wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_LIGHT));
 
     // draw playposition rectangle
@@ -184,7 +184,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
             wxCoord x1 = leftMargin + lineToDraw, y1 = topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2) - (maxValue * trackHeight / 2);
             wxCoord x2 = leftMargin + lineToDraw, y2 = topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2) - (minValue * trackHeight / 2);
 
-            dc.SetPen(wxPen(blue, 1, wxSOLID));
+            dc.SetPen(wxPen(blue, 1, wxPENSTYLE_SOLID));
             dc.DrawLine(x1, y1, x2, y2);
 
             // proceed with next frame
@@ -199,7 +199,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
           }
         }
         // draw the 0 indicating line
-        dc.SetPen(wxPen(blue, 1, wxSOLID));
+        dc.SetPen(wxPen(blue, 1, wxPENSTYLE_SOLID));
         dc.DrawLine((leftMargin + 1), topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2), size.x - (rightMargin + 1), topMargin + trackHeight * j + j * marginBetweenTracks + (trackHeight / 2));
 
         // reset the wave pixel position for the next track
@@ -254,7 +254,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
         }
       }
       // draw time indicating lines at bottom
-      dc.SetPen(wxPen(black, 1, wxSOLID));
+      dc.SetPen(wxPen(black, 1, wxPENSTYLE_SOLID));
       // starting at zero
       dc.DrawLine(leftMargin, size.y - 11, leftMargin, size.y - 1);
       dc.SetFont(wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_LIGHT));
@@ -292,7 +292,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
     dc.SetClippingRegion(0, 0, leftMargin + trackWidth + rightMargin, 9);
     dc.Clear();
     dc.SetBrush(wxBrush(white));
-    dc.SetPen(wxPen(black, 1, wxSOLID));
+    dc.SetPen(wxPen(black, 1, wxPENSTYLE_SOLID));
 
     // draw playposition rectangle
     dc.DrawRectangle(leftMargin, 0, trackWidth, 10);
@@ -307,8 +307,8 @@ void WaveformDrawer::OnPaintPlayPosition(wxDC& dc) {
   dc.SetBackground(m_background);
   dc.SetClippingRegion(0, 0, leftMargin + trackWidth + rightMargin, 9);
   dc.Clear();
-  dc.SetPen(wxPen(black, 1, wxSOLID));
-  dc.SetBrush(wxBrush(white, wxSOLID));
+  dc.SetPen(wxPen(black, 1, wxPENSTYLE_SOLID));
+  dc.SetBrush(wxBrush(white, wxPENSTYLE_SOLID));
 
   // draw playposition rectangle
   dc.DrawRectangle(leftMargin, 0, trackWidth, 10);
@@ -577,7 +577,7 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
         cueIsSelected = true;
         wxClientDC dc(this);
         dc.SetBrush(wxBrush(white, wxBDIAGONAL_HATCH));
-        dc.SetPen(wxPen(green, 1, wxSOLID));
+        dc.SetPen(wxPen(green, 1, wxPENSTYLE_SOLID));
         dc.DrawRectangle(cueLayout[selectedCueIndex].flagUpLeft.first, cueLayout[selectedCueIndex].flagUpLeft.second,
                          cueLayout[selectedCueIndex].flagDownRight.first - cueLayout[selectedCueIndex].flagUpLeft.first,
                          cueLayout[selectedCueIndex].flagDownRight.second - cueLayout[selectedCueIndex].flagUpLeft.second);

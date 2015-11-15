@@ -1,6 +1,6 @@
 /* 
  * AutoLoopDialog.cpp provide a GUI for setting parameters for AutoLooping
- * Copyright (C) 2011-2015 Lars Palo 
+ * Copyright (C) 2011-2015 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -238,7 +238,7 @@ void AutoLoopDialog::CreateControls() {
     wxSize(220, -1), 
     0 
   );
-  m_durationLabel->SetLabel(wxString::Format(wxT("Min. loop lenght: %.2f s"), m_minDuration));
+  m_durationLabel->SetLabel(wxString::Format(wxT("Min. loop length: %.2f s"), m_minDuration));
   thirdRow->Add(m_durationLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
   // A slider for minimum loop duration / 100

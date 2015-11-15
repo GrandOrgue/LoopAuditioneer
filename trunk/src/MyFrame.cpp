@@ -131,7 +131,7 @@ void MyFrame::OnClose(wxCloseEvent & event) {
 
 void MyFrame::OnQuit(wxCommandEvent& event) {
   // Close the frame by calling OnClose() via event generation
-  Close();
+  Close(true);
 }
 
 void MyFrame::OnDblClick(wxListEvent& event) {
@@ -684,14 +684,14 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   );
 
   // Slider for volume (0 to 4)
-  wxSlider *volumeSlider = new wxSlider ( 
-    toolBar, 
+  wxSlider *volumeSlider = new wxSlider (
+    toolBar,
     ID_VOLUME_SLIDER,
     0,
     0,
     4,
-    wxDefaultPosition, 
-    wxSize(100, -1), 
+    wxDefaultPosition,
+    wxSize(100, -1),
     wxSL_HORIZONTAL
   );
 
@@ -731,7 +731,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   lowerBox = new wxBoxSizer(wxHORIZONTAL);
   lowerBox->AddStretchSpacer();
   vbox->Add(lowerBox, 1, wxEXPAND, 0);
-  
+
   SetSizer(vbox);
   vbox->SetSizeHints(this);
   // Layout();
@@ -839,6 +839,8 @@ MyFrame::~MyFrame() {
     m_audiofile = 0;
   }
   if (m_sound) {
+    m_sound->StopAudioStream();
+    m_sound->CloseAudioStream();
     delete m_sound;
     m_sound = 0;
   }
@@ -1195,7 +1197,7 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
 
       wxBusyInfo searchInfo(wxT("Searching for loops, please wait..."), this);
       wxSafeYield();
-    
+
       // this is the call to search for loops
       foundSomeLoops = m_autoloop->AutoFindLoops(
         audioData,
@@ -1693,11 +1695,11 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   // spacebar should start or stop playback depending if playback or stop is activated
   if (event.GetKeyCode() == WXK_SPACE) {
     if (toolBar->GetToolEnabled(START_PLAYBACK)) {
-      wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, START_PLAYBACK);
+      wxCommandEvent evt(wxEVT_TOOL, START_PLAYBACK);
       ::wxGetApp().frame->AddPendingEvent(evt);
       return;
     } else if (toolBar->GetToolEnabled(wxID_STOP)) {
-      wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
+      wxCommandEvent evt(wxEVT_TOOL, wxID_STOP);
       ::wxGetApp().frame->AddPendingEvent(evt);
       return;
     } else
