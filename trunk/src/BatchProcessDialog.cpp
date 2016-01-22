@@ -1,6 +1,6 @@
 /*
  * BatchProcessDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2015 Lars Palo
+ * Copyright (C) 2011-2016 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -264,7 +264,7 @@ void BatchProcessDialog::CreateControls() {
   wxButton *m_cancelButton = new wxButton(
     this,
     wxID_CANCEL,
-    wxT("&Cancel"),
+    wxT("&Exit batch mode"),
     wxDefaultPosition,
     wxDefaultSize,
     0
@@ -962,6 +962,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
         StopHarmonicDialog harmDlg(this);
         if (harmDlg.ShowModal() == wxID_OK) {
           int harmonicNr = harmDlg.GetSelectedHarmonic();
+          double organPitch = harmDlg.GetSelectedPitch();
           m_statusProgress->AppendText(m_sourceField->GetValue());
           m_statusProgress->AppendText(wxT("\n"));
           m_statusProgress->AppendText(wxT("\n"));
@@ -973,14 +974,14 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
               int midiNr = wxAtoi(midiNrStr);
               if (midiNr != 0) {
                 // Calculate pitch from detected MIDI note
-                double initialPitch = 440.0 * pow(2, ((double)(midiNr - 69) / 12.0));
+                double initialPitch = organPitch * pow(2, ((double)(midiNr - 69) / 12.0));
 
                 // Correct pitch from harmonic number
                 double actualPitch = initialPitch * (8.0 / (64.0 / (double) harmonicNr));
 
                 // Calculate new dwMIDINote and dwMIDIPitchFraction
-                int midi_note = (69 + 12 * (log10(actualPitch / 440.0) / log10(2)));
-                double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
+                int midi_note = (69 + 12 * (log10(actualPitch / organPitch) / log10(2)));
+                double midi_note_pitch = organPitch * pow(2, ((double)(midi_note - 69) / 12.0));
                 double cent_deviation = 1200 * (log10(actualPitch / midi_note_pitch) / log10(2));
                 unsigned int midi_pitch_fraction = ((double)UINT_MAX * (cent_deviation / 100.0));
 
@@ -1067,6 +1068,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
         StopHarmonicDialog harmDlg(this);
         if (harmDlg.ShowModal() == wxID_OK) {
           int harmonicNr = harmDlg.GetSelectedHarmonic();
+          double organPitch = harmDlg.GetSelectedPitch();
           int lastMidiNr = 0;
           int pipeNr = 0;
           for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
@@ -1083,13 +1085,13 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             }
             if (fh.FileCouldBeOpened()) {
               // Calculate pitch for detected MIDI note
-              double midiPitch = 440.0 * pow(2, ((double)(midiNr - 69) / 12.0));
+              double midiPitch = organPitch * pow(2, ((double)(midiNr - 69) / 12.0));
               // Adjust pitch from harmonic number
               double actualPitch = midiPitch * (8.0 / (64.0 / (double) harmonicNr));
               // Compare with embedded pitch
               double centsEmbedded = (double) fh.m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
               int midiNoteEmbedded = (int) fh.m_loops->GetMIDIUnityNote();
-              double embeddedPitch = 440.0 * pow(2, ((double)(midiNoteEmbedded - 69) / 12.0)) * pow(2, (centsEmbedded / 1200.0));
+              double embeddedPitch = organPitch * pow(2, ((double)(midiNoteEmbedded - 69) / 12.0)) * pow(2, (centsEmbedded / 1200.0));
               double cent_deviation = 1200 * (log10(actualPitch / embeddedPitch) / log10(2));
               if (cent_deviation < -1200 || cent_deviation > 1200) {
                 // Warn that this is not allowed

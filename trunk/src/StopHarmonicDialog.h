@@ -1,6 +1,6 @@
 /* 
  * StopHarmonicDialog.h is a part of LoopAuditioneer software
- * Copyright (C) 2012-2015 Lars Palo 
+ * Copyright (C) 2012-2016 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,12 @@
 #define STOPHARMONICDIALOG_H
 
 #include <wx/wx.h>
+#include <wx/spinctrl.h>
 
 // Identifiers
 enum {
-  ID_HARMONICBOX = wxID_HIGHEST + 700
+  ID_HARMONICBOX = wxID_HIGHEST + 700,
+  ID_PITCHCTRL = wxID_HIGHEST + 701
 };
 
 class StopHarmonicDialog : public wxDialog {
@@ -62,14 +64,18 @@ public:
 
   // Accessor
   int GetSelectedHarmonic();
+  double GetSelectedPitch();
 
 private:
   int m_selectedHarmonic;
+  double m_pitch;
   wxArrayString m_harmoniclist;
   wxChoice *m_harmonicChoiceBox;
+  wxSpinCtrlDouble *m_pitchCtrl;
 
   // Event methods
   void OnChoiceSelected(wxCommandEvent& event);
+  void OnPitchChanged(wxSpinDoubleEvent& event);
 
 };
 

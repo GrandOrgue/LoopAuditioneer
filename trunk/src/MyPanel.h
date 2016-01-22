@@ -1,6 +1,6 @@
 /* 
  * MyPanel.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2015 Lars Palo 
+ * Copyright (C) 2011-2016 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <wx/wx.h>
 #include <wx/stattext.h>
 #include <wx/grid.h>
+#include <wx/filename.h>
 
 class MyPanel : public wxScrolledWindow {
 public:
@@ -34,7 +35,7 @@ public:
   wxBoxSizer *vbox;
   wxGrid *m_grid;
   wxGrid *m_cueGrid;
-  void SetFileNameLabel(wxString name);
+  void SetFileNameLabel(wxFileName fullPath);
   void EmptyTable();
   void FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bool toSave, int index);
   void FillRowWithCueData(unsigned int id, unsigned int position, bool save, int index);

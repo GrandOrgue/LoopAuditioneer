@@ -1,6 +1,6 @@
 /*
  * MyFrame.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2015 Lars Palo
+ * Copyright (C) 2011-2016 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 #include <wx/busyinfo.h>
 #include "sndfile.hh"
 #include <wx/settings.h>
+#include <wx/filename.h>
 
 bool MyFrame::loopPlay = true; // default to loop play
 int MyFrame::volumeMultiplier = 1; // default value
@@ -45,7 +46,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_MENU(wxID_SAVE, MyFrame::OnSaveFile)
   EVT_MENU(wxID_SAVEAS, MyFrame::OnSaveFileAs)
   EVT_MENU(EDIT_LOOP, MyFrame::OnEditLoop)
-  EVT_MENU(VIEW_LOOPPOINTS, MyFrame::OnViewLoop)
+  EVT_TOOL(VIEW_LOOPPOINTS, MyFrame::OnViewLoop)
   EVT_MENU(LOOP_ONLY, MyFrame::OnLoopPlayback)
   EVT_MENU(SAVE_AND_OPEN_NEXT, MyFrame::OnSaveOpenNext)
   EVT_MENU(wxID_HELP, MyFrame::OnHelp)
@@ -72,8 +73,10 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_TIMER(TIMER_ID, MyFrame::UpdatePlayPosition)
   EVT_SLIDER(ID_VOLUME_SLIDER, MyFrame::OnVolumeSlider)
   EVT_TOOL(X_FADE, MyFrame::OnCrossfade)
+  EVT_TOOL(VIEW_LOOPPOINTS, MyFrame::OnViewLoop)
   EVT_TOOL(CUT_N_FADE, MyFrame::OnCutFade)
   EVT_KEY_DOWN(MyFrame::OnKeyboardInput)
+  EVT_SIZE(MyFrame::OnSize)
 END_EVENT_TABLE()
 
 void MyFrame::OnAbout(wxCommandEvent& event) {
@@ -81,7 +84,7 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
   info.SetName(appName);
   info.SetVersion(appVersion);
   info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files."));
-  info.SetCopyright(wxT("Copyright (C) 2011-2015 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
+  info.SetCopyright(wxT("Copyright (C) 2011-2016 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
   info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
 
   wxAboutBox(info);
@@ -111,6 +114,11 @@ void MyFrame::OnClose(wxCloseEvent & event) {
   int vol = volumeSl->GetValue();
   config->Write(wxT("General/LastVolume"), vol);
   config->Write(wxT("General/LoopOnlyPlayback"), m_loopOnly);
+  config->Write(wxT("General/FrameXPosition"), m_xPosition);
+  config->Write(wxT("General/FrameYPosition"), m_yPosition);
+  config->Write(wxT("General/FrameWidth"), m_frameWidth);
+  config->Write(wxT("General/FrameHeight"), m_frameHeight);
+  config->Write(wxT("General/FrameMaximized"), m_frameMaximized);
   config->Write(wxT("BatchProcess/LastSource"), m_batchProcess->GetLastSource());
   config->Write(wxT("BatchProcess/LastTarget"), m_batchProcess->GetLastTarget());
   config->Write(wxT("LoopSettings/AutoSearchSustain"), m_autoloopSettings->GetAutosearch());
@@ -124,6 +132,7 @@ void MyFrame::OnClose(wxCloseEvent & event) {
   config->Write(wxT("LoopSettings/Candidates"), m_autoloopSettings->GetCandidates());
   config->Write(wxT("LoopSettings/LoopsToReturn"), m_autoloopSettings->GetNrLoops());
   config->Write(wxT("LoopSettings/LoopPoolMultiple"), m_autoloopSettings->GetMultiple());
+  
   config->Flush();
 
   Destroy();
@@ -145,6 +154,7 @@ void MyFrame::OnDblClick(wxListEvent& event) {
     fileToOpen = item.GetText();
     OpenAudioFile();
     currentOpenFileIdx = sel;
+    m_fileListCtrl->EnsureVisible(sel);
   }
 }
 
@@ -164,9 +174,9 @@ void MyFrame::OnOpenSelected(wxCommandEvent& event) {
 
 void MyFrame::OnSelection(wxListEvent& event) {
   currentSelectedIdx = event.GetIndex();
-  if (toolBar->GetToolEnabled(OPEN_SELECTED) == false)
+  if (!toolBar->GetToolEnabled(OPEN_SELECTED))
     toolBar->EnableTool(OPEN_SELECTED, true);
-  if (fileMenu->IsEnabled(OPEN_SELECTED) == false)
+  if (!fileMenu->IsEnabled(OPEN_SELECTED))
     fileMenu->Enable(OPEN_SELECTED, true);
 }
 
@@ -179,7 +189,7 @@ void MyFrame::OpenAudioFile() {
     filePath = workingDir;
     filePath += wxFILE_SEP_PATH;
     filePath += fileToOpen;
-    m_waveform = new WaveformDrawer(this, filePath);
+    m_waveform = new WaveformDrawer(this, m_audiofile);
     lowerBox->Clear();
     lowerBox->Add(m_waveform, 1, wxEXPAND, 0);
     vbox->Layout();
@@ -188,26 +198,12 @@ void MyFrame::OpenAudioFile() {
     m_sound->SetAudioFormat(m_audiofile->GetAudioFormat());
     m_sound->SetChannels(m_audiofile->m_channels);
     m_sound->OpenAudioStream();
-    m_panel->SetFileNameLabel(fileToOpen);
+    wxFileName fullFilePath(filePath);
+    m_panel->SetFileNameLabel(fullFilePath);
 
     SetStatusText(wxString::Format(wxT("Zoom level: x %i"), m_waveform->GetAmplitudeZoomLevel()), 1);
 
-    // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
-    int sRate = m_audiofile->GetSampleRate();
-    for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
-      LOOPDATA tempData;
-      m_audiofile->m_loops->GetLoopData(i, tempData);
-      m_panel->FillRowWithLoopData(tempData.dwStart, tempData.dwEnd, sRate, tempData.shouldBeSaved, i);
-      m_waveform->AddLoopPosition(tempData.dwStart, tempData.dwEnd);
-    }
-
-    // populate the wxGrid m_cueGrid in m_panel with the cue data and add it to the waveform drawer
-    for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
-      CUEPOINT tempCue;
-      m_audiofile->m_cues->GetCuePoint(i, tempCue);
-      m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);
-      m_waveform->AddCuePosition(tempCue.dwSampleOffset);
-    }
+    UpdateLoopsAndCuesDisplay();
 
     UpdateAllViews();
 
@@ -240,6 +236,8 @@ void MyFrame::OpenAudioFile() {
       transportMenu->Enable(wxID_STOP, false);
       toolBar->EnableTool(X_FADE, true);
       toolMenu->Enable(X_FADE, true);
+      toolBar->EnableTool(VIEW_LOOPPOINTS, true);
+      toolMenu->Enable(VIEW_LOOPPOINTS, true);
     }
   } else {
     // libsndfile couldn't open the file or no audio data in file
@@ -257,8 +255,8 @@ void MyFrame::OpenAudioFile() {
 
     delete m_audiofile;
     m_audiofile = 0;
-
-    m_panel->SetFileNameLabel(wxEmptyString);
+    wxFileName fullFileName(wxEmptyString, wxEmptyString);
+    m_panel->SetFileNameLabel(fullFileName);
 
     SetStatusText(wxEmptyString, 1);
 
@@ -291,6 +289,8 @@ void MyFrame::CloseOpenAudioFile() {
   viewMenu->Enable(ZOOM_OUT_AMP, false);
   toolBar->EnableTool(X_FADE, false);
   toolMenu->Enable(X_FADE, false);
+  toolBar->EnableTool(VIEW_LOOPPOINTS, false);
+  toolMenu->Enable(VIEW_LOOPPOINTS, false);
   toolBar->EnableTool(CUT_N_FADE, false);
   toolMenu->Enable(CUT_N_FADE, false);
 
@@ -356,6 +356,8 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
     }
     toolBar->EnableTool(X_FADE, true);
     toolMenu->Enable(X_FADE, true);
+    toolBar->EnableTool(VIEW_LOOPPOINTS, true);
+    toolMenu->Enable(VIEW_LOOPPOINTS, true);
   }
 }
 
@@ -399,6 +401,8 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
     }
     toolBar->EnableTool(X_FADE, false);
     toolMenu->Enable(X_FADE, false);
+    toolBar->EnableTool(VIEW_LOOPPOINTS, false);
+    toolMenu->Enable(VIEW_LOOPPOINTS, false);
   }
 }
 
@@ -434,6 +438,8 @@ void MyFrame::OnSaveFile(wxCommandEvent& event) {
 
   // open the file again to remove old leftovers in grids etc.
   OpenAudioFile();
+
+  m_fileListCtrl->EnsureVisible(currentSelectedIdx);
 }
 
 void MyFrame::OnSaveOpenNext(wxCommandEvent& event) {
@@ -451,6 +457,7 @@ void MyFrame::OnSaveOpenNext(wxCommandEvent& event) {
     ::wxGetApp().frame->AddPendingEvent(evt);
   } else {
     OpenAudioFile();
+    m_fileListCtrl->EnsureVisible(currentSelectedIdx);
   }
 }
 
@@ -550,6 +557,11 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   currentSelectedIdx = -1;
   fileToOpen = wxEmptyString;
   config = new wxFileConfig(wxT("LoopAuditioneer"));
+  m_xPosition = 0;
+  m_yPosition = 0;
+  m_frameWidth = 1000;
+  m_frameHeight = 560;
+  m_frameMaximized = false;
 
   // Create a file menu
   fileMenu = new wxMenu();
@@ -574,8 +586,8 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   viewMenu = new wxMenu();
 
   // Add view menu items
-  viewMenu->Append(ZOOM_IN_AMP, wxT("&Zoom in\tCtrl++"), wxT("Zoom in on amplitude"));
-  viewMenu->Append(ZOOM_OUT_AMP, wxT("&Zoom out\tCtrl+-"), wxT("Zoom out on amplitude"));
+  viewMenu->Append(ZOOM_IN_AMP, wxT("Zoom &in\tCtrl++"), wxT("Zoom in on amplitude"));
+  viewMenu->Append(ZOOM_OUT_AMP, wxT("Zoom &out\tCtrl+-"), wxT("Zoom out on amplitude"));
 
   viewMenu->Enable(ZOOM_IN_AMP, false);
   viewMenu->Enable(ZOOM_OUT_AMP, false);
@@ -600,12 +612,14 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolMenu->Append(BATCH_PROCESS, wxT("&Batch processing\tCtrl+B"), wxT("Batch processing of files"));
   toolMenu->Append(PITCH_SETTINGS, wxT("&Pitch detection\tCtrl+D"), wxT("Find/set info about pitch"));
   toolMenu->Append(X_FADE, wxT("&Crossfade\tCtrl+X"), wxT("Crossfade the selected loop"));
+  toolMenu->Append(VIEW_LOOPPOINTS, wxT("View looppoints\tCtrl+W"), wxT("View waveform overlay at looppoints"));
   toolMenu->Append(CUT_N_FADE, wxT("Cut and &fade\tCtrl+C"), wxT("Cut & fade in/out"));
 
   toolMenu->Enable(ADD_LOOP, false);
   toolMenu->Enable(AUTOSEARCH_LOOPS, false);
   toolMenu->Enable(PITCH_SETTINGS, false);
   toolMenu->Enable(X_FADE, false);
+  toolMenu->Enable(VIEW_LOOPPOINTS, false);
   toolMenu->Enable(CUT_N_FADE, false);
 
   // Create a help menu
@@ -634,6 +648,8 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
 
   // Create Status bar
   CreateStatusBar(3);
+  int statusWidths[3] = { -1, 150, -2 };
+  SetStatusWidths(3, statusWidths);
   SetStatusText(wxT("Ready"), 0);
 
   // Create toolbar
@@ -655,6 +671,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   wxBitmap zoomOutAmp(wxT("../icons/24x24/Zoom_out.png"), wxBITMAP_TYPE_PNG);
   wxBitmap crossfade(wxT("../icons/24x24/Wizard.png"), wxBITMAP_TYPE_PNG);
   wxBitmap cutfade(wxT("../icons/24x24/Software.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap viewloop(wxT("../icons/24x24/Diagram.png"), wxBITMAP_TYPE_PNG);
   toolBar->AddTool(FILE_SELECT, wxT("Select working folder"), selectFolder, wxT("Select working folder"));
   toolBar->AddTool(OPEN_SELECTED, wxT("Open selected file"), openSelectedFile, wxT("Open selected file"));
   toolBar->AddTool(wxID_SAVE, wxT("Save file"), saveFile, wxT("Save file"));
@@ -669,6 +686,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->AddTool(BATCH_PROCESS, wxT("Batch processing"), batchProcess, wxT("Batch processing of files/folders"));
   toolBar->AddTool(PITCH_SETTINGS, wxT("Pitch settings"), pitchInfo, wxT("Find/set information about pitch"));
   toolBar->AddTool(X_FADE, wxT("Crossfade"), crossfade, wxT("Crossfade a selected loop"));
+  toolBar->AddTool(VIEW_LOOPPOINTS, wxT("View looppoints"), viewloop, wxT("View waveform overlay at looppoints"));
   toolBar->AddTool(CUT_N_FADE, wxT("Cut & Fade"), cutfade, wxT("Cut & Fade in/out"));
   toolBar->AddSeparator();
   toolBar->AddTool(ZOOM_IN_AMP, wxT("Zoom in"), zoomInAmp, wxT("Zoom in on amplitude"));
@@ -709,6 +727,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->EnableTool(ZOOM_IN_AMP, false);
   toolBar->EnableTool(ZOOM_OUT_AMP, false);
   toolBar->EnableTool(X_FADE, false);
+  toolBar->EnableTool(VIEW_LOOPPOINTS, false);
   toolBar->EnableTool(CUT_N_FADE, false);
   this->SetToolBar(toolBar);
 
@@ -770,6 +789,21 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
       transportMenu->Check(LOOP_ONLY, false);
   }
 
+  if (config->Read(wxT("General/FrameXPosition"), &readInt))
+    m_xPosition = readInt;
+
+  if (config->Read(wxT("General/FrameYPosition"), &readInt))
+    m_yPosition = readInt;
+
+  if (config->Read(wxT("General/FrameWidth"), &readInt))
+    m_frameWidth = readInt;
+
+  if (config->Read(wxT("General/FrameHeight"), &readInt))
+    m_frameHeight = readInt;
+
+  if (config->Read(wxT("General/FrameMaximized"), &b))
+    m_frameMaximized = b;
+
   wxString str;
   if (config->Read(wxT("BatchProcess/LastSource"), &str))
     m_batchProcess->SetLastSource(str);
@@ -826,6 +860,11 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
     m_autoloopSettings->SetMultiple(readInt);
     m_autoloop->SetMultiple(readInt);
   }
+
+  if (m_frameMaximized)
+    Maximize();
+  else if (m_xPosition != 0 && m_yPosition != 0)
+    SetSize(m_xPosition, m_yPosition, m_frameWidth, m_frameHeight);
 
   m_autoloopSettings->UpdateLabels();
   m_panel->SetFocus();
@@ -887,7 +926,7 @@ void MyFrame::PopulateListOfFileNames() {
 
   // Remove double entries as Windows is case insensitive...
   // But only do it if wxArrayString not is empty!
-  if (fileNames.IsEmpty() == false) {
+  if (!fileNames.IsEmpty()) {
     fileNames.Sort();
     size_t lineCounter = 0;
     while (lineCounter < fileNames.GetCount() - 1) {
@@ -1128,6 +1167,8 @@ void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
     // Enable x-fade as now a loop is selected
     toolBar->EnableTool(X_FADE, true);
     toolMenu->Enable(X_FADE, true);
+    toolBar->EnableTool(VIEW_LOOPPOINTS, true);
+    toolMenu->Enable(VIEW_LOOPPOINTS, true);
 
     m_panel->m_grid->SetGridCursor(event.GetRow(), 4); // this is to fix scrolling issues
     SetLoopPlayback(true); // set the playback to be for loops
@@ -1176,9 +1217,9 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
   // prepare a vector to receive the loops
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > loops;
 
-  // get the audio data as doubles from m_waveform
+  // get the audio data as doubles
   double *audioData = new double[m_audiofile->ArrayLength];
-  bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
+  bool gotData = m_audiofile->GetDoubleAudioData(audioData);
 
   if (gotData) {
     bool foundSomeLoops = false;
@@ -1245,6 +1286,22 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
 
       UpdateAllViews();
 
+      // Make sure a loop in the grid is selected if no selection exist
+      if (!m_panel->m_grid->IsSelection() || !m_panel->m_cueGrid->IsSelection()) {
+        if (m_panel->m_grid->GetNumberRows() > 0) {
+          m_panel->m_grid->SelectRow(0, false);
+          toolBar->EnableTool(wxID_STOP, false);
+          toolBar->EnableTool(START_PLAYBACK, true);
+          transportMenu->Enable(START_PLAYBACK, true);
+          transportMenu->Enable(wxID_STOP, false);
+          toolBar->EnableTool(X_FADE, true);
+          toolMenu->Enable(X_FADE, true);
+          toolBar->EnableTool(VIEW_LOOPPOINTS, true);
+          toolMenu->Enable(VIEW_LOOPPOINTS, true);
+          m_panel->m_grid->SetGridCursor(0, 4);
+        }
+      }
+
     } else {
       // no loops found!
       wxString message = wxT("Sorry, didn't find any loops!");
@@ -1302,9 +1359,9 @@ void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
 }
 
 void MyFrame::OnPitchSettings(wxCommandEvent& event) {
-  // get the audio data as doubles from m_waveform
+  // get the audio data as doubles
   double *audioData = new double[m_audiofile->ArrayLength];
-  bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
+  bool gotData = m_audiofile->GetDoubleAudioData(audioData);
   if (!gotData) {
     delete[] audioData;
     return;
@@ -1424,9 +1481,9 @@ void MyFrame::OnVolumeSlider(wxCommandEvent& event) {
 }
 
 void MyFrame::OnCrossfade(wxCommandEvent& event) {
-  // get the audio data as doubles from m_waveform
+  // get the audio data as doubles
   double *audioData = new double[m_audiofile->ArrayLength];
-  bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
+  bool gotData = m_audiofile->GetDoubleAudioData(audioData);
   if (!gotData) {
     delete[] audioData;
     return;
@@ -1453,7 +1510,7 @@ void MyFrame::OnCrossfade(wxCommandEvent& event) {
     m_audiofile->PerformCrossfade(audioData, firstSelected, crossfadeTime, crossfadetype);
 
     // update the waveform data
-    m_waveform->UpdateWaveTracks(audioData, m_audiofile->m_channels, m_audiofile->ArrayLength);
+    m_audiofile->UpdateWaveTracks(audioData);
 
     // change the current audiodata in m_audiofile
     if (m_audiofile->shortAudioData != NULL) {
@@ -1541,38 +1598,31 @@ void MyFrame::OnViewLoop(wxCommandEvent& event) {
     return;
   }
 
-  // set the currently selected loops positions
-  LOOPDATA currentLoop;
-  m_audiofile->m_loops->GetLoopData(firstSelected, currentLoop);
+  wxString dialogTitle = wxT("Waveform overlay of loops");
 
-  // get the audio data as doubles from m_waveform
-  double *audioData = new double[m_audiofile->ArrayLength];
-  bool gotData = m_waveform->GetDoubleAudioData(audioData, m_audiofile->ArrayLength);
-  if (!gotData) {
-    delete[] audioData;
-    return;
+  LoopOverlay lpo(
+    m_audiofile,
+    firstSelected,
+    this,
+    wxID_ANY,
+    dialogTitle
+  );
+
+  lpo.ShowModal();
+
+  // Update menus and views if loops are changed
+  if (lpo.GetHasChanged()) {
+    // Enable save icon and menu
+    toolBar->EnableTool(wxID_SAVE, true);
+    fileMenu->Enable(wxID_SAVE, true);
+    fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
+
+    UpdateLoopsAndCuesDisplay();
+    UpdateAllViews();
+    m_panel->m_grid->SelectRow(firstSelected);
+    if (!m_panel->m_grid->IsVisible(firstSelected, 0))
+      m_panel->m_grid->MakeCellVisible(firstSelected, 0);
   }
-
-  // check that the loop and data is safe to send to the loopoverlay
-  if (currentLoop.dwStart > 21 &&
-      currentLoop.dwEnd < (m_audiofile->ArrayLength / m_audiofile->m_channels) - 22) {
-
-    wxString dialogTitle = wxString::Format(wxT("Waveform overlay of Loop %i"), firstSelected + 1);
-
-    LoopOverlay lpo(
-      audioData,
-      currentLoop.dwStart,
-      currentLoop.dwEnd,
-      m_audiofile->m_channels,
-      this,
-      wxID_ANY,
-      dialogTitle
-    );
-
-    lpo.ShowModal();
-  }
-
-  delete[] audioData;
 }
 
 void MyFrame::OnCutFade(wxCommandEvent& event) {
@@ -1637,7 +1687,7 @@ void MyFrame::OnCutFade(wxCommandEvent& event) {
       m_audiofile->PerformFade(audioData, m_cutNFade->GetFadeEnd(), 1);
 
     // update the waveform data
-    m_waveform->UpdateWaveTracks(audioData, m_audiofile->m_channels, m_audiofile->ArrayLength);
+    m_audiofile->UpdateWaveTracks(audioData);
 
     // update the current audiodata in m_audiofile
     if (m_audiofile->shortAudioData != NULL) {
@@ -1656,24 +1706,7 @@ void MyFrame::OnCutFade(wxCommandEvent& event) {
     fileMenu->Enable(wxID_SAVE, true);
     fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
-    // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
-    m_panel->EmptyTable();
-    m_waveform->ClearMetadata();
-    int sRate = m_audiofile->GetSampleRate();
-    for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
-      LOOPDATA tempData;
-      m_audiofile->m_loops->GetLoopData(i, tempData);
-      m_panel->FillRowWithLoopData(tempData.dwStart, tempData.dwEnd, sRate, tempData.shouldBeSaved, i);
-      m_waveform->AddLoopPosition(tempData.dwStart, tempData.dwEnd);
-    }
-
-    // populate the wxGrid m_cueGrid in m_panel with the cue data and add it to the waveform drawer
-    for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
-      CUEPOINT tempCue;
-      m_audiofile->m_cues->GetCuePoint(i, tempCue);
-      m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);
-      m_waveform->AddCuePosition(tempCue.dwSampleOffset);
-    }
+    UpdateLoopsAndCuesDisplay();
 
     // then we should make sure to update the views
     UpdateAllViews();
@@ -1794,6 +1827,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         SetLoopPlayback(true);
         toolBar->EnableTool(X_FADE, true);
         toolMenu->Enable(X_FADE, true);
+        toolBar->EnableTool(VIEW_LOOPPOINTS, true);
+        toolMenu->Enable(VIEW_LOOPPOINTS, true);
       }
     }
     return;
@@ -1845,6 +1880,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         SetLoopPlayback(true);
         toolBar->EnableTool(X_FADE, true);
         toolMenu->Enable(X_FADE, true);
+        toolBar->EnableTool(VIEW_LOOPPOINTS, true);
+        toolMenu->Enable(VIEW_LOOPPOINTS, true);
       }
     }
     return;
@@ -1881,6 +1918,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         SetLoopPlayback(false); // set the playback to not be for loops
         toolBar->EnableTool(X_FADE, false);
         toolMenu->Enable(X_FADE, false);
+        toolBar->EnableTool(VIEW_LOOPPOINTS, false);
+        toolMenu->Enable(VIEW_LOOPPOINTS, false);
       }
     }
     return;
@@ -1917,6 +1956,8 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         SetLoopPlayback(false); // set the playback to not be for loops
         toolBar->EnableTool(X_FADE, false);
         toolMenu->Enable(X_FADE, false);
+        toolBar->EnableTool(VIEW_LOOPPOINTS, false);
+        toolMenu->Enable(VIEW_LOOPPOINTS, false);
       }
     }
     return;
@@ -2122,4 +2163,40 @@ void MyFrame::PopulateListCtrl() {
 
 void MyFrame::OnHelp(wxCommandEvent& event) {
   ::wxGetApp().m_helpController->DisplayContents();
+}
+
+void MyFrame::GetCurrentFrameSizes() {
+  if (IsMaximized())
+    m_frameMaximized = true;
+  else {
+    GetPosition(&m_xPosition, &m_yPosition);
+    GetSize(&m_frameWidth, &m_frameHeight);
+    m_frameMaximized = false;
+  }
+}
+
+void MyFrame::OnSize(wxSizeEvent& event) {
+  GetCurrentFrameSizes();
+  event.Skip();
+}
+
+void MyFrame::UpdateLoopsAndCuesDisplay() {
+  // populate the wxGrid in m_panel with the loop data and add it to the waveform drawer
+  m_panel->EmptyTable();
+  m_waveform->ClearMetadata();
+  int sRate = m_audiofile->GetSampleRate();
+  for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
+    LOOPDATA tempData;
+    m_audiofile->m_loops->GetLoopData(i, tempData);
+    m_panel->FillRowWithLoopData(tempData.dwStart, tempData.dwEnd, sRate, tempData.shouldBeSaved, i);
+    m_waveform->AddLoopPosition(tempData.dwStart, tempData.dwEnd);
+  }
+
+  // populate the wxGrid m_cueGrid in m_panel with the cue data and add it to the waveform drawer
+  for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
+    CUEPOINT tempCue;
+    m_audiofile->m_cues->GetCuePoint(i, tempCue);
+    m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);
+    m_waveform->AddCuePosition(tempCue.dwSampleOffset);
+  }
 }

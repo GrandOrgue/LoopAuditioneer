@@ -1,6 +1,6 @@
 /*
  * FileHandling.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2015 Lars Palo
+ * Copyright (C) 2011-2016 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,10 @@
 #include <vector>
 #include "RtAudio.h"
 
+typedef struct {
+  std::vector<double> waveData;
+} WAVETRACK;
+
 class FileHandling {
 public:
   FileHandling(wxString fileName, wxString path);
@@ -49,10 +53,15 @@ public:
   bool TrimStart(unsigned timeToTrim);
   bool TrimEnd(unsigned timeToTrim);
   void PerformFade(double audioData[], unsigned fadeLength, int fadeType);
+  // Get audio data as doubles
+  bool GetDoubleAudioData(double audio[]);
+  // Update the wave data vector if audio is changed
+  void UpdateWaveTracks(double audio[]);
 
   short *shortAudioData;
   int *intAudioData;
   double *doubleAudioData;
+  std::vector<WAVETRACK> waveTracks;
 
   long unsigned int ArrayLength;
 

@@ -1,6 +1,6 @@
 /*
  * FileHandling.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2015 Lars Palo
+ * Copyright (C) 2011-2016 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -111,6 +111,30 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
     } else {
       // file didn't contain any audio data
       fileOpenWasSuccessful = false;
+    }
+
+    // also store audio data as doubles de-interleaved if successful
+    if (fileOpenWasSuccessful) {
+      // remember to "rewind" file before read
+      sfHandle.seek(0, SEEK_SET);
+
+      for (int i = 0; i < m_channels; i++) {
+        WAVETRACK track;
+        waveTracks.push_back(track);
+      }
+      double *buffer = new double[ArrayLength];
+      sfHandle.read(buffer, ArrayLength);
+
+      int index = 0;
+      for (unsigned int i = 0; i < ArrayLength; i++) {
+        // de-interleaving
+        waveTracks[index].waveData.push_back(buffer[i]);
+        index++;
+
+        if (index == m_channels)
+          index = 0;
+      }
+      delete[] buffer;
     }
 
   } else { // if file open didn't succeed we make a note of that
@@ -1143,8 +1167,43 @@ void FileHandling::PerformFade(double audioData[], unsigned fadeLength, int fade
   } else {
     for (unsigned i = 0; i < samplesToFade; i++) {
       for (int j = 0; j < m_channels; j++) {
-        audioData[(ArrayLength - m_channels) - (i + j)] *= fadeData[i];
+        audioData[(ArrayLength - 1) - (i + j)] *= fadeData[i];
       }
     }
   }
+}
+
+bool FileHandling::GetDoubleAudioData(double audio[]) {
+  if (!waveTracks.empty()) {
+    unsigned length = waveTracks.size() * waveTracks[0].waveData.size();
+
+    if (ArrayLength == length) {
+      for (unsigned i = 0; i < waveTracks.size(); i++) {
+        for (unsigned j = 0; j < waveTracks[0].waveData.size(); j++) {
+          audio[i + j * waveTracks.size()] = waveTracks[i].waveData[j];
+        }
+      }
+      return true;
+    }
+    return false;
+  } else {
+    return false;
+  }
+}
+
+void FileHandling::UpdateWaveTracks(double audio[]) {
+  // first empty old wavetracks
+  for (int i = 0; i < waveTracks.size(); i++)
+    waveTracks[i].waveData.clear();
+
+    // copy the new track data to right tracks
+    int index = 0;
+    for (unsigned i = 0; i < ArrayLength; i++) {
+      // de-interleaving
+      waveTracks[index].waveData.push_back(audio[i]);
+      index++;
+
+      if (index == m_channels)
+        index = 0;
+    }
 }
