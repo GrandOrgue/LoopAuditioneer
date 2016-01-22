@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011-2015 Lars Palo 
+ * Copyright (C) 2011-2016 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,7 @@
 
 #include <wx/wx.h>
 #include <vector>
-
-typedef struct {
-  std::vector<double> waveData;
-} WAVETRACK;
+#include "FileHandling.h"
 
 typedef struct {
   int placedInRow;
@@ -43,10 +40,9 @@ typedef struct {
 
 class WaveformDrawer : public wxPanel {
 public:
-  WaveformDrawer(wxFrame *parent, wxString fileName);
+  WaveformDrawer(wxFrame *parent, FileHandling *fh);
   ~WaveformDrawer();
 
-  bool CouldOpenFile;
   bool somethingHasChanged;
 
   void paintEvent(wxPaintEvent & evt);
@@ -63,24 +59,16 @@ public:
   void CalculateLayout();
   void OnKeyDown(wxKeyEvent& event);
 
-  // Get audio data as doubles
-  bool GetDoubleAudioData(double audio[], unsigned arrayLength);
-
-  // Update the wave data vector if audio is changed
-  void UpdateWaveTracks(double audio[], int nrChannels, unsigned arrayLength);
-
   // Methods for dealing with amplitude zoom level
   int GetAmplitudeZoomLevel();
   void ZoomInAmplitude();
   void ZoomOutAmplitude();
 
 private:
-  std::vector<WAVETRACK> waveTracks;
   std::vector<unsigned int> cueSampleOffset;
   std::vector<std::pair<unsigned int, unsigned int> > loopPositions;
   std::vector<LOOPLAYOUT> loopLayout;
   std::vector<CUELAYOUT> cueLayout;
-  int nrChannels;
   int xSize;
   int ySize;
   int topMargin;
@@ -98,14 +86,13 @@ private:
   int trackHeight;
   wxIcon playPositionMarker;
   wxColour m_background;
-  double *m_buffer;
   wxMenu *m_popupMenu;
   wxCoord m_x;
   wxCoord m_y;
   int selectedCueIndex;
   bool cueIsSelected;
   int m_amplitudeZoomLevel;
-  unsigned m_samplerate;
+  FileHandling *m_fileReference;
 
   void OnClickAddCue(wxCommandEvent& event);
 

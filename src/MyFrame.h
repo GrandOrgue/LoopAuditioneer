@@ -1,6 +1,6 @@
 /* 
  * MyFrame.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2015 Lars Palo 
+ * Copyright (C) 2011-2016 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,6 +76,7 @@ public:
   void OnCutFade(wxCommandEvent& event);
   void OnLoopPlayback(wxCommandEvent& event);
   void OnKeyboardInput(wxKeyEvent& event);
+  void OnSize(wxSizeEvent& event);
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
@@ -83,6 +84,7 @@ public:
   void CloseOpenAudioFile();
   void AddNewCue(unsigned int offset);
   void ChangeCuePosition(unsigned int offset, int index);
+  void UpdateLoopsAndCuesDisplay();
 
   static int AudioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
                     double streamTime, RtAudioStreamStatus status, void *userData );
@@ -121,11 +123,17 @@ private:
   int currentOpenFileIdx;
   int currentSelectedIdx;
   wxFileConfig *config;
+  int m_xPosition;
+  int m_yPosition;
+  int m_frameWidth;
+  int m_frameHeight;
+  bool m_frameMaximized;
 
   void PopulateListOfFileNames();
   void PopulateListCtrl();
   void UpdateAllViews();
   void UpdateCurrentFileInfo();
+  void GetCurrentFrameSizes();
 
   static bool loopPlay;
   static int volumeMultiplier;

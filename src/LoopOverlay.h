@@ -1,6 +1,6 @@
 /* 
  * LoopPointOverlay.h displays the waveforms overlayed at looppoints
- * Copyright (C) 2012-2015 Lars Palo 
+ * Copyright (C) 2012-2016 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@
 
 #include <wx/wx.h>
 #include <vector>
+#include <wx/spinctrl.h>
+#include "FileHandling.h"
 
 typedef struct {
   std::vector<double> startData;
@@ -32,13 +34,21 @@ typedef struct {
   std::vector<double> endData;
 } ENDAUDIO;
 
+// Identifiers
+enum {
+  ID_PREV_LOOP = wxID_HIGHEST + 350,
+  ID_NEXT_LOOP = wxID_HIGHEST + 351,
+  ID_LOOPBEGIN = wxID_HIGHEST + 352,
+  ID_LOOPSTOP = wxID_HIGHEST + 353,
+  ID_WAVELENGTH = wxID_HIGHEST + 354,
+  ID_STORE_CHANGES = wxID_HIGHEST + 355
+};
+
 class LoopOverlay : public wxDialog {
 public:
   LoopOverlay(
-    double audioData[],
-    unsigned startSample,
-    unsigned endSample,
-    int channels,
+    FileHandling *fh,
+    int selectedLoop,
     wxWindow* parent,
     wxWindowID id = wxID_ANY,
     const wxString& title = wxT("Waveform overlay at looppoints"),
@@ -48,17 +58,47 @@ public:
   );
   ~LoopOverlay();
 
+  bool GetHasChanged();
+
 private:
   std::vector<STARTAUDIO> m_startTracks;
   std::vector<ENDAUDIO> m_endTracks;
-  int m_channels;
   double m_maxValue;
   double m_minValue;
   double m_valueRange;
+  int currentLoopstart;
+  int currentLoopend;
+  int m_numberOfSamples;
+  int m_trackWidth;
+  wxPanel *m_drawingPanel;
+  wxButton *m_prevLoop;
+  wxButton *m_nextLoop;
+  wxButton *m_storeChanges;
+  wxStaticText *m_loopLabel;
+  wxSpinCtrl* loopStartSpin;
+  wxSpinCtrl* loopEndSpin;
+  wxSpinCtrl* m_waveLength;
+  FileHandling *m_fileReference;
+  double *audioData;
+  int m_selectedLoop;
+  bool m_hasChanged;
 
   void OnEraseBackground(wxEraseEvent& WXUNUSED(event));
   void OnPaintEvent(wxPaintEvent& evt);
   void OnPaint(wxDC& dc);
+  void UpdateAudioTracks();
+  void SetLoopString();
+  void DecideButtonState();
+  void OnPrevButton(wxCommandEvent& event);
+  void OnNextButton(wxCommandEvent& event);
+  void UpdateSpinners();
+  void OnLoopStartChange(wxSpinEvent& event);
+  void OnLoopEndChange(wxSpinEvent& event);
+  void ReadLoopData();
+  void SetSampleSpinnerValues();
+  void OnWaveLengthChange(wxSpinEvent& event);
+  void OnStoreChanges(wxCommandEvent& event);
+  void SetSaveButtonState();
 
   // handle events
   DECLARE_EVENT_TABLE()

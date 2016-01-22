@@ -1,6 +1,6 @@
 /* 
  * StopHarmonicDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2012-2015 Lars Palo 
+ * Copyright (C) 2012-2016 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ IMPLEMENT_CLASS(StopHarmonicDialog, wxDialog )
 
 BEGIN_EVENT_TABLE(StopHarmonicDialog, wxDialog)
   EVT_CHOICE(ID_HARMONICBOX, StopHarmonicDialog::OnChoiceSelected)
+  EVT_SPINCTRLDOUBLE(ID_PITCHCTRL, StopHarmonicDialog::OnPitchChanged)
 END_EVENT_TABLE()
 
 StopHarmonicDialog::StopHarmonicDialog() {
@@ -110,6 +111,7 @@ void StopHarmonicDialog::Init() {
   m_harmoniclist.Add(wxT("Octave 1' (64)"));
 
   m_selectedHarmonic = 8;
+  m_pitch = 440;
 }
 
 bool StopHarmonicDialog::Create(
@@ -167,6 +169,38 @@ void StopHarmonicDialog::CreateControls() {
   m_harmonicChoiceBox->SetSelection(m_selectedHarmonic - 1);
   selectionRow->Add(m_harmonicChoiceBox, 0, wxGROW|wxALL, 2);
 
+  // Horizontal sizer for pitch selection
+  wxBoxSizer *pitchRow = new wxBoxSizer(wxHORIZONTAL);
+  boxSizer->Add(pitchRow, 0, wxEXPAND|wxALL, 5);
+
+  // Label for pitch selection
+  wxStaticText *pitchLabel = new wxStaticText(
+    this,
+    wxID_STATIC,
+    wxT("Pitch of 8' a1 (Hz):"),
+    wxDefaultPosition,
+    wxSize(150,-1),
+    0
+  );
+  pitchRow->Add(pitchLabel, 0, wxALL, 2);
+
+  // Spincontrol for selecting pitch
+  m_pitchCtrl = new wxSpinCtrlDouble(
+    this,
+    ID_PITCHCTRL,
+    wxEmptyString,
+    wxDefaultPosition,
+    wxDefaultSize,
+    wxSP_ARROW_KEYS,
+    220,
+    880,
+    440,
+    1,
+    wxT("Pitch selection control")
+  );
+  m_pitchCtrl->SetValue(440);
+  pitchRow->Add(m_pitchCtrl, 0, wxALL, 2);
+
   // Horizontal sizer for buttons
   wxBoxSizer* buttonRow = new wxBoxSizer(wxHORIZONTAL);
   boxSizer->Add(buttonRow, 0, wxEXPAND|wxALL, 5);
@@ -207,7 +241,7 @@ void StopHarmonicDialog::CreateControls() {
   wxStaticText *infoMessage = new wxStaticText(
     this,
     wxID_STATIC,
-    wxT("Select what harmonic the stop/folder should use for reference of 036-C."),
+    wxT("Select harmonic of stop/folder for reference of 036-C, and pitch of 8' a1."),
     wxDefaultPosition,
     wxDefaultSize,
     0
@@ -220,7 +254,15 @@ int StopHarmonicDialog::GetSelectedHarmonic() {
   return m_selectedHarmonic;
 }
 
+double StopHarmonicDialog::GetSelectedPitch() {
+  return m_pitch;
+}
+
 void StopHarmonicDialog::OnChoiceSelected(wxCommandEvent& event) {
   m_selectedHarmonic = m_harmonicChoiceBox->GetSelection() + 1;
+}
+
+void StopHarmonicDialog::OnPitchChanged(wxSpinDoubleEvent& event) {
+  m_pitch = m_pitchCtrl->GetValue();
 }
 

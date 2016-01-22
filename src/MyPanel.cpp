@@ -1,6 +1,6 @@
 /* 
  * MyPanel.cpp is a part of LoopAuditioneer
- * Copyright (C) 2011-2015 Lars Palo 
+ * Copyright (C) 2011-2016 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,7 +76,7 @@ MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefault
   m_cueGrid->SetLabelBackgroundColour(wxColour(wxT("#f4f2ef")));
   vbox->Add(fileNameLabel, 0, wxALIGN_CENTER|wxTOP|wxBOTTOM, 5);
   vbox->Add(m_grid, 1, wxALIGN_CENTER | wxTOP| wxBOTTOM, 5);
-  vbox->Add(m_cueGrid, 1, wxALIGN_CENTER | wxTOP | wxBOTTOM, 5);
+  vbox->Add(m_cueGrid, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, 5);
   SetSizer(vbox);
   vbox->SetSizeHints(this);
   FitInside();
@@ -88,8 +88,21 @@ MyPanel::~MyPanel() {
 
 }
 
-void MyPanel::SetFileNameLabel(wxString name) {
-  fileNameLabel->SetLabel(wxT("Current open file: ") + name);
+void MyPanel::SetFileNameLabel(wxFileName fullPath) {
+  if (fullPath.IsOk() && fullPath.FileExists()) {
+    wxString theFileName = fullPath.GetFullName();
+    if (fullPath.GetDirCount()) {
+      wxArrayString dirStrings = fullPath.GetDirs();
+      wxString partToDisplay = dirStrings.Last();
+      partToDisplay += wxFILE_SEP_PATH;
+      partToDisplay += theFileName;
+      fileNameLabel->SetLabel(wxT("Current open file: ") + partToDisplay);
+    } else {
+      fileNameLabel->SetLabel(wxT("Current open file: ") + theFileName);
+    }
+  } else {
+    fileNameLabel->SetLabel(wxT("Current open file: "));
+  }
 }
 
 void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bool toSave, int index) {
@@ -122,6 +135,8 @@ void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bo
   m_grid->SetCellValue(index , 3, dur);
   m_grid->SetReadOnly(index, 3);
   m_grid->SetCellValue(index, 4, boolValue);
+
+  m_grid->AutoSizeColumns(false);
 }
 
 void MyPanel::FillRowWithCueData(unsigned int id, unsigned int position, bool save, int index) {
@@ -147,6 +162,8 @@ void MyPanel::FillRowWithCueData(unsigned int id, unsigned int position, bool sa
   m_cueGrid->SetReadOnly(index, 1);
  
   m_cueGrid->SetCellValue(index, 2, boolValue);
+
+  m_cueGrid->AutoSizeColumns(false);
 }
 
 void MyPanel::EmptyTable() {
@@ -157,6 +174,9 @@ void MyPanel::EmptyTable() {
   int cueGridRows = m_cueGrid->GetNumberRows();
   if (cueGridRows > 0)
     m_cueGrid->DeleteRows(0, cueGridRows, true);
+
+  m_grid->AutoSizeColumns(false);
+  m_cueGrid->AutoSizeColumns(false);
 }
 
 void MyPanel::ChangeCueData(unsigned int offset, int index) {
@@ -164,6 +184,8 @@ void MyPanel::ChangeCueData(unsigned int offset, int index) {
 
   m_cueGrid->SetCellValue(index , 1, pos);
   m_cueGrid->SetReadOnly(index, 1);
+
+  m_cueGrid->AutoSizeColumns(false);
 }
 
 void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int index) {
@@ -184,6 +206,8 @@ void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int ind
   m_grid->SetReadOnly(index, 2);
   m_grid->SetCellValue(index , 3, dur);
   m_grid->SetReadOnly(index, 3);
+
+  m_grid->AutoSizeColumns(false);
 }
 
 void MyPanel::OnKeyDown(wxKeyEvent& event) {

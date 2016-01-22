@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011-2015 Lars Palo
+ * Copyright (C) 2011-2016 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
  */
 
 #include "WaveformDrawer.h"
-#include "sndfile.hh"
 #include "icons/PlayPositionMarker.xpm"
 #include <cmath>
 #include <cfloat>
@@ -35,8 +34,8 @@ BEGIN_EVENT_TABLE(WaveformDrawer, wxPanel)
   EVT_CHAR(WaveformDrawer::OnKeyDown)
 END_EVENT_TABLE()
 
-WaveformDrawer::WaveformDrawer(wxFrame *parent, wxString fileName) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE), m_buffer(NULL) {
-  CouldOpenFile = false;
+WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE) {
+  m_fileReference = fh;
   somethingHasChanged = false;
   white.Set(wxT("#ffffff"));
   black.Set(wxT("#000000"));
@@ -59,35 +58,6 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, wxString fileName) : wxPanel(par
   selectedCueIndex = 0;
   cueIsSelected = false;
   m_amplitudeZoomLevel = 1;
- 
-  SndfileHandle sfHandle;
-
-  sfHandle = SndfileHandle(((const char*)fileName.mb_str()));
-
-  if (sfHandle) {
-    nrChannels = sfHandle.channels();
-    m_samplerate = sfHandle.samplerate();
-
-    for (int i = 0; i < nrChannels; i++) {
-      WAVETRACK wt;
-      waveTracks.push_back(wt);
-    }
-
-    m_buffer = new double[sfHandle.frames() * sfHandle.channels()];
-    sfHandle.read(m_buffer, sfHandle.frames() * sfHandle.channels());
-
-    int index = 0;
-    for (int i = 0; i < sfHandle.frames() * sfHandle.channels(); i++) {
-      // de-interleaving
-      waveTracks[index].waveData.push_back(m_buffer[i]);
-      index++;
-
-      if (index == nrChannels)
-        index = 0;
-    }
-    CouldOpenFile = true;
-  }
-  delete[] m_buffer;
 
   // create the popup menu for the waveform
   m_popupMenu = new wxMenu();
@@ -113,7 +83,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
   // First get the size of this panel to know if the panel is resized.
   wxSize size = this->GetSize();
   trackWidth = size.x - (leftMargin + rightMargin);
-  trackHeight = (size.y - (topMargin + bottomMargin + ((nrChannels - 1) * marginBetweenTracks))) / nrChannels;
+  trackHeight = (size.y - (topMargin + bottomMargin + ((m_fileReference->m_channels - 1) * marginBetweenTracks))) / m_fileReference->m_channels;
 
   // if playPosition == 0 reset playPosition to correct pixel value instead
   if (playPosition == 0)
@@ -143,8 +113,8 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
     dc.DrawRectangle(leftMargin, 0, trackWidth, 10);
 
     // draw the track containing rectangles
-    if (nrChannels > 0) {
-      for (int i = 0; i < nrChannels; i++) {
+    if (m_fileReference->m_channels > 0) {
+      for (int i = 0; i < m_fileReference->m_channels; i++) {
         int x1, y1, x2, y2;
         x1 = leftMargin;
         y1 = topMargin + trackHeight * i + i * marginBetweenTracks; // top margin + trackheight * tracknumber + margin between tracks
@@ -157,19 +127,19 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
       }
     }
 
-    if (waveTracks[0].waveData.size() > 0) {
-      int nrOfSamples = waveTracks[0].waveData.size();
+    if (m_fileReference->waveTracks[0].waveData.size() > 0) {
+      int nrOfSamples = m_fileReference->waveTracks[0].waveData.size();
       int samplesPerPixel;
     
       if (nrOfSamples % trackWidth == 0)
         samplesPerPixel = nrOfSamples / trackWidth;
       else
         samplesPerPixel = (nrOfSamples / trackWidth) + 1;
-    
+
       double maxValue = 0, minValue = 0;
       int lineToDraw = 0;
-      for (unsigned j = 0; j < waveTracks.size(); j++) {
-        for (unsigned i = 0; i < waveTracks[0].waveData.size(); i++) {
+      for (unsigned j = 0; j < m_fileReference->waveTracks.size(); j++) {
+        for (unsigned i = 0; i < m_fileReference->waveTracks[0].waveData.size(); i++) {
           if (i % samplesPerPixel == 0 && i > 0) {
             // we should write the line representing the audio data and start a new count
             // but first we adjust max and min values with the m_amplitudeZoomLevel
@@ -188,14 +158,14 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
             dc.DrawLine(x1, y1, x2, y2);
 
             // proceed with next frame
-            maxValue = waveTracks[j].waveData[i];
-            minValue = waveTracks[j].waveData[i];
+            maxValue = m_fileReference->waveTracks[j].waveData[i];
+            minValue = m_fileReference->waveTracks[j].waveData[i];
             lineToDraw++;
           } else {
-            if (waveTracks[j].waveData[i] > maxValue)
-              maxValue = waveTracks[j].waveData[i];
-            else if (waveTracks[j].waveData[i] < minValue)
-              minValue = waveTracks[j].waveData[i];
+            if (m_fileReference->waveTracks[j].waveData[i] > maxValue)
+              maxValue = m_fileReference->waveTracks[j].waveData[i];
+            else if (m_fileReference->waveTracks[j].waveData[i] < minValue)
+              minValue = m_fileReference->waveTracks[j].waveData[i];
           }
         }
         // draw the 0 indicating line
@@ -204,6 +174,8 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
 
         // reset the wave pixel position for the next track
         lineToDraw = 0;
+        maxValue = 0;
+        minValue = 0;
       }
       // draw in eventual metadata (loops and cues)
       dc.SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
@@ -215,7 +187,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
           // the positions from dwSampleOffset is in sample frames so it has to be re-calculated into pixels
           int xPosition = cueSampleOffset[i] / samplesPerPixel + leftMargin;
           int yPositionHigh = topMargin + 1;
-          int yPositionLow = topMargin + trackHeight * waveTracks.size() + (marginBetweenTracks * (waveTracks.size() - 1) - 1);
+          int yPositionLow = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1);
           dc.SetPen(wxPen(green, 1, wxDOT));
           wxSize extent = dc.GetTextExtent(wxString::Format(wxT("M%i"), i + 1));
           dc.DrawLine(xPosition, yPositionLow, xPosition, yPositionHigh + overlap * (extent.GetHeight() + 5));
@@ -229,7 +201,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
         // here we draw the loops from the vector
         int overlap = 0;
         int yPositionHigh = topMargin + 1;
-        int yPositionLow = topMargin + trackHeight * waveTracks.size() + (marginBetweenTracks * (waveTracks.size() - 1) - 1);
+        int yPositionLow = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1);
 
         for (unsigned i = 0; i < loopPositions.size(); i++) {
           // the loop start value (in samples) is in loopPositions[i].first
@@ -264,14 +236,14 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
       int lineNbr = 1;
       for (int i = 0; i < nrOfSamples; i++) {
         // only care if the sample make at least 0.25s
-        if ((i * 4) % m_samplerate == 0) {
+        if ((i * 4) % m_fileReference->GetSampleRate() == 0) {
           // make sure at least 25 pixels are passed since last line
           int xCoordinate = i / samplesPerPixel;
           if (xCoordinate - lastLineX >= 25) {
             if (lineNbr % 2 == 0) {
               // at this line we also write a number
               dc.DrawLine(leftMargin + xCoordinate, size.y - 11, leftMargin + xCoordinate, size.y - 1);
-              wxString timeString = wxString::Format(wxT("%.1f"), ((double) i / (double) m_samplerate));
+              wxString timeString = wxString::Format(wxT("%.1f"), ((double) i / (double) m_fileReference->GetSampleRate()));
               wxSize extent = dc.GetTextExtent(timeString);
               dc.DrawText(timeString, leftMargin + xCoordinate + 2, size.y - extent.GetHeight());
             } else {
@@ -319,7 +291,7 @@ void WaveformDrawer::OnPaintPlayPosition(wxDC& dc) {
 
 void WaveformDrawer::SetPlayPosition(unsigned int pPos) {
   // In comes a sample value and the playPosition is calculated in pixels from (leftMargin - 4) to (trackWidth - 4)
-  int nrOfSamples = waveTracks[0].waveData.size();
+  int nrOfSamples = m_fileReference->waveTracks[0].waveData.size();
   int samplesPerPixel;
     
   if (nrOfSamples % trackWidth == 0)
@@ -420,7 +392,7 @@ void WaveformDrawer::CalculateLayout() {
   }
 
   // And now it's the cue markers turn but first we get the samplesPerPixel value
-  int nrOfSamples = waveTracks[0].waveData.size();
+  int nrOfSamples = m_fileReference->waveTracks[0].waveData.size();
   int samplesPerPixel;
   int equalTo24px;
 
@@ -509,9 +481,9 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
   m_x = event.GetX(); 
   m_y = event.GetY();
 
-  if (m_x > leftMargin && m_x < (leftMargin + trackWidth) && m_y > topMargin && m_y <= (topMargin + trackHeight * nrChannels + marginBetweenTracks * nrChannels)) {
+  if (m_x > leftMargin && m_x < (leftMargin + trackWidth) && m_y > topMargin && m_y <= (topMargin + trackHeight * m_fileReference->m_channels + marginBetweenTracks * m_fileReference->m_channels)) {
     // user have clicked on the track area
-    int nrOfSamples = waveTracks[0].waveData.size();
+    int nrOfSamples = m_fileReference->waveTracks[0].waveData.size();
     int samplesPerPixel;
 
     if (nrOfSamples % trackWidth == 0)
@@ -535,16 +507,16 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
       if (earliestSampleToConsider < 0)
         earliestSampleToConsider = 0;
 
-      if (lastSampleToConsider > waveTracks[0].waveData.size())
-        lastSampleToConsider = waveTracks[0].waveData.size() - 1;
+      if (lastSampleToConsider > m_fileReference->waveTracks[0].waveData.size())
+        lastSampleToConsider = m_fileReference->waveTracks[0].waveData.size() - 1;
 
       unsigned int bestSample = 0;
       double lowestRMSPower = DBL_MAX;
       double currentRMSPower = 0;
       // the sample values are in waveTracks[0].waveData
       for (unsigned i = earliestSampleToConsider; i <= lastSampleToConsider; i++) {
-        for (unsigned j = 0; j < waveTracks.size(); j++)
-          currentRMSPower += pow(waveTracks[j].waveData[i], 2);
+        for (unsigned j = 0; j < m_fileReference->waveTracks.size(); j++)
+          currentRMSPower += pow(m_fileReference->waveTracks[j].waveData[i], 2);
 
         if (currentRMSPower < lowestRMSPower) {
           lowestRMSPower = currentRMSPower;
@@ -600,7 +572,7 @@ void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
   m_x = event.GetX(); 
   m_y = event.GetY();
 
-  if (m_x > leftMargin && m_x < (leftMargin + trackWidth) && m_y > topMargin && m_y <= (topMargin + trackHeight * nrChannels + marginBetweenTracks * nrChannels)) {
+  if (m_x > leftMargin && m_x < (leftMargin + trackWidth) && m_y > topMargin && m_y <= (topMargin + trackHeight * m_fileReference->m_channels + marginBetweenTracks * m_fileReference->m_channels)) {
     // user have rightclicked on the track area
     if (cueIsSelected) {
       cueIsSelected = false;
@@ -613,7 +585,7 @@ void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
     // draw an indication line approximately where cue will be inserted
     wxClientDC dc(this);
     int yPositionHigh = topMargin + 1;
-    int yPositionLow = topMargin + trackHeight * waveTracks.size() + (marginBetweenTracks * (waveTracks.size() - 1) - 1);
+    int yPositionLow = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1);
     dc.SetPen(wxPen(green, 1, wxDOT));
     dc.DrawLine(m_x, yPositionLow, m_x, yPositionHigh);
 
@@ -629,7 +601,7 @@ void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
 void WaveformDrawer::OnClickAddCue(wxCommandEvent& event) {
   // we should now calculate what sample have lowest RMS power around current position
   // so that a good dwSampleOffset value can be sent to the new cue
-  int nrOfSamples = waveTracks[0].waveData.size();
+  int nrOfSamples = m_fileReference->waveTracks[0].waveData.size();
   int samplesPerPixel;
 
   if (nrOfSamples % trackWidth == 0)
@@ -644,16 +616,16 @@ void WaveformDrawer::OnClickAddCue(wxCommandEvent& event) {
   if (earliestSampleToConsider < 0)
     earliestSampleToConsider = 0;
 
-  if (lastSampleToConsider > waveTracks[0].waveData.size())
-    lastSampleToConsider = waveTracks[0].waveData.size() - 1;
+  if (lastSampleToConsider > m_fileReference->waveTracks[0].waveData.size())
+    lastSampleToConsider = m_fileReference->waveTracks[0].waveData.size() - 1;
 
   unsigned int bestSample = 0;
   double lowestRMSPower = DBL_MAX;
   double currentRMSPower = 0;
   // the sample values are in waveTracks[0].waveData
   for (unsigned i = earliestSampleToConsider; i <= lastSampleToConsider; i++) {
-    for (unsigned j = 0; j < waveTracks.size(); j++)
-      currentRMSPower += pow(waveTracks[j].waveData[i], 2);
+    for (unsigned j = 0; j < m_fileReference->waveTracks.size(); j++)
+      currentRMSPower += pow(m_fileReference->waveTracks[j].waveData[i], 2);
 
     if (currentRMSPower < lowestRMSPower) {
       lowestRMSPower = currentRMSPower;
@@ -669,24 +641,6 @@ void WaveformDrawer::ChangeLoopPositions(unsigned int start, unsigned int end, i
   loopPositions[idx].first = start;
   loopPositions[idx].second = end;
   somethingHasChanged = true;
-}
-
-bool WaveformDrawer::GetDoubleAudioData(double audio[], unsigned arrayLength) {
-  if (waveTracks.empty() == false) {
-    unsigned length = waveTracks.size() * waveTracks[0].waveData.size();
-
-    if (arrayLength == length) {
-      for (unsigned i = 0; i < waveTracks.size(); i++) {
-        for (unsigned j = 0; j < waveTracks[0].waveData.size(); j++) {
-          audio[i + j * waveTracks.size()] = waveTracks[i].waveData[j];
-        }
-      }
-      return true;
-    }
-    return false;
-  } else {
-    return false;
-  }
 }
 
 int WaveformDrawer::GetAmplitudeZoomLevel() {
@@ -705,23 +659,6 @@ void WaveformDrawer::ZoomOutAmplitude() {
     m_amplitudeZoomLevel /= 2;
 
   somethingHasChanged = true;
-}
-
-void WaveformDrawer::UpdateWaveTracks(double audio[], int nrChannels, unsigned arrayLength) {
-  // first empty old wavetracks
-  for (int i = 0; i < waveTracks.size(); i++)
-    waveTracks[i].waveData.clear();
-
-  // copy the new track data to right tracks
-    int index = 0;
-    for (unsigned i = 0; i < arrayLength; i++) {
-      // de-interleaving
-      waveTracks[index].waveData.push_back(audio[i]);
-      index++;
-
-      if (index == nrChannels)
-        index = 0;
-    }
 }
 
 void WaveformDrawer::OnKeyDown(wxKeyEvent& event) {
