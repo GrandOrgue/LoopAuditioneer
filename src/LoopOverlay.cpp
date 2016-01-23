@@ -21,7 +21,7 @@
 #include "LoopOverlay.h"
 
 BEGIN_EVENT_TABLE(LoopOverlay, wxDialog)
-  EVT_ERASE_BACKGROUND(LoopOverlay::OnEraseBackground)
+  EVT_SIZE(LoopOverlay::OnSize)
   EVT_PAINT(LoopOverlay::OnPaintEvent)
   EVT_BUTTON(ID_PREV_LOOP, LoopOverlay::OnPrevButton)
   EVT_BUTTON(ID_NEXT_LOOP, LoopOverlay::OnNextButton)
@@ -44,8 +44,10 @@ LoopOverlay::LoopOverlay(
   m_fileReference = fh;
   m_selectedLoop = selectedLoop;
   m_numberOfSamples = 41;
-  m_trackWidth = 0;
+  m_trackWidth = 376;
+  m_maxSamplesSpinner = (m_trackWidth / 2) + 1;
   m_hasChanged = false;
+  SetBackgroundColour(wxColour(244,242,239));
 
   // get the audio data as doubles from
   audioData = new double[m_fileReference->ArrayLength];
@@ -55,11 +57,13 @@ LoopOverlay::LoopOverlay(
     ReadLoopData();
     UpdateAudioTracks();
 
-    m_drawingPanel = new wxPanel(this);
+    m_drawingPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE);
+    m_drawingPanel->SetBackgroundColour(wxColour(244,242,239));
+    m_drawingPanel->SetMinSize(wxSize(400, 380));
+    m_drawingPanel->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
     // Create a top level sizer
     wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
-    this->SetSizer(topSizer);
 
     // Second box sizer to get nice margins
     wxBoxSizer *boxSizer = new wxBoxSizer(wxVERTICAL);
@@ -162,7 +166,7 @@ LoopOverlay::LoopOverlay(
       wxSize(100, -1),
       wxSP_ARROW_KEYS, 
       m_numberOfSamples, 
-      m_numberOfSamples, 
+      m_maxSamplesSpinner, 
       m_numberOfSamples 
     );
     loopStartSizer->Add(m_waveLength, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_TOP|wxTOP|wxLEFT|wxRIGHT, 2);
@@ -213,12 +217,11 @@ LoopOverlay::LoopOverlay(
     m_storeChanges->Enable(false);
     loopEndSizer->Add(m_storeChanges, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_TOP|wxTOP|wxLEFT|wxRIGHT, 2);
 
+    SetMinSize(wxSize(640, 480));
+    SetAutoLayout(true);
     SetSizer(topSizer);
+    topSizer->Fit(this);
     topSizer->SetSizeHints(this);
-
-    // Layout issues
-    this->SetMinSize(wxSize(640, 480));
-    this->SetAutoLayout(true);
   } else {
     this->Close(true);
   }
@@ -230,8 +233,9 @@ LoopOverlay::~LoopOverlay() {
 }
 
 void LoopOverlay::OnPaintEvent(wxPaintEvent & evt) {
-    wxPaintDC dc(m_drawingPanel);
-    OnPaint(dc);
+  wxPaintDC dcp(this);
+  wxClientDC dc(m_drawingPanel);
+  OnPaint(dc);
 }
 
 void LoopOverlay::OnPaint(wxDC& dc) {
@@ -242,12 +246,15 @@ void LoopOverlay::OnPaint(wxDC& dc) {
   int bottomMargin = 10;
   int marginBetweenTracks = 0;
   m_trackWidth = size.x - (leftMargin + rightMargin);
+  m_maxSamplesSpinner = (m_trackWidth / 2) + 1;
   leftMargin += (m_trackWidth % (m_numberOfSamples - 1)) / 2;
-  // ensure width is divisible by m_numberOfSamples
+  // ensure width is divisible by m_numberOfSamples - 1
   m_trackWidth -= (m_trackWidth % (m_numberOfSamples - 1));
 
   int trackHeight = (size.y - (topMargin + bottomMargin + ((m_fileReference->m_channels - 1) * marginBetweenTracks))) / m_fileReference->m_channels;
 
+  dc.SetBackground(wxBrush());
+  dc.Clear();
   dc.SetBrush(wxBrush(*wxWHITE));
   dc.SetPen(wxPen(*wxBLACK, 1, wxSOLID));
 
@@ -339,9 +346,6 @@ void LoopOverlay::OnPaint(wxDC& dc) {
   SetSampleSpinnerValues();
 }
 
-void LoopOverlay::OnEraseBackground(wxEraseEvent& WXUNUSED(event)) {
-}
-
 void LoopOverlay::UpdateAudioTracks() {
   if (!m_startTracks.empty())
     m_startTracks.clear();
@@ -424,8 +428,7 @@ void LoopOverlay::OnPrevButton(wxCommandEvent& event) {
     UpdateSpinners();
     SetSaveButtonState();
 
-    Refresh();
-    Update();
+    PaintNow();
   }
 }
 
@@ -440,8 +443,7 @@ void LoopOverlay::OnNextButton(wxCommandEvent& event) {
     UpdateSpinners();
     SetSaveButtonState();
 
-    Refresh();
-    Update();
+    PaintNow();
   }
 }
 
@@ -456,16 +458,14 @@ void LoopOverlay::OnLoopStartChange(wxSpinEvent& event) {
   currentLoopstart = loopStartSpin->GetValue();
   UpdateAudioTracks();
   SetSaveButtonState();
-  Refresh();
-  Update();
+  PaintNow();
 }
 
 void LoopOverlay::OnLoopEndChange(wxSpinEvent& event) {
   currentLoopend = loopEndSpin->GetValue();
   UpdateAudioTracks();
   SetSaveButtonState();
-  Refresh();
-  Update();
+  PaintNow();
 }
 
 void LoopOverlay::ReadLoopData() {
@@ -478,21 +478,18 @@ void LoopOverlay::ReadLoopData() {
 }
 
 void LoopOverlay::SetSampleSpinnerValues() {
-  m_waveLength->SetRange(41, m_trackWidth);
-  if (m_numberOfSamples > m_trackWidth) {
-    m_numberOfSamples = m_trackWidth;
-    m_waveLength->SetValue(m_numberOfSamples);
-    UpdateAudioTracks();
-    Refresh();
-    Update();
-  }
+  m_waveLength->SetRange(41, m_maxSamplesSpinner);
 }
 
 void LoopOverlay::OnWaveLengthChange(wxSpinEvent& event) {
   m_numberOfSamples = m_waveLength->GetValue();
-  UpdateAudioTracks();
-  Refresh();
-  Update();
+  if (m_numberOfSamples > m_maxSamplesSpinner) {
+    m_numberOfSamples = m_maxSamplesSpinner;
+    m_waveLength->SetValue(m_numberOfSamples);
+  } else {
+    UpdateAudioTracks();
+    PaintNow();
+  }
 }
 
 void LoopOverlay::OnStoreChanges(wxCommandEvent& event) {
@@ -513,4 +510,12 @@ void LoopOverlay::SetSaveButtonState() {
 
 bool LoopOverlay::GetHasChanged() {
   return m_hasChanged;
+}
+
+void LoopOverlay::PaintNow() {
+  this->Refresh();
+}
+
+void LoopOverlay::OnSize(wxSizeEvent& event) {
+  Layout();
 }

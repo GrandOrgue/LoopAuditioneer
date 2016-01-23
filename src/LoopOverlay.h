@@ -54,7 +54,7 @@ public:
     const wxString& title = wxT("Waveform overlay at looppoints"),
     const wxPoint& pos = wxDefaultPosition,
     const wxSize& size = wxDefaultSize,
-    long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER|wxBG_STYLE_PAINT|wxFULL_REPAINT_ON_RESIZE
+    long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER|wxCLIP_CHILDREN|wxFULL_REPAINT_ON_RESIZE
   );
   ~LoopOverlay();
 
@@ -70,6 +70,7 @@ private:
   int currentLoopend;
   int m_numberOfSamples;
   int m_trackWidth;
+  int m_maxSamplesSpinner;
   wxPanel *m_drawingPanel;
   wxButton *m_prevLoop;
   wxButton *m_nextLoop;
@@ -83,9 +84,9 @@ private:
   int m_selectedLoop;
   bool m_hasChanged;
 
-  void OnEraseBackground(wxEraseEvent& WXUNUSED(event));
   void OnPaintEvent(wxPaintEvent& evt);
   void OnPaint(wxDC& dc);
+  void OnSize(wxSizeEvent& event);
   void UpdateAudioTracks();
   void SetLoopString();
   void DecideButtonState();
@@ -99,6 +100,7 @@ private:
   void OnWaveLengthChange(wxSpinEvent& event);
   void OnStoreChanges(wxCommandEvent& event);
   void SetSaveButtonState();
+  void PaintNow();
 
   // handle events
   DECLARE_EVENT_TABLE()
