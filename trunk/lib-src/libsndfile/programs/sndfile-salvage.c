@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2010-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2010-2014 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** All rights reserved.
 **
@@ -79,7 +79,7 @@ usage_exit (const char *progname)
 {	printf ("Usage :\n\n  %s <broken wav file> <fixed w64 file>\n\n", progname) ;
 	puts ("Salvages the audio data from WAV files which are more than 4G in length.\n") ;
 	printf ("Using %s.\n\n", sf_version_string ()) ;
-	exit (0) ;
+	exit (1) ;
 } /* usage_exit */
 
 static void
@@ -240,7 +240,7 @@ find_data_offset (int fd, int format)
 
 	cptr = memchr (buffer, target [0], rlen - slen) ;
 	if (cptr && memcmp (cptr, target, slen) == 0)
-		offset = cptr - buffer  ;
+		offset = cptr - buffer ;
 	else
 	{	printf ("Error : Could not find data offset.\n") ;
 		exit (1) ;

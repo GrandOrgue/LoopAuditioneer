@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011-2016 Lars Palo
+ * Copyright (C) 2011-2020 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -561,10 +561,8 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
   } else {
     cueIsSelected = false;
     ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
-    wxPaintEvent evt;
     Refresh();
     Update();
-    AddPendingEvent(evt);
   }
 }
 
@@ -577,10 +575,8 @@ void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
     if (cueIsSelected) {
       cueIsSelected = false;
       ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
-      wxPaintEvent evt;
       Refresh();
       Update();
-      AddPendingEvent(evt);
     }
     // draw an indication line approximately where cue will be inserted
     wxClientDC dc(this);
@@ -591,10 +587,8 @@ void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
 
     PopupMenu(m_popupMenu, event.GetPosition());
 
-    wxPaintEvent evt;
     Refresh();
     Update();
-    AddPendingEvent(evt);
   }
 }
 

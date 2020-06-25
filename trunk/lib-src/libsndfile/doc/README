@@ -1,4 +1,4 @@
-This is libsndfile, 1.0.25
+This is libsndfile, 1.0.27
 
 libsndfile is a library of C routines for reading and writing
 files containing sampled audio data.
@@ -19,6 +19,9 @@ Bormann. Their original code can be found at :
 
 The src/G72x directory contains code written and released by Sun Microsystems
 under a suitably free license.
+
+The src/ALAC directory contains code written and released by Apple Inc and
+released under the Apache license.
 
 
 LINUX
@@ -63,3 +66,6 @@ The libsndfile home page is at :
 
 	http://www.mega-nerd.com/libsndfile/
 
+Bugs and support questions can be raised at :
+
+	https://github.com/erikd/libsndfile/

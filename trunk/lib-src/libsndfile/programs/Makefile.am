@@ -7,9 +7,9 @@ bin_PROGRAMS = sndfile-info sndfile-play sndfile-convert sndfile-cmp \
 OS_SPECIFIC_CFLAGS = @OS_SPECIFIC_CFLAGS@
 OS_SPECIFIC_LINKS = @OS_SPECIFIC_LINKS@
 
-INCLUDES = -I$(top_srcdir)/src $(OS_SPECIFIC_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/src $(OS_SPECIFIC_CFLAGS)
 
-CLEANFILES = *~
+CLEANFILES = *~ sndfile-*.exe *.wav
 
 # This is the BeOS version of sndfile-play. It needs to be compiled with the C++
 # compiler.
@@ -45,3 +45,5 @@ sndfile_concat_LDADD = $(top_builddir)/src/libsndfile.la
 sndfile_salvage_SOURCES = sndfile-salvage.c common.c common.h
 sndfile_salvage_LDADD = $(top_builddir)/src/libsndfile.la
 
+check :
+	@if [ -x /usr/bin/python ]; then $(top_srcdir)/programs/test-sndfile-metadata-set.py @HOST_TRIPLET@ ; fi

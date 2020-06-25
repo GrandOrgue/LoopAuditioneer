@@ -40,4 +40,10 @@ _sf_version_string    @68
 _sf_open_fd           @70
 _sf_open_virtual      @80
 _sf_write_sync        @90
+_sf_set_chunk         @100
+_sf_get_chunk_size    @101
+_sf_get_chunk_data    @102
+_sf_get_chunk_iterator @103
+_sf_next_chunk_iterator @104
+_sf_current_byterate  @110
 

@@ -21,7 +21,7 @@ OCT_LIB_DIR = @OCT_LIB_DIR@
 OCT_LIBS = @OCT_LIBS@
 
 SNDFILEDIR = $(top_builddir)/src
-INCLUDES = -I$(SNDFILEDIR)
+AM_CPPFLAGS = -I$(SNDFILEDIR)
 
 oct_module_srcs = sndfile.cc
 oct_module_files = sndfile.oct PKG_ADD
@@ -76,3 +76,4 @@ uninstall-local :
 
 clean-local :
 	rm -f sndfile.o sndfile.oct
+	@if test $(abs_builddir) != $(abs_srcdir) ; then rm -f PKG_ADD ; fi

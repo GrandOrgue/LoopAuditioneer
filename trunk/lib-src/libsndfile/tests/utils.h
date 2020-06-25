@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2002-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2002-2016 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -32,10 +32,10 @@ extern "C" {
 #include <stdint.h>
 #include <stdarg.h>
 
-#define SF_COUNT_TO_LONG(x)	((long) (x))
 #define	ARRAY_LEN(x)		((int) (sizeof (x)) / (sizeof ((x) [0])))
 #define SIGNED_SIZEOF(x)	((int64_t) (sizeof (x)))
 #define	NOT(x)				(! (x))
+#define	ABS(x)				((x) >= 0 ? (x) : -(x))
 
 #define	PIPE_INDEX(x)	((x) + 500)
 #define	PIPE_TEST_LEN	12345
@@ -55,6 +55,16 @@ void	dump_data_to_file (const char *filename, const void *data, unsigned int dat
 
 void	write_mono_file (const char * filename, int format, int srate, float * output, int len) ;
 
+#ifdef __GNUC__
+static inline void
+exit_if_true (int test, const char *format, ...)
+#if (defined (__USE_MINGW_ANSI_STDIO) && __USE_MINGW_ANSI_STDIO)
+	__attribute__ ((format (gnu_printf, 2, 3))) ;
+#else
+	__attribute__ ((format (printf, 2, 3))) ;
+#endif
+#endif
+
 static inline void
 exit_if_true (int test, const char *format, ...)
 {	if (test)
@@ -65,6 +75,11 @@ exit_if_true (int test, const char *format, ...)
 		exit (1) ;
 		} ;
 } /* exit_if_true */
+
+static inline int32_t
+arith_shift_left (int32_t x, int shift)
+{	return (int32_t) (((uint32_t) x) << shift) ;
+} /* arith_shift_left */
 
 /*
 **	Functions for saving two vectors of data in an ascii text file which
@@ -105,6 +120,7 @@ void 	check_log_buffer_or_die (SNDFILE *file, int line_num) ;
 int 	string_in_log_buffer (SNDFILE *file, const char *s) ;
 void	hexdump_file (const char * filename, sf_count_t offset, sf_count_t length) ;
 
+void	test_sf_format_or_die	(const SF_INFO *info, int line_num) ;
 
 SNDFILE *test_open_file_or_die
 			(const char *filename, int mode, SF_INFO *sfinfo, int allow_fd, int line_num) ;
@@ -161,14 +177,14 @@ void 	test_writef_double_or_die
 void
 test_write_raw_or_die (SNDFILE *file, int pass, const void *test, sf_count_t items, int line_num) ;
 
-void compare_short_or_die (const short *left, const short *right, unsigned count, int line_num) ;
-void compare_int_or_die (const int *left, const int *right, unsigned count, int line_num) ;
-void compare_float_or_die (const float *left, const float *right, unsigned count, int line_num) ;
-void compare_double_or_die (const double *left, const double *right, unsigned count, int line_num) ;
+void compare_short_or_die (const short *expected, const short *actual, unsigned count, int line_num) ;
+void compare_int_or_die (const int *expected, const int *actual, unsigned count, int line_num) ;
+void compare_float_or_die (const float *expected, const float *actual, unsigned count, int line_num) ;
+void compare_double_or_die (const double *expected, const double *actual, unsigned count, int line_num) ;
 
 
 
-void	gen_lowpass_noise_float (float *data, int len) ;
+void	gen_lowpass_signal_float (float *data, int len) ;
 
 sf_count_t		file_length (const char * fname) ;
 sf_count_t		file_length_fd (int fd) ;

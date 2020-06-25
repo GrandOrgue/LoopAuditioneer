@@ -6,32 +6,34 @@ else
 CPP_TEST = cpp_test
 endif
 
-INCLUDES = -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src
 
 check_PROGRAMS = sfversion floating_point_test write_read_test \
 	lossy_comp_test error_test ulaw_test alaw_test dwvw_test \
 	peak_chunk_test command_test stdin_test stdout_test stdio_test \
 	pcm_test headerless_test pipe_test benchmark header_test misc_test \
-	raw_test string_test multi_file_test dither_test \
+	raw_test string_test multi_file_test dither_test chunk_test \
 	scale_clip_test win32_test fix_this aiff_rw_test virtual_io_test \
-	locale_test largefile_test win32_ordinal_test ogg_test vorbis_test \
-	checksum_test external_libs_test rdwr_test format_check_test $(CPP_TEST)
+	locale_test largefile_test win32_ordinal_test ogg_test compression_size_test \
+	checksum_test external_libs_test rdwr_test format_check_test $(CPP_TEST) \
+	channel_test long_read_write_test
 
 noinst_HEADERS = dft_cmp.h utils.h generate.h
 
-autogen_sources = write_read_test.tpl write_read_test.def	\
-					pcm_test.tpl pcm_test.def				\
-					header_test.tpl header_test.def			\
-					utils.tpl utils.def						\
-					scale_clip_test.tpl scale_clip_test.def	\
-					pipe_test.tpl pipe_test.def				\
-					rdwr_test.tpl rdwr_test.def				\
-					floating_point_test.tpl floating_point_test.def	\
-					benchmark.tpl benchmark.def
+autogen_sources = \
+	write_read_test.c      write_read_test.tpl     write_read_test.def \
+	pcm_test.c             pcm_test.tpl            pcm_test.def \
+	header_test.c          header_test.tpl         header_test.def \
+	utils.c                utils.tpl               utils.def \
+	scale_clip_test.c      scale_clip_test.tpl     scale_clip_test.def \
+	pipe_test.c            pipe_test.tpl           pipe_test.def \
+	rdwr_test.c            rdwr_test.tpl           rdwr_test.def \
+	floating_point_test.c  floating_point_test.tpl floating_point_test.def \
+	benchmark.c            benchmark.tpl           benchmark.def
 
 EXTRA_DIST = $(autogen_sources)
 
-CLEANFILES = *~
+CLEANFILES = *~ *.exe
 
 #===============================================================================
 # If we're cross compiling from Linux to Windows and running the test suite
@@ -128,6 +130,9 @@ string_test_LDADD = $(top_builddir)/src/libsndfile.la
 dither_test_SOURCES = dither_test.c utils.c
 dither_test_LDADD = $(top_builddir)/src/libsndfile.la
 
+chunk_test_SOURCES = chunk_test.c utils.c
+chunk_test_LDADD = $(top_builddir)/src/libsndfile.la
+
 multi_file_test_SOURCES = multi_file_test.c utils.c
 multi_file_test_LDADD = $(top_builddir)/src/libsndfile.la
 
@@ -137,8 +142,8 @@ virtual_io_test_LDADD = $(top_builddir)/src/libsndfile.la
 ogg_test_SOURCES = ogg_test.c utils.c
 ogg_test_LDADD = $(top_builddir)/src/libsndfile.la
 
-vorbis_test_SOURCES = vorbis_test.c utils.c
-vorbis_test_LDADD = $(top_builddir)/src/libsndfile.la
+compression_size_test_SOURCES = compression_size_test.c utils.c
+compression_size_test_LDADD = $(top_builddir)/src/libsndfile.la
 
 rdwr_test_SOURCES = rdwr_test.c utils.c
 rdwr_test_LDADD = $(top_builddir)/src/libsndfile.la
@@ -155,6 +160,12 @@ external_libs_test_LDADD = $(top_builddir)/src/libsndfile.la
 
 format_check_test_SOURCES = format_check_test.c utils.c
 format_check_test_LDADD = $(top_builddir)/src/libsndfile.la
+
+channel_test_SOURCES = channel_test.c utils.c
+channel_test_LDADD = $(top_builddir)/src/libsndfile.la
+
+long_read_write_test_SOURCES = long_read_write_test.c utils.c
+long_read_write_test_LDADD = $(top_builddir)/src/libsndfile.la
 
 cpp_test_SOURCES = cpp_test.cc utils.c
 cpp_test_LDADD = $(top_builddir)/src/libsndfile.la
@@ -178,34 +189,9 @@ scale_clip_test_LDADD = $(top_builddir)/src/libsndfile.la
 
 #===============================================================================
 
-write_read_test.c: write_read_test.def write_read_test.tpl
-	autogen --writable write_read_test.def
+SUFFIXES = .def .tpl
 
-pcm_test.c: pcm_test.def pcm_test.tpl
-	autogen --writable pcm_test.def
-
-header_test.c: header_test.def header_test.tpl
-	autogen --writable header_test.def
-
-utils.c utils.h : utils.def utils.tpl
-	autogen --writable utils.def
-
-scale_clip_test.c: scale_clip_test.def scale_clip_test.tpl
-	autogen --writable scale_clip_test.def
-
-pipe_test.c: pipe_test.def pipe_test.tpl
-	autogen --writable pipe_test.def
-
-rdwr_test.c: rdwr_test.def rdwr_test.tpl
-	autogen --writable rdwr_test.def
-
-floating_point_test.c: floating_point_test.def floating_point_test.tpl
-	autogen --writable floating_point_test.def
-
-benchmark.c: benchmark.def benchmark.tpl
-	autogen --writable benchmark.def
-
-genfiles : write_read_test.c pcm_test.c header_test.c utils.c \
-		scale_clip_test.c pipe_test.c floating_point_test.c rdwr_test.c \
-		benchmark.c
-
+.def.c:
+	autogen --writable $<
+.def.h:
+	autogen --writable $<

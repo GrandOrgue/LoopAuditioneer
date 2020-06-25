@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2008-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2008-2014 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2008-2010 George Blood Audio
 **
 ** All rights reserved.
@@ -61,7 +61,7 @@ main (int argc, char *argv [])
 	progname = program_name (argv [0]) ;
 
 	/* Check if we've been asked for help. */
-	if (argc <= 2 || strcmp (argv [1], "--help") == 0 || strcmp (argv [1], "-h") == 0)
+	if (argc < 2 || strcmp (argv [1], "--help") == 0 || strcmp (argv [1], "-h") == 0)
 		usage_exit (progname, 0) ;
 
 	if (argv [argc - 1][0] != '-')
@@ -77,7 +77,6 @@ main (int argc, char *argv [])
 		exit (1) ;
 		} ;
 
-	/* Get the time in case we need it later. */
 	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	if ((file = sf_open (filename, SFM_READ, &sfinfo)) == NULL)
 	{	printf ("Error : Open of file '%s' failed : %s\n\n", filename, sf_strerror (file)) ;
@@ -104,7 +103,7 @@ usage_exit (const char *progname, int exit_code)
 
 	puts (
 		"    --bext-description    Print the 'bext' description.\n"
-		"    --bext-originator     Print the 'bext; originator info.\n"
+		"    --bext-originator     Print the 'bext' originator info.\n"
 		"    --bext-orig-ref       Print the 'bext' origination reference.\n"
 		"    --bext-umid           Print the 'bext' UMID.\n"
 		"    --bext-orig-date      Print the 'bext' origination date.\n"
@@ -131,19 +130,24 @@ process_args (SNDFILE * file, const SF_BROADCAST_INFO_2K * binfo, int argc, char
 {	const char * str ;
 	int k, do_all = 0 ;
 
-#define HANDLE_BEXT_ARG(cmd,name,field) \
+#define HANDLE_BEXT_ARG(cmd, name, field) \
 		if (do_all || strcmp (argv [k], cmd) == 0) \
 		{	printf ("%-20s : %.*s\n", name, (int) sizeof (binfo->field), binfo->field) ; \
 			if (! do_all) \
 				continue ; \
 			} ;
 
-#define HANDLE_STR_ARG(cmd,name,id) \
+#define HANDLE_STR_ARG(cmd, name, id) \
 		if (do_all || strcmp (argv [k], cmd) == 0) \
 		{	str = sf_get_string (file, id) ; \
 			printf ("%-20s : %s\n", name, str ? str : "") ; \
 			if (! do_all) continue ; \
 			} ;
+
+	if (argc == 0)
+	{	do_all = 1 ;
+		argc = 1 ;
+		} ;
 
 	for (k = 0 ; k < argc ; k++)
 	{	if (do_all || strcmp (argv [k], "--all") == 0)

@@ -1,6 +1,6 @@
 /*
  * FileHandling.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2016 Lars Palo
+ * Copyright (C) 2011-2020 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
   // Here we get all the info about the file to be able to later open new file in write mode if changes should be saved
   SndfileHandle sfHandle;
 
-  sfHandle = SndfileHandle(((const char*)filePath.mb_str())); // Open file only for read first to get all info
+  sfHandle = SndfileHandle(std::string(filePath.mb_str())); // Open file only for read first to get all info
 
   if (sfHandle) { // checking if opening file was succesful or not
 
@@ -70,18 +70,18 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
         bool toAdd = true;
 
         for (int j = 0; j < instr.loop_count; j++) {
-          if (cues.cue_points[i].dwSampleOffset == instr.loops[j].start)
+          if (cues.cue_points[i].sample_offset == instr.loops[j].start)
             toAdd = false;
         }
 
         if (toAdd) {
           CUEPOINT tmp;
-          tmp.dwName = cues.cue_points[i].dwName;
-          tmp.dwPosition = cues.cue_points[i].dwPosition;
-          tmp.fccChunk = cues.cue_points[i].fccChunk;
-          tmp.dwChunkStart = cues.cue_points[i].dwChunkStart;
-          tmp.dwBlockStart = cues.cue_points[i].dwBlockStart;
-          tmp.dwSampleOffset = cues.cue_points[i].dwSampleOffset;
+          tmp.dwName = cues.cue_points[i].indx;
+          tmp.dwPosition = cues.cue_points[i].position;
+          tmp.fccChunk = cues.cue_points[i].fcc_chunk;
+          tmp.dwChunkStart = cues.cue_points[i].chunk_start;
+          tmp.dwBlockStart = cues.cue_points[i].block_start;
+          tmp.dwSampleOffset = cues.cue_points[i].sample_offset;
           tmp.keepThisCue = true;
 
           m_cues->AddCue(tmp);
@@ -161,7 +161,7 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
   filePath += fileName;
 
   // This we open the file write
-  sfh = SndfileHandle(((const char*)filePath.mb_str()), SFM_WRITE, m_format, m_channels, m_samplerate);
+  sfh = SndfileHandle(std::string(filePath.mb_str()), SFM_WRITE, m_format, m_channels, m_samplerate);
 
   // Deal with the loops first
   m_loops->ExportLoops();
@@ -188,12 +188,12 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
   else
     cues.cue_count = cueCount;
   for (int i = 0; i < cues.cue_count; i++) {
-    cues.cue_points[i].dwName =  m_cues->exportedCues[i].dwName;
-    cues.cue_points[i].dwPosition =  m_cues->exportedCues[i].dwPosition;
-    cues.cue_points[i].fccChunk =  m_cues->exportedCues[i].fccChunk;
-    cues.cue_points[i].dwChunkStart =  m_cues->exportedCues[i].dwChunkStart;
-    cues.cue_points[i].dwBlockStart =  m_cues->exportedCues[i].dwBlockStart;
-    cues.cue_points[i].dwSampleOffset =  m_cues->exportedCues[i].dwSampleOffset;
+    cues.cue_points[i].indx =  m_cues->exportedCues[i].dwName;
+    cues.cue_points[i].position =  m_cues->exportedCues[i].dwPosition;
+    cues.cue_points[i].fcc_chunk =  m_cues->exportedCues[i].fccChunk;
+    cues.cue_points[i].chunk_start =  m_cues->exportedCues[i].dwChunkStart;
+    cues.cue_points[i].block_start =  m_cues->exportedCues[i].dwBlockStart;
+    cues.cue_points[i].sample_offset =  m_cues->exportedCues[i].dwSampleOffset;
   }
   sfh.command(4303, &cues, sizeof(cues));
 
@@ -392,15 +392,15 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
     if (allPeaksToConsider.size() > 1) {
       // now see if the maxpeak can be a harmonic of any other peak
       for (int x = 0; x < allPeaksToConsider.size() - 1; x++) {
-        if (abs((allPeaksToConsider[x] * 2) - peakIndex) < 3) {
+        if (labs((long)(allPeaksToConsider[x] * 2) - (long)peakIndex) < 3) {
           // peakIndex could be the first harmonic
           peakIndex = allPeaksToConsider[x];
           break;
-        } else if (abs((allPeaksToConsider[x] * 3) - peakIndex) < 5) {
+        } else if (labs((long)(allPeaksToConsider[x] * 3) - (long)peakIndex) < 5) {
           // peakIndex could be the second harmonic of this one
           peakIndex = allPeaksToConsider[x];
           break;
-        } else if (abs((allPeaksToConsider[x] * 3) / 2 - peakIndex) < 4) {
+        } else if (labs((long)(allPeaksToConsider[x] * 3) / 2 - (long)peakIndex) < 4) {
           // fundamental could just be a fifth lower 
           peakIndex = allPeaksToConsider[x];
           break;

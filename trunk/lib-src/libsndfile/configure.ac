@@ -1,44 +1,45 @@
-# Copyright (C) 1999-2011 Erik de Castro Lopo (erikd AT mega-nerd DOT com).
+# Copyright (C) 1999-2017  Erik de Castro Lopo <erikd@mega-nerd.com>.
 
 dnl Require autoconf version
 AC_PREREQ(2.57)
 
-AC_INIT([libsndfile],[1.0.25],[sndfile@mega-nerd.com],
+AC_INIT([libsndfile],[1.0.28],[sndfile@mega-nerd.com],
 		[libsndfile],[http://www.mega-nerd.com/libsndfile/])
 
 # Put config stuff in Cfg.
 AC_CONFIG_AUX_DIR(Cfg)
+AC_CONFIG_MACRO_DIR([M4])
 
 AC_CONFIG_SRCDIR([src/sndfile.c])
 AC_CANONICAL_TARGET([])
 
-AC_CONFIG_MACRO_DIR([M4])
 AC_CONFIG_HEADERS([src/config.h])
 
-AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION)
-AM_SILENT_RULES([yes])
-
-dnl Add parameters for aclocal
-AC_SUBST(ACLOCAL_AMFLAGS, "-I M4")
+AM_INIT_AUTOMAKE
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_LANG([C])
 
-AC_PROG_CC
+AC_PROG_CC_STDC
+AC_USE_SYSTEM_EXTENSIONS
 AM_PROG_CC_C_O
 AC_PROG_CXX
+
+MN_C_COMPILER_IS_CLANG
+MN_GCC_REALLY_IS_GCC
+
 AC_PROG_SED
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
-# Do not check for F77.
-define([AC_LIBTOOL_LANG_F77_CONFIG], [:])dnl
-
-AM_PROG_LIBTOOL
+LT_INIT
 LT_PROG_RC
-
-AC_CHECK_PROG(HAVE_AUTOGEN, autogen, yes, no)
-AC_CHECK_PROG(HAVE_WINE, wine, yes, no)
 
 AC_PROG_INSTALL
 AC_PROG_LN_S
+
+AC_CHECK_PROG(HAVE_AUTOGEN, autogen, yes, no)
+AC_CHECK_PROG(HAVE_WINE, wine, yes, no)
+AC_CHECK_PROG(HAVE_XCODE_SELECT, xcode-select, yes, no)
 
 #------------------------------------------------------------------------------------
 # Rules for library version information:
@@ -82,18 +83,7 @@ else
 AM_CONDITIONAL([LINUX_MINGW_CROSS_TEST],
 	[test "$build_os:$target_os:$host_os:$HAVE_WINE" = "linux-gnu:mingw32msvc:mingw32msvc:yes"])
 
-#====================================================================================
-# Check for support of the struct hack.
-
-MN_C99_FLEXIBLE_ARRAY
-
-if test x$ac_cv_c99_flexible_array = xyes ; then
-	AC_DEFINE([HAVE_FLEXIBLE_ARRAY],1, [Set to 1 if the compile supports the struct hack.])
-else
-	AC_MSG_WARN([[*** This compiler does not support the 1999 ISO C Standard ***]])
-	AC_MSG_WARN([[*** feature known as the flexible array struct member.     ***]])
-	AC_DEFINE([HAVE_FLEXIBLE_ARRAY],0)
-	fi
+gl_VISIBILITY
 
 #====================================================================================
 # Couple of initializations here. Fill in real values later.
@@ -104,7 +94,7 @@ SHLIB_VERSION_ARG=""
 # Finished checking, handle options.
 
 AC_ARG_ENABLE(experimental,
-	AC_HELP_STRING([--enable-experimental], [enable experimental code]))
+	AS_HELP_STRING([--enable-experimental], [enable experimental code]))
 
 EXPERIMENTAL_CODE=0
 if test x$enable_experimental = xyes ; then
@@ -112,35 +102,42 @@ if test x$enable_experimental = xyes ; then
 	fi
 AC_DEFINE_UNQUOTED([ENABLE_EXPERIMENTAL_CODE],${EXPERIMENTAL_CODE}, [Set to 1 to enable experimental code.])
 
-AC_ARG_ENABLE(gcc-werror,
-	AC_HELP_STRING([--enable-gcc-werror], [enable -Werror in all Makefiles]))
+AC_ARG_ENABLE(werror,
+	AS_HELP_STRING([--enable-werror], [enable -Werror in all Makefiles]))
+
+AC_ARG_ENABLE(stack-smash-protection,
+	AS_HELP_STRING([--enable-stack-smash-protection], [Enable GNU GCC stack smash protection]))
 
 AC_ARG_ENABLE(gcc-pipe,
-	AC_HELP_STRING([--disable-gcc-pipe], [disable gcc -pipe option]))
+	AS_HELP_STRING([--disable-gcc-pipe], [disable gcc -pipe option]))
 
 AC_ARG_ENABLE(gcc-opt,
-	AC_HELP_STRING([--disable-gcc-opt], [disable gcc optimisations]))
+	AS_HELP_STRING([--disable-gcc-opt], [disable gcc optimisations]))
 
 AC_ARG_ENABLE(cpu-clip,
-	AC_HELP_STRING([--disable-cpu-clip], [disable tricky cpu specific clipper]))
+	AS_HELP_STRING([--disable-cpu-clip], [disable tricky cpu specific clipper]))
 
 AC_ARG_ENABLE(bow-docs,
-	AC_HELP_STRING([--enable-bow-docs], [enable black-on-white html docs]))
+	AS_HELP_STRING([--enable-bow-docs], [enable black-on-white html docs]))
 
 AC_ARG_ENABLE(sqlite,
-	AC_HELP_STRING([--disable-sqlite], [disable use of sqlite]))
+	AS_HELP_STRING([--disable-sqlite], [disable use of sqlite]))
 
 AC_ARG_ENABLE(alsa,
-	AC_HELP_STRING([--disable-alsa], [disable use of ALSA]))
+	AS_HELP_STRING([--disable-alsa], [disable use of ALSA]))
 
 AC_ARG_ENABLE(external-libs,
-	AC_HELP_STRING([--disable-external-libs], [disable use of FLAC, Ogg and Vorbis [[default=no]]]))
+	AS_HELP_STRING([--disable-external-libs], [disable use of FLAC, Ogg and Vorbis [[default=no]]]))
 
 AC_ARG_ENABLE(octave,
-	AC_HELP_STRING([--enable-octave], [disable building of GNU Octave module]))
+	AS_HELP_STRING([--enable-octave], [disable building of GNU Octave module]))
+
+AC_ARG_ENABLE([full-suite],
+	AS_HELP_STRING([--disable-full-suite], [disable building and installing programs, documentation, only build library [[default=no]]]))
+AM_CONDITIONAL([FULL_SUITE], [test "x$enable_full_suite" != "xno"])
 
 AC_ARG_ENABLE(test-coverage,
-	AC_HELP_STRING([--enable-test-coverage], [enable test coverage]))
+	AS_HELP_STRING([--enable-test-coverage], [enable test coverage]))
 AM_CONDITIONAL([ENABLE_TEST_COVERAGE], [test "$enable_test_coverage" = yes])
 
 #====================================================================================
@@ -163,45 +160,37 @@ AC_CHECK_SIZEOF(long long,8)
 # Unfortunately there is more than one way of ensuring this so need to do some
 # pretty rigourous testing here.
 
-unset ac_cv_sizeof_off_t
+# Check for common 64 bit file offset types.
+AC_CHECK_SIZEOF(off_t,1)
 
-AC_CHECK_SIZEOF(off_t,1)	# Fake default value.
+if test "$enable_largefile:$ac_cv_sizeof_off_t" = "no:8" ; then
+	echo
+	echo "Error : Cannot disable large file support because sizeof (off_t) == 8."
+	echo
+	exit 1
+	fi
 
 case "$host_os" in
-	mingw32msvc | mingw32)
+	mingw32*)
 		TYPEOF_SF_COUNT_T="__int64"
 		SF_COUNT_MAX="0x7FFFFFFFFFFFFFFFLL"
 		SIZEOF_SF_COUNT_T=8
 		AC_DEFINE([__USE_MINGW_ANSI_STDIO],1,[Set to 1 to use C99 printf/snprintf in MinGW.])
 		;;
 	*)
+		SIZEOF_SF_COUNT_T=0
 		if test "x$ac_cv_sizeof_off_t" = "x8" ; then
 			# If sizeof (off_t) is 8, no further checking is needed.
 			TYPEOF_SF_COUNT_T="int64_t"
 			SF_COUNT_MAX="0x7FFFFFFFFFFFFFFFLL"
 			SIZEOF_SF_COUNT_T=8
 		else
-			# Check for common 64 bit file offset types.
-			AC_CHECK_SIZEOF(loff_t,1)	# Fake default value.
-			AC_CHECK_SIZEOF(off64_t,1)	# Fake default value.
-
-			TYPEOF_SF_COUNT_T="unknown"
-			if test "x$ac_cv_sizeof_loff_t" = "x8" ; then
-				TYPEOF_SF_COUNT_T="int64_t"
-				SIZEOF_SF_COUNT_T=8
-			elif test "x$ac_cv_sizeof_off64_t" = "x8" ; then
-				TYPEOF_SF_COUNT_T="int64_t"
-				SIZEOF_SF_COUNT_T=8
-				fi
-
 			# Save the old sizeof (off_t) value  and then unset it to see if it
 			# changes when Large File Support is enabled.
-
 			pre_largefile_sizeof_off_t=$ac_cv_sizeof_off_t
 			unset ac_cv_sizeof_off_t
 
-			AC_SYS_EXTRA_LARGEFILE
-
+			AC_SYS_LARGEFILE
 			if test "x$ac_cv_sys_largefile_CFLAGS" = "xno" ; then
 				ac_cv_sys_largefile_CFLAGS=""
 				fi
@@ -212,15 +201,12 @@ case "$host_os" in
 				ac_cv_sys_largefile_LIBS=""
 				fi
 
-			AC_CHECK_SIZEOF(off_t,1)	# Fake default value.
+			AC_CHECK_SIZEOF(off_t,1)
 
 			if test "x$ac_cv_sizeof_off_t" = "x8" ; then
 				TYPEOF_SF_COUNT_T="int64_t"
 				SF_COUNT_MAX="0x7FFFFFFFFFFFFFFFLL"
-			elif test "x$ac_cv_sizeof_off_t" = "x$pre_largefile_sizeof_off_t" ; then
-				AC_MSG_WARN([[This machine does not seem to support 64 bit file offsets.]])
-				TYPEOF_SF_COUNT_T="off_t"
-				SIZEOF_SF_COUNT_T=$ac_cv_sizeof_off_t
+				SIZEOF_SF_COUNT_T=8
 			elif test "x$TYPEOF_SF_COUNT_T" = "xunknown" ; then
 				echo
 				echo "*** The configure process has determined that this system is capable"
@@ -247,8 +233,7 @@ AC_SUBST(SIZEOF_SF_COUNT_T)
 AC_DEFINE_UNQUOTED([SF_COUNT_MAX],${SF_COUNT_MAX}, [Set to maximum allowed value of sf_count_t type.])
 AC_SUBST(SF_COUNT_MAX)
 
-AC_CHECK_TYPES(ssize_t)
-AC_CHECK_SIZEOF(ssize_t,4)
+AC_TYPE_SSIZE_T
 
 #====================================================================================
 # Determine endian-ness of target processor.
@@ -266,8 +251,8 @@ AC_DEFINE_UNQUOTED(WORDS_BIGENDIAN, ${ac_cv_c_big_endian},
 # Check for functions.
 
 AC_CHECK_FUNCS(malloc calloc realloc free)
-AC_CHECK_FUNCS(open read write lseek pread pwrite)
-AC_CHECK_FUNCS(fstat ftruncate fsync)
+AC_CHECK_FUNCS(open read write lseek lseek64)
+AC_CHECK_FUNCS(fstat fstat64 ftruncate fsync)
 AC_CHECK_FUNCS(snprintf vsnprintf)
 AC_CHECK_FUNCS(gmtime gmtime_r localtime localtime_r gettimeofday)
 AC_CHECK_FUNCS(mmap getpagesize)
@@ -275,7 +260,7 @@ AC_CHECK_FUNCS(setlocale)
 AC_CHECK_FUNCS(pipe waitpid)
 
 AC_CHECK_LIB([m],floor)
-AC_CHECK_FUNCS(floor ceil fmod)
+AC_CHECK_FUNCS(floor ceil fmod lround)
 
 MN_C99_FUNC_LRINT
 MN_C99_FUNC_LRINTF
@@ -297,21 +282,22 @@ else
 #====================================================================================
 # Check for Ogg, Vorbis and FLAC.
 
-HAVE_EXTERNAL_LIBS=0
-EXTERNAL_CFLAGS=""
-EXTERNAL_LIBS=""
+HAVE_EXTERNAL_XIPH_LIBS=0
+EXTERNAL_XIPH_CFLAGS=""
+EXTERNAL_XIPH_LIBS=""
 
 # Check for pkg-config outside the if statement.
 PKG_PROG_PKG_CONFIG
+m4_ifdef([PKG_INSTALLDIR], [PKG_INSTALLDIR], AC_SUBST([pkgconfigdir], ${libdir}/pkgconfig))
 
 if test -n "$PKG_CONFIG" ; then
 	if test x$enable_external_libs = xno ; then
 		AC_MSG_WARN([[*** External libs (FLAC, Ogg, Vorbis) disabled. ***]])
 	else
-		PKG_CHECK_MOD_VERSION(FLAC, flac >= 1.2.1, ac_cv_flac=yes, ac_cv_flac=no)
+		PKG_CHECK_MOD_VERSION(FLAC, flac >= 1.3.1, ac_cv_flac=yes, ac_cv_flac=no)
 
 		# Make sure the FLAC_CFLAGS value is sane.
-		FLAC_CFLAGS=`echo $FLAC_CLFAGS | $SED "s/FLAC$//"`
+		FLAC_CFLAGS=`echo $FLAC_CFLAGS | $SED "s|include/FLAC|include|"`
 
 		PKG_CHECK_MOD_VERSION(OGG, ogg >= 1.1.3, ac_cv_ogg=yes, ac_cv_ogg=no)
 
@@ -331,11 +317,11 @@ if test -n "$PKG_CONFIG" ; then
 		fi
 
 	if test x$ac_cv_flac$ac_cv_ogg$ac_cv_vorbis$ac_cv_vorbisenc = "xyesyesyesyes" ; then
-		HAVE_EXTERNAL_LIBS=1
+		HAVE_EXTERNAL_XIPH_LIBS=1
 		enable_external_libs=yes
 
-		EXTERNAL_CFLAGS="$FLAC_CFLAGS $OGG_CFLAGS $VORBISENC_CFLAGS $SPEEX_CFLAGS"
-		EXTERNAL_LIBS="$FLAC_LIBS $VORBISENC_LIBS $SPEEX_LIBS"
+		EXTERNAL_XIPH_CFLAGS="$FLAC_CFLAGS $OGG_CFLAGS $VORBIS_CFLAGS $VORBISENC_CFLAGS $SPEEX_CFLAGS"
+		EXTERNAL_XIPH_LIBS="$FLAC_LIBS $OGG_LIBS $VORBIS_LIBS $VORBISENC_LIBS $SPEEX_LIBS "
 	else
 		echo
 		AC_MSG_WARN([[*** One or more of the external libraries (ie libflac, libogg and]])
@@ -349,7 +335,7 @@ if test -n "$PKG_CONFIG" ; then
 		fi
 	fi
 
-AC_DEFINE_UNQUOTED([HAVE_EXTERNAL_LIBS], $HAVE_EXTERNAL_LIBS, [Will be set to 1 if flac, ogg and vorbis are available.])
+AC_DEFINE_UNQUOTED([HAVE_EXTERNAL_XIPH_LIBS], $HAVE_EXTERNAL_XIPH_LIBS, [Will be set to 1 if flac, ogg and vorbis are available.])
 
 #====================================================================================
 # Check for libsqlite3 (only used in regtest).
@@ -366,6 +352,7 @@ else
 	fi
 
 AC_DEFINE_UNQUOTED([HAVE_SQLITE3],$HAVE_SQLITE3,[Set to 1 if you have libsqlite3.])
+AM_CONDITIONAL([HAVE_SQLITE3], [test "x$ac_cv_sqlite3" = "xyes"])
 
 #====================================================================================
 # Determine if the processor can do clipping on float to int conversions.
@@ -389,26 +376,30 @@ AC_DEFINE_UNQUOTED(CPU_CLIPS_NEGATIVE, ${ac_cv_c_clip_negative},
 OS_SPECIFIC_CFLAGS=""
 OS_SPECIFIC_LINKS=""
 os_is_win32=0
-os_is_macosx=0
+os_is_openbsd=0
 use_windows_api=0
-
 case "$host_os" in
 	darwin* | rhapsody*)
-		os_is_macosx=1
-		OS_SPECIFIC_CFLAGS="-I/Developer/Headers/FlatCarbon"
-		OS_SPECIFIC_LINKS="-framework CoreAudio"
+		if test x$HAVE_XCODE_SELECT = xyes ; then
+			developer_path=`xcode-select --print-path`
+		else
+			developer_path="/Developer"
+			fi
+		OS_SPECIFIC_LINKS="-framework CoreAudio -framework AudioToolbox -framework CoreFoundation"
 		;;
 	mingw*)
 		os_is_win32=1
 		use_windows_api=1
 		OS_SPECIFIC_LINKS="-lwinmm"
 		;;
+	openbsd*)
+		os_is_openbsd=1
+		;;
 	esac
 
 AC_DEFINE_UNQUOTED(OS_IS_WIN32, ${os_is_win32}, [Set to 1 if compiling for Win32])
-AC_DEFINE_UNQUOTED(OS_IS_MACOSX, ${os_is_macosx}, [Set to 1 if compiling for MacOSX])
+AC_DEFINE_UNQUOTED(OS_IS_OPENBSD, ${os_is_openbsd}, [Set to 1 if compiling for OpenBSD])
 AC_DEFINE_UNQUOTED(USE_WINDOWS_API, ${use_windows_api}, [Set to 1 to use the native windows API])
-
 AM_CONDITIONAL(USE_WIN_VERSION_FILE, test ${use_windows_api} -eq 1)
 
 #====================================================================================
@@ -428,21 +419,23 @@ if test x$enable_alsa != xno ; then
 # Check for OpenBSD's sndio.
 
 SNDIO_LIBS=""
-AC_CHECK_HEADERS(sndio.h)
-if test x$ac_cv_header_sndio_h = xyes ; then
-	SNDIO_LIBS="-lsndio"
-	fi
+HAVE_SNDIO_H=0
+case "$host_os" in
+	openbsd*)
+		AC_CHECK_HEADERS(sndio.h)
+		if test x$ac_cv_header_sndio_h = xyes ; then
+			SNDIO_LIBS="-lsndio"
+			HAVE_SNDIO_H=1
+			fi
+		;;
+	*)
+		;;
+	esac
+
+AC_DEFINE_UNQUOTED([HAVE_SNDIO_H],${HAVE_SNDIO_H},[Set to 1 if <sndio.h> is available.])
 
 #====================================================================================
 # Test for sanity when cross-compiling.
-
-if test x$cross_compiling = xyes ; then
-	AC_MSG_WARN([[******************************************************************]])
-	AC_MSG_WARN([[*** We are cross-compiling, so have to assume sizeof (short) == 2 ]])
-	AC_MSG_WARN([[*** and sizeof (int) == 4. If this is not the case there is no    ]])
-	AC_MSG_WARN([[*** chance of this working. Please contact the mantainer.         ]])
-	AC_MSG_WARN([[******************************************************************]])
-	fi
 
 if test $ac_cv_sizeof_short != 2 ; then
 	AC_MSG_WARN([[******************************************************************]])
@@ -475,14 +468,6 @@ if test x"$ac_cv_prog_HAVE_AUTOGEN" = "xno" ; then
 
 #====================================================================================
 # Settings for the HTML documentation.
-
-htmldocdir=$prefix/share/doc/libsndfile1-dev/html
-
-if test $prefix = "NONE" ; then
-	htmldocdir=/usr/local/share/doc/libsndfile1-dev/html
-else
-	htmldocdir=$prefix/share/doc/libsndfile1-dev/html
-	fi
 
 if test x$enable_bow_docs = "xyes" ; then
 	HTML_BGCOLOUR="white"
@@ -517,18 +502,17 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 	CXXFLAGS="$CXXFLAGS -Wall"
 
 	MN_ADD_CFLAGS([-Wextra])
+	MN_ADD_CFLAGS([-Wdeclaration-after-statement])
+	MN_ADD_CFLAGS([-Wpointer-arith])
 
 	AC_LANG_PUSH([C++])
 	MN_ADD_CXXFLAGS([-Wextra])
+	MN_ADD_CXXFLAGS([-Wpointer-arith])
 	AC_LANG_POP([C++])
 
-	MN_ADD_CFLAGS([-Wdeclaration-after-statement])
-	MN_ADD_CFLAGS([-Wpointer-arith])
-	MN_ADD_CFLAGS([-funsigned-char])
-
-	if test x$enable_gcc_werror = "xyes" ; then
-		CFLAGS="-Werror $CFLAGS"
-		CXXFLAGS="-Werror $CXXFLAGS"
+	if test x$enable_stack_smash_protection = "xyes" ; then
+		XIPH_GCC_STACK_PROTECTOR
+		XIPH_GXX_STACK_PROTECTOR
 		fi
 
 	if test x$enable_test_coverage = "xyes" ; then
@@ -536,9 +520,16 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 		MN_ADD_CFLAGS([-coverage])
 		fi
 
-	CFLAGS="$CFLAGS -Wstrict-prototypes -Wmissing-prototypes -Waggregate-return -Wcast-align -Wcast-qual -Wnested-externs -Wshadow -Wbad-function-cast -Wwrite-strings -Wundef "
-	# -Wundef -Wmissing-declarations -Winline -Wconversion"
-	CXXFLAGS="$CXXFLAGS -Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wctor-dtor-privacy -Wnon-virtual-dtor -Woverloaded-virtual -Wreorder -Wsign-promo -Wundef "
+	dnl some distributions (such as Gentoo) have _FORTIFY_SOURCE always
+	dnl enabled. We test for this situation in order to prevent polluting
+	dnl the console with messages of macro redefinitions.
+	AX_ADD_FORTIFY_SOURCE
+
+	common_flags="-Wcast-align -Wcast-qual -Wshadow -Wwrite-strings -Wundef -Wuninitialized -Winit-self"
+
+	# -Winline -Wconversion "
+	CFLAGS="$CFLAGS     $common_flags -Wbad-function-cast -Wnested-externs -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Waggregate-return -Wvla"
+	CXXFLAGS="$CXXFLAGS $common_flags -Wctor-dtor-privacy -Wnon-virtual-dtor -Woverloaded-virtual -Wreorder -Wsign-promo"
 
 	if test "x$enable_gcc_opt" = "xno" ; then
 		temp_CFLAGS=`echo $CFLAGS | $SED "s/O2/O0/"`
@@ -559,9 +550,7 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 			SHLIB_VERSION_ARG="-Wl,--version-script=\$(srcdir)/Symbols.gnu-binutils"
 			;;
 		mingw*)
-			# Linker flag '-Wl,--out-implib' does not work with mingw cross compiler
-			# so we don't use it here.
-			SHLIB_VERSION_ARG="-Wl,\$(srcdir)/libsndfile-1.def"
+			SHLIB_VERSION_ARG="-Wc,-static-libgcc -Wl,\$(srcdir)/libsndfile-1.def"
 			win32_target_dll=1
 			if test x"$enable_shared" = xno ; then
 				win32_target_dll=0
@@ -580,6 +569,15 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 	COMPILER_IS_GCC=1
 	fi
 
+if test x$enable_werror = "xyes" ; then
+	MN_ADD_CFLAGS([-Werror])
+
+	AC_LANG_PUSH([C++])
+	MN_ADD_CXXFLAGS([-Werror])
+	AC_LANG_POP([C++])
+	fi
+
+
 AC_DEFINE_UNQUOTED([WIN32_TARGET_DLL], ${win32_target_dll}, [Set to 1 if windows DLL is being built.])
 AC_DEFINE_UNQUOTED([COMPILER_IS_GCC], ${COMPILER_IS_GCC}, [Set to 1 if the compile is GNU GCC.])
 
@@ -592,17 +590,27 @@ if test x"$CFLAGS" = x ; then
 
 HOST_TRIPLET="${host_cpu}-${host_vendor}-${host_os}"
 
+AC_DEFINE_UNQUOTED([HOST_TRIPLET], "${HOST_TRIPLET}", [The host triplet of the compiled binary.])
+
 if test "$HOST_TRIPLET" = "x86_64-w64-mingw32" ; then
 	OS_SPECIFIC_LINKS=" -static-libgcc $OS_SPECIFIC_LINKS"
 	fi
 
 WIN_RC_VERSION=`echo $PACKAGE_VERSION | $SED -e "s/p.*//" -e "s/\./,/g"`
 
+
+if test "$enable_static" = no ; then
+	SRC_BINDIR=src/.libs/
+	TEST_BINDIR=tests/.libs/
+else
+	SRC_BINDIR=src/
+	TEST_BINDIR=tests/
+	fi
+
 #-------------------------------------------------------------------------------
 
 AC_SUBST(HOST_TRIPLET)
 
-AC_SUBST(htmldocdir)
 AC_SUBST(HTML_BGCOLOUR)
 AC_SUBST(HTML_FGCOLOUR)
 
@@ -611,13 +619,16 @@ AC_SUBST(SHARED_VERSION_INFO)
 AC_SUBST(CLEAN_VERSION)
 AC_SUBST(WIN_RC_VERSION)
 
+AC_SUBST(HAVE_EXTERNAL_XIPH_LIBS)
 AC_SUBST(OS_SPECIFIC_CFLAGS)
 AC_SUBST(OS_SPECIFIC_LINKS)
 AC_SUBST(ALSA_LIBS)
 AC_SUBST(SNDIO_LIBS)
 
-AC_SUBST(EXTERNAL_CFLAGS)
-AC_SUBST(EXTERNAL_LIBS)
+AC_SUBST(EXTERNAL_XIPH_CFLAGS)
+AC_SUBST(EXTERNAL_XIPH_LIBS)
+AC_SUBST(SRC_BINDIR)
+AC_SUBST(TEST_BINDIR)
 
 dnl The following line causes the libtool distributed with the source
 dnl to be replaced if the build system has a more recent version.
@@ -628,13 +639,14 @@ AC_CONFIG_FILES([ \
 	M4/Makefile doc/Makefile Win32/Makefile Octave/Makefile programs/Makefile \
 	Makefile \
 	src/version-metadata.rc tests/test_wrapper.sh tests/pedantic-header-test.sh \
-	doc/libsndfile.css build-test-tarball.mk libsndfile.spec sndfile.pc \
+	doc/libsndfile.css Scripts/build-test-tarball.mk libsndfile.spec sndfile.pc \
 	src/sndfile.h \
+	echo-install-dirs
 	])
 AC_OUTPUT
 
 # Make sure these are executable.
-chmod u+x tests/test_wrapper.sh build-test-tarball.mk
+chmod u+x tests/test_wrapper.sh Scripts/build-test-tarball.mk echo-install-dirs
 
 #====================================================================================
 
@@ -663,10 +675,12 @@ if test -z "$PKG_CONFIG" ; then
 	echo
 	fi
 
+echo "  Tools :"
+echo
+echo "    Compiler is Clang : ................... ${mn_cv_c_compiler_clang}"
+echo "    Compiler is GCC : ..................... ${ac_cv_c_compiler_gnu}"
+
 if test x$ac_cv_c_compiler_gnu = xyes ; then
-	echo "  Tools :"
-	echo
-	echo "    Compiler is GCC : ..................... ${ac_cv_c_compiler_gnu}"
 	echo "    GCC version : ......................... ${GCC_VERSION}"
 	if test $GCC_MAJOR_VERSION -lt 3 ; then
 		echo "\n"
@@ -675,30 +689,10 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 		echo "    ** Compile with GCC version 3.X or above to avoid this problem."
 		fi
 	fi
+echo "    Sanitizer enabled : ................... ${enable_sanitizer:-no}"
+echo "    Stack smash protection : .............. ${enable_stack_smash_protection:-no}"
 
-if test $libdir = "\${exec_prefix}/lib" ; then
-	libdir="$prefix/lib"
-	fi
+./echo-install-dirs
 
-if test $bindir = "\${exec_prefix}/bin" ; then
-	bindir="$prefix/bin"
-	fi
-
-AC_MSG_RESULT([[
-  Installation directories :
-
-    Library directory : ................... $libdir
-    Program directory : ................... $bindir
-    Pkgconfig directory : ................. $libdir/pkgconfig
-    HTML docs directory : ................. $htmldocdir
-]])
-
-if test x$prefix != "x/usr" ; then
-	echo "Compiling some other packages against libsndfile may require"
-	echo "the addition of '$libdir/pkgconfig' to the"
-	echo "PKG_CONFIG_PATH environment variable."
-	echo
-	fi
-
-(cd src && make genfiles)
-(cd tests && make genfiles)
+# Remove symlink created by Scripts/android-configure.sh.
+rm -f gdbclient

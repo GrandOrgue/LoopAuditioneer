@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2008-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+# Copyright (C) 2008-2016 Erik de Castro Lopo <erikd@mega-nerd.com>
 #
 # All rights reserved.
 #
@@ -33,7 +33,7 @@
 
 HOST_TRIPLET=@HOST_TRIPLET@
 PACKAGE_VERSION=@PACKAGE_VERSION@
-LIB_VERSION=`echo $PACKAGE_VERSION | sed "s/[a-z].*//"`
+LIB_VERSION=$(echo $PACKAGE_VERSION | sed "s/[a-z].*//")
 
 if test -f tests/sfversion@EXEEXT@ ; then
 	cd tests
@@ -53,9 +53,9 @@ if test -f libsndfile.so.$LIB_VERSION ; then
 		fi
 	fi
 
-sfversion=`./sfversion@EXEEXT@ | sed "s/-exp$//"`
+sfversion=$(./sfversion@EXEEXT@ | grep libsndfile | sed "s/-exp$//")
 
-if test $sfversion != libsndfile-$PACKAGE_VERSION ; then
+if test "$sfversion" != libsndfile-$PACKAGE_VERSION ; then
 	echo "Error : sfversion ($sfversion) and PACKAGE_VERSION ($PACKAGE_VERSION) don't match."
 	exit 1
 	fi
@@ -89,10 +89,12 @@ if test -x test_main@EXEEXT@ ; then
 ./command_test@EXEEXT@ peak
 ./command_test@EXEEXT@ trunc
 ./command_test@EXEEXT@ inst
+./command_test@EXEEXT@ cue
 ./command_test@EXEEXT@ current_sf_info
 ./command_test@EXEEXT@ bext
 ./command_test@EXEEXT@ bextch
 ./command_test@EXEEXT@ chanmap
+./command_test@EXEEXT@ cart
 ./floating_point_test@EXEEXT@
 ./checksum_test@EXEEXT@
 ./scale_clip_test@EXEEXT@
@@ -102,6 +104,7 @@ if test -x test_main@EXEEXT@ ; then
 ./win32_ordinal_test@EXEEXT@
 ./external_libs_test@EXEEXT@
 ./format_check_test@EXEEXT@
+./channel_test@EXEEXT@
 
 # The w64 G++ compiler requires an extra runtime DLL which we don't have,
 # so skip this test.
@@ -133,6 +136,7 @@ echo "=========================="
 ./string_test@EXEEXT@ aiff
 ./multi_file_test@EXEEXT@ aiff
 ./aiff_rw_test@EXEEXT@
+./chunk_test@EXEEXT@ aiff
 echo "----------------------------------------------------------------------"
 echo "  $sfversion passed tests on AIFF files."
 echo "----------------------------------------------------------------------"
@@ -157,6 +161,9 @@ echo "----------------------------------------------------------------------"
 ./header_test@EXEEXT@ caf
 ./peak_chunk_test@EXEEXT@ caf
 ./misc_test@EXEEXT@ caf
+./chunk_test@EXEEXT@ caf
+./string_test@EXEEXT@ caf
+./long_read_write_test@EXEEXT@ alac
 echo "----------------------------------------------------------------------"
 echo "  $sfversion passed tests on CAF files."
 echo "----------------------------------------------------------------------"
@@ -175,6 +182,7 @@ echo "----------------------------------------------------------------------"
 ./misc_test@EXEEXT@ wav
 ./string_test@EXEEXT@ wav
 ./multi_file_test@EXEEXT@ wav
+./chunk_test@EXEEXT@ wav
 echo "----------------------------------------------------------------------"
 echo "  $sfversion passed tests on WAV files."
 echo "----------------------------------------------------------------------"
@@ -196,6 +204,9 @@ echo "----------------------------------------------------------------------"
 ./write_read_test@EXEEXT@ rf64
 ./header_test@EXEEXT@ rf64
 ./misc_test@EXEEXT@ rf64
+./string_test@EXEEXT@ rf64
+./peak_chunk_test@EXEEXT@ rf64
+./chunk_test@EXEEXT@ rf64
 echo "----------------------------------------------------------------------"
 echo "  $sfversion passed tests on RF64 files."
 echo "----------------------------------------------------------------------"
@@ -333,6 +344,7 @@ echo "----------------------------------------------------------------------"
 
 # flac-tests
 ./write_read_test@EXEEXT@ flac
+./compression_size_test@EXEEXT@ flac
 ./string_test@EXEEXT@ flac
 echo "----------------------------------------------------------------------"
 echo "  $sfversion passed tests on FLAC files."
@@ -340,7 +352,7 @@ echo "----------------------------------------------------------------------"
 
 # vorbis-tests
 ./ogg_test@EXEEXT@
-./vorbis_test@EXEEXT@
+./compression_size_test@EXEEXT@ vorbis
 ./lossy_comp_test@EXEEXT@ ogg_vorbis
 ./string_test@EXEEXT@ ogg
 ./misc_test@EXEEXT@ ogg

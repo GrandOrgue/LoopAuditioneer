@@ -188,7 +188,12 @@
 
 <TR>
 	<TD><A HREF="#SFC_SET_VBR_ENCODING_QUALITY">SFC_SET_VBR_ENCODING_QUALITY</A></TD>
-	<TD>Set the the Variable Bit Rate encoding quality</TD>
+	<TD>Set the Variable Bit Rate encoding quality</TD>
+</TR>
+
+<TR>
+	<TD><A HREF="#SFC_SET_COMPRESSION_LEVEL">SFC_SET_COMPRESSION_LEVEL</A></TD>
+	<TD>Set the compression level.</TD>
 </TR>
 
 <TR>
@@ -207,6 +212,16 @@
 </TR>
 
 <TR>
+	<TD><A HREF="#SFC_SET_CART_INFO">SFC_SET_CART_INFO</A></TD>
+	<TD>Set the Cart Chunk info</TD>
+</TR>
+
+<TR>
+	<TD><A HREF="#SFC_GET_CART_INFO">SFC_GET_CART_INFO</A></TD>
+	<TD>Retrieve the Cart Chunk info</TD>
+</TR>
+
+<TR>
 	<TD><A HREF="#SFC_GET_LOOP_INFO">SFC_GET_LOOP_INFO</A></TD>
 	<TD>Get loop info</TD>
 </TR>
@@ -222,11 +237,24 @@
 </TR>
 
 <TR>
-	<TD><A HREF="#SFC_SET_VBR_ENCODING_QUALITY">SFC_SET_VBR_ENCODING_QUALITY</A></TD>
-	<TD>Set variable bit rate encoding quality</TD>
+	<TD><A HREF="#SFC_GET_CUE_COUNT">SFC_GET_CUE_COUNT</A></TD>
+	<TD>Get the cue marker count</TD>
 </TR>
 
+<TR>
+	<TD><A HREF="#SFC_GET_CUE">SFC_GET_CUE</A></TD>
+	<TD>Get cue marker info</TD>
+</TR>
 
+<TR>
+	<TD><A HREF="#SFC_SET_CUE">SFC_SET_CUE</A></TD>
+	<TD>Set cue marker info</TD>
+</TR>
+
+<TR>
+	<TD><A HREF="#SFC_RF64_AUTO_DOWNGRADE">SFC_RF64_AUTO_DOWNGRADE</A></TD>
+	<TD>Enable auto downgrade from RF64 to WAV</TD>
+</TR>
 
 <!--
 <TR>
@@ -253,7 +281,7 @@ Parameters:
         sndfile  : Not used
         cmd      : SFC_GET_LIB_VERSION
         data     : A pointer to a char buffer
-        datasize : The size of the the buffer
+        datasize : The size of the buffer
 </PRE>
 <P>
 Example:
@@ -288,7 +316,7 @@ Parameters:
         sndfile  : A valid SNDFILE* pointer
         cmd      : SFC_GET_LOG_INFO
         data     : A pointer to a char buffer
-        datasize : The size of the the buffer
+        datasize : The size of the buffer
 </PRE>
 <P>
 Example:
@@ -1302,9 +1330,11 @@ This command is currently only supported for files with SF_FORMAT_WAVEX format.
 <A NAME="SFC_SET_VBR_ENCODING_QUALITY"></A>
 <H2><BR><B>SFC_SET_VBR_ENCODING_QUALITY</B></H2>
 <P>
-Set the the Variable Bit Rate encoding quality.
+Set the Variable Bit Rate encoding quality.
 The encoding quality value should be between 0.0 (lowest quality) and 1.0
 (highest quality).
+Currenly this command is only implemented for FLAC and Ogg/Vorbis files.
+It has no effect on un-compressed file formats.
 </P>
 <P>
 Parameters:
@@ -1320,8 +1350,38 @@ The command must be sent before any audio data is written to the file.
 <P>
 </P>
 <DL>
-<DT>Return value: </DT>
-	<DD>Zero on success, non-zero otherwise.
+<DT>Return value:</DT>
+	<dd>SF_TRUE if VBR encoding quality was set.
+    SF_FALSE otherwise.
+</DL>
+
+<!-- ========================================================================= -->
+<A NAME="SFC_SET_COMPRESSION_LEVEL"></A>
+<H2><BR><B>SFC_SET_COMPRESSION_LEVEL</B></H2>
+<P>
+Set the compression level.
+The compression level should be between 0.0 (minimum compression level) and 1.0
+(highest compression level).
+Currenly this command is only implemented for FLAC and Ogg/Vorbis files.
+It has no effect on un-compressed file formats.
+</P>
+<P>
+Parameters:
+<PRE>
+        sndfile  : A valid SNDFILE* pointer
+        cmd      : SFC_SET_COMPRESSION_LEVEL
+        data     : A pointer to a double value
+        datasize : sizeof (double)
+</PRE>
+<P>
+The command must be sent before any audio data is written to the file.
+</P>
+<P>
+</P>
+<DL>
+<DT>Return value:</DT>
+	<dd>SF_TRUE if compression level was set.
+    SF_FALSE otherwise.
 </DL>
 
 <!-- ========================================================================= -->
@@ -1413,6 +1473,79 @@ Parameters:
 <DL>
 <DT>Return value: </DT>
 	<DD>SF_TRUE if setting the Broadcast Extension chunk was successful and SF_FALSE
+	otherwise.
+
+</DL>
+
+<!-- ========================================================================= -->
+<A NAME="SFC_GET_CART_INFO"></A>
+<H2><BR><B>SFC_GET_CART_INFO</B></H2>
+<P>Retrieve the Cart Chunk from WAV (and related) files.  Based on AES46 standard for CartChunk (see <a href="http://www.cartchunk.org/">CartChunk.org</a> for more information.
+</P>
+<p>
+Parameters:
+</p>
+<PRE>
+        sndfile  : A valid SNDFILE* pointer
+        cmd      : SFC_GET_CART_INFO
+        data     : a pointer to an SF_CART_INFO struct
+        datasize : sizeof (SF_CART_INFO)
+</PRE>
+<P>
+The SF_CART_INFO struct is defined in &lt;sndfile.h&gt; as:
+</P>
+<PRE>
+#define SF_CART_INFO_VAR(p_tag_text_size) \
+                        struct
+                        {       char            version [4] ;
+                                char            title [64] ;
+                                char            artist [64] ;
+                                char            cut_id [64] ;
+                                char            client_id [64] ;
+                                char            category [64] ;
+                                char            classification [64] ;
+                                char            out_cue [64] ;
+                                char            start_date [10] ;
+                                char            start_time [8] ;
+                                char            end_date [10] ;
+                                char            end_time [8] ;
+                                char            producer_app_id [64] ;
+                                char            producer_app_version [64] ;
+                                char            user_def [64] ;
+                                long    level_reference ;
+                                SF_CART_TIMER   post_timers [8] ;
+                                char            reserved [276] ;
+                                char            url [1024] ;
+                                unsigned int    tag_text_size ;
+                                char            tag_text[p_tag_text_size] ;
+                        }
+</PRE>
+
+<DL>
+<DT>Return value: </DT>
+	<DD>SF_TRUE if the file contained a Cart chunk or SF_FALSE
+	otherwise.
+</DL>
+
+<!-- ========================================================================= -->
+<A NAME="SFC_SET_CART_INFO"></A>
+<H2><BR><B>SFC_SET_CART_INFO</B></H2>
+<P>
+Set the Cart Chunk for WAV (and related) files.
+</P>
+<p>
+Parameters:
+</p>
+<PRE>
+        sndfile  : A valid SNDFILE* pointer
+        cmd      : SFC_SET_CART_INFO
+        data     : a pointer to an SF_CART_INFO struct
+        datasize : sizeof (SF_CART_INFO)
+</PRE>
+
+<DL>
+<DT>Return value: </DT>
+	<DD>SF_TRUE if setting the Cart chunk was successful and SF_FALSE
 	otherwise.
 </DL>
 <!-- ========================================================================= -->
@@ -1541,7 +1674,7 @@ Parameters:
 </p>
 <PRE>
          sndfile  : A valid SNDFILE* pointer
-         cmd      : SFC_GET_INSTRUMENT
+         cmd      : SFC_SET_INSTRUMENT
          data     : a pointer to an SF_INSTRUMENT struct
          datasize : sizeof (SF_INSTRUMENT)
 </PRE>
@@ -1558,36 +1691,170 @@ Example:
     file. SF_FALSE otherwise.
 </DL>
 
+
+<!-- ========================================================================= -->
+
+<A NAME="SFC_GET_CUE"></A>
+<H2><BR><B>SFC_GET_CUE_COUNT</B></H2>
+<P>
+Retrieve the number of cue markers available for retrieval using the
+SFC_GET_CUE command.
+</P>
+<P>
+Parameters:
+</P>
+<PRE>
+         sndfile  : A valid SNDFILE* pointer
+         cmd      : SFC_GET_CUE
+         data     : a pointer to a uint32_t
+         datasize : sizeof (uint32_t)
+</PRE>
+
+
+<P>
+Example:
+</P>
+<PRE>
+         uint32_t cue_count ;
+         sf_command (sndfile, SFC_GET_CUE_COUNT, &amp;cue_count, sizeof (cue_count)) ;
+</PRE>
+<DL>
+<DT>Return value:</DT>
+	<dd>SF_TRUE if the file header contains cue marker information for the
+    file. SF_FALSE otherwise.
+</DL>
+
+<!-- ========================================================================= -->
+
+<A NAME="SFC_GET_CUE"></A>
+<H2><BR><B>SFC_GET_CUE</B></H2>
+<P>
+Retrieve cue marker information from file.
+</P>
+<P>
+Parameters:
+</P>
+<PRE>
+         sndfile  : A valid SNDFILE* pointer
+         cmd      : SFC_GET_CUE
+         data     : a pointer to an SF_CUES struct
+         datasize : sizeof (SF_CUES)
+</PRE>
+
+<P>
+The SF_CUES struct is defined in &lt;sndfile.h&gt; as:
+</P>
+<PRE>
+    typedef struct
+    {	int cue_count ;
+
+    	struct
+    	{	int32_t   indx ;
+    		uint32_t  position ;
+    		int32_t   fcc_chunk ;
+    		int32_t   chunk_start ;
+    		int32_t   block_start ;
+    		uint32_t  sample_offset ;
+    		char name [256] ;
+    	} cue_points [100] ;
+    } SF_CUES ;
+</PRE>
+
+<P>
+There is also an SF_CUES_VAR #define that allows reading/writing more than 100
+cue markers.
+</P>
+
+<P>
+Example:
+</P>
+<PRE>
+         SF_CUES cues ;
+         sf_command (sndfile, SFC_GET_CUE, &amp;cues, sizeof (cues)) ;
+</PRE>
+<DL>
+<DT>Return value:</DT>
+	<dd>SF_TRUE if the file header contains cue marker information for the
+    file. SF_FALSE otherwise.
+</DL>
+
+
 <!-- ========================================================================= -->
 
 
-<A NAME="SFC_SET_VBR_ENCODING_QUALITY"></A>
-<H2><BR><B>SFC_SET_VBR_ENCODING_QUALITY</B></H2>
+<A NAME="SFC_SET_CUE"></A>
+<H2><BR><B>SFC_SET_CUE</B></H2>
 <P>
-Set the Variable Bite Rate encoding quality.
-Currenly only implemented fro Ogg/Vorbis files.
+Set the cue marker information for the file.
 </P>
-<p>
+<P>
 Parameters:
-</p>
+</P>
 <PRE>
          sndfile  : A valid SNDFILE* pointer
-         cmd      : SFC_SET_VBR_ENCODING_QUALITY
-         data     : a pointer to double specifing VBR quality
-         datasize : sizeof (double)
+         cmd      : SFC_SET_CUE
+         data     : a pointer to an SF_CUES struct
+         datasize : sizeof (SF_CUES)
 </PRE>
 <P>
 Example:
 </P>
 <PRE>
-         double quality = 0.5 ;
-         sf_command (sndfile, SFC_SET_VBR_ENCODING_QUALITY, &amp;quality, sizeof (double)) ;
+         SF_CUES cues ;
+         sf_command (sndfile, SFC_SET_CUE, &amp;cues, sizeof (cues)) ;
 </PRE>
 <DL>
 <DT>Return value:</DT>
-	<dd>SF_TRUE if VBR encoding quality was set.
-    SF_FALSE otherwise.
+	<dd>SF_TRUE if the file header contains cue marker information for the
+	file. SF_FALSE otherwise.
 </DL>
+
+
+<!-- ========================================================================= -->
+
+
+<A NAME="SFC_RF64_AUTO_DOWNGRADE"></A>
+<H2><BR><B>SFC_RF64_AUTO_DOWNGRADE</B></H2>
+<P>
+Enable auto downgrade from RF64 to WAV.
+</P>
+<P>
+The EBU recomendation is that when writing RF64 files and the resulting file is
+less than 4Gig in size, it should be downgraded to a WAV file (WAV files have a
+maximum size of 4Gig).
+libsndfile doesn't follow the EBU recommendations exactly, , mainly because the
+test suite needs to be able test reading/writing RF64 files without having to
+generate files larger than 4 gigabytes.
+</P>
+<p>
+Note: This command should be issued before the first bit of audio data has been
+written to the file.
+Calling this command after audio data has been written will return the current
+value of this setting, but will not allow it to be changed.
+</p>
+<p>
+Parameters:
+</p>
+<PRE>
+         sndfile  : A valid SNDFILE* pointer
+         cmd      : SFC_RF64_AUTO_DOWNGRADE
+         data     : NULL
+         datasize : SF_TRUE or SF_FALSE
+</PRE>
+<P>
+Example:
+</P>
+<PRE>
+         /* Enable auto downgrade on file close. */
+         sf_command (sndfile, SFC_RF64_AUTO_DOWNGRADE, NULL, SF_TRUE) ;
+</PRE>
+<DL>
+<DT>Return value:</DT>
+	<dd>Returns SF_TRUE if SFC_RF64_AUTO_DOWNGRADE is set and SF_FALSE
+	otherwise.
+</DL>
+
+
 
 <!-- ========================================================================= -->
 
