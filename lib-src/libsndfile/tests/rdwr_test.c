@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2010-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2010-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software ; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -70,8 +70,8 @@ static void
 rdwr_short_test	(const char *filename)
 {	SNDFILE *file ;
 	SF_INFO sfinfo ;
-    sf_count_t frames ;
-    short buffer [160] ;
+	sf_count_t frames ;
+	short buffer [160] ;
 
 	print_test_name ("rdwr_short_test", filename) ;
 
@@ -104,8 +104,8 @@ static void
 rdwr_int_test	(const char *filename)
 {	SNDFILE *file ;
 	SF_INFO sfinfo ;
-    sf_count_t frames ;
-    int buffer [160] ;
+	sf_count_t frames ;
+	int buffer [160] ;
 
 	print_test_name ("rdwr_int_test", filename) ;
 
@@ -138,8 +138,8 @@ static void
 rdwr_float_test	(const char *filename)
 {	SNDFILE *file ;
 	SF_INFO sfinfo ;
-    sf_count_t frames ;
-    float buffer [160] ;
+	sf_count_t frames ;
+	float buffer [160] ;
 
 	print_test_name ("rdwr_float_test", filename) ;
 
@@ -172,8 +172,8 @@ static void
 rdwr_double_test	(const char *filename)
 {	SNDFILE *file ;
 	SF_INFO sfinfo ;
-    sf_count_t frames ;
-    double buffer [160] ;
+	sf_count_t frames ;
+	double buffer [160] ;
 
 	print_test_name ("rdwr_double_test", filename) ;
 
@@ -206,8 +206,8 @@ static void
 rdwr_raw_test	(const char *filename)
 {	SNDFILE *file ;
 	SF_INFO sfinfo ;
-    sf_count_t frames ;
-    unsigned char buffer [160] ;
+	sf_count_t frames ;
+	unsigned char buffer [160] ;
 
 	print_test_name ("rdwr_raw_test", filename) ;
 

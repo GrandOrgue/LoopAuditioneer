@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2002-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2002-2016 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2007 John ffitch
 **
 ** This program is free software ; you can redistribute it and/or modify
@@ -34,7 +34,7 @@
 #include "sfendian.h"
 #include "common.h"
 
-#if HAVE_EXTERNAL_LIBS
+#if HAVE_EXTERNAL_XIPH_LIBS
 
 #include <ogg/ogg.h>
 
@@ -65,6 +65,9 @@ ogg_open (SF_PRIVATE *psf)
 	ogg_stream_clear (&odata->ostream) ;
 	psf_fseek (psf, pos, SEEK_SET) ;
 
+	if (SF_ENDIAN (psf->sf.format) != 0)
+		return SFE_BAD_ENDIAN ;
+
 	switch (psf->sf.format)
 	{	case SF_FORMAT_OGG | SF_FORMAT_VORBIS :
 			return ogg_vorbis_open (psf) ;
@@ -88,7 +91,7 @@ ogg_open (SF_PRIVATE *psf)
 			break ;
 		} ;
 
-	psf_log_printf (psf, "%s : mode should be SFM_READ or SFM_WRITE.\n", __func__) ;
+	psf_log_printf (psf, "%s : bad psf->sf.format 0x%x.\n", __func__, psf->sf.format) ;
 	return SFE_INTERNAL ;
 } /* ogg_open */
 
@@ -106,7 +109,7 @@ ogg_close (SF_PRIVATE *psf)
 static int
 ogg_stream_classify (SF_PRIVATE *psf, OGG_PRIVATE* odata)
 {	char *buffer ;
-	int	 bytes, nn ;
+	int	bytes, nn ;
 
 	/* Call this here so it only gets called once, so no memory is leaked. */
 	ogg_sync_init (&odata->osync) ;
@@ -128,11 +131,11 @@ ogg_stream_classify (SF_PRIVATE *psf, OGG_PRIVATE* odata)
 	buffer = ogg_sync_buffer (&odata->osync, 4096L) ;
 
 	/* Grab the part of the header that has already been read. */
-	memcpy (buffer, psf->header, psf->headindex) ;
-	bytes = psf->headindex ;
+	memcpy (buffer, psf->header.ptr, psf->header.indx) ;
+	bytes = psf->header.indx ;
 
 	/* Submit a 4k block to libvorbis' Ogg layer */
-	bytes += psf_fread (buffer + psf->headindex, 1, 4096 - psf->headindex, psf) ;
+	bytes += psf_fread (buffer + psf->header.indx, 1, 4096 - psf->header.indx, psf) ;
 	ogg_sync_wrote (&odata->osync, bytes) ;
 
 	/* Get the first page. */
@@ -220,7 +223,7 @@ ogg_page_classify (SF_PRIVATE * psf, const ogg_page * og)
 
 		if (memcmp (og->body, codec_lookup [k].str, codec_lookup [k].len) == 0)
 		{	psf_log_printf (psf, "Ogg stream data : %s\n", codec_lookup [k].name) ;
-			psf_log_printf (psf, "Stream serialno : %010D\n", (int64_t) ogg_page_serialno (og)) ;
+			psf_log_printf (psf, "Stream serialno : %u\n", (uint32_t) ogg_page_serialno (og)) ;
 			return codec_lookup [k].codec ;
 			} ;
 		} ;
@@ -238,7 +241,7 @@ ogg_page_classify (SF_PRIVATE * psf, const ogg_page * og)
 	return 0 ;
 } /* ogg_page_classify */
 
-#else /* HAVE_EXTERNAL_LIBS */
+#else /* HAVE_EXTERNAL_XIPH_LIBS */
 
 int
 ogg_open	(SF_PRIVATE *psf)

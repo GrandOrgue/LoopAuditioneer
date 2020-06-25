@@ -1,6 +1,6 @@
 /* 
  * LoopAuditioneerDef.h contains global constants
- * Copyright (C) 2011-2016 Lars Palo
+ * Copyright (C) 2011-2020 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,6 @@ enum {
 };
 
 const wxString appName = wxT("LoopAuditioneer");
-const wxString appVersion = wxT("0.8.2");
+const wxString appVersion = wxT("0.8.3");
 
 #endif

@@ -21,7 +21,7 @@
 #define REPETITIONS 10
 
 // Platform-dependent sleep routines.
-#if defined( __WINDOWS_ASIO__ ) || defined( __WINDOWS_DS__ )
+#if defined( WIN32 )
   #include <windows.h>
   #define SLEEP( milliseconds ) Sleep( (DWORD) milliseconds ) 
 #else // Unix variants
@@ -51,8 +51,8 @@ struct MyData {
 };
 
 // Interleaved buffers
-int pulse( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
-           double streamTime, RtAudioStreamStatus status, void *mydata )
+int pulse( void *outputBuffer, void * /*inputBuffer*/, unsigned int nBufferFrames,
+           double /*streamTime*/, RtAudioStreamStatus status, void *mydata )
 {
   // Write out a pulse signal and ignore the input buffer.
   unsigned int i, j;
@@ -63,7 +63,7 @@ int pulse( void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
   if ( status ) std::cout << "Stream over/underflow detected!" << std::endl;
 
   for ( i=0; i<nBufferFrames; i++ ) {
-    if ( data->frameCounter % data->pulseCount == 0 ) sample = 0.9;
+    if ( data->frameCounter % data->pulseCount == 0 ) sample = 0.9f;
     else sample = 0.0;
     for ( j=0; j<data->channels; j++ )
       *buffer++ = sample;
@@ -107,11 +107,11 @@ int main( int argc, char *argv[] )
   // Let RtAudio print messages to stderr.
   adc->showWarnings( true );
 
-  runtime = RUNTIME * 1000;
-  pausetime = PAUSETIME * 1000;
+  runtime = static_cast<unsigned int>(RUNTIME * 1000);
+  pausetime = static_cast<unsigned int>(PAUSETIME * 1000);
 
   // Set our stream parameters for a duplex stream.
-  bufferFrames = 256;
+  bufferFrames = 512;
   RtAudio::StreamParameters oParams, iParams;
   oParams.deviceId = oDevice;
   oParams.nChannels = mydata.channels;
@@ -121,8 +121,13 @@ int main( int argc, char *argv[] )
   iParams.nChannels = mydata.channels;
   iParams.firstChannel = iOffset;
 
+  if ( iDevice == 0 )
+    iParams.deviceId = adc->getDefaultInputDevice();
+  if ( oDevice == 0 )
+    oParams.deviceId = adc->getDefaultOutputDevice();
+
   // First, test external stopStream() calls.
-  mydata.pulseCount = PULSE_RATE * fs;
+  mydata.pulseCount = static_cast<unsigned int>(PULSE_RATE * fs);
   mydata.nFrames = 50 * fs;
   mydata.returnValue = 0;
   try {
@@ -141,7 +146,7 @@ int main( int argc, char *argv[] )
       SLEEP( pausetime );
     }
   }
-  catch ( RtError& e ) {
+  catch ( RtAudioError& e ) {
     e.printMessage();
     goto cleanup;
   }
@@ -168,7 +173,7 @@ int main( int argc, char *argv[] )
       SLEEP( pausetime );
     }
   }
-  catch ( RtError& e ) {
+  catch ( RtAudioError& e ) {
     e.printMessage();
     goto cleanup;
   }
@@ -193,7 +198,7 @@ int main( int argc, char *argv[] )
       SLEEP( pausetime );
     }
   }
-  catch ( RtError& e ) {
+  catch ( RtAudioError& e ) {
     e.printMessage();
     goto cleanup;
   }
@@ -222,7 +227,7 @@ int main( int argc, char *argv[] )
       SLEEP( pausetime );
     }
   }
-  catch ( RtError& e ) {
+  catch ( RtAudioError& e ) {
     e.printMessage();
     goto cleanup;
   }
@@ -253,7 +258,7 @@ int main( int argc, char *argv[] )
       SLEEP( pausetime );
     }
   }
-  catch ( RtError& e ) {
+  catch ( RtAudioError& e ) {
     e.printMessage();
     goto cleanup;
   }

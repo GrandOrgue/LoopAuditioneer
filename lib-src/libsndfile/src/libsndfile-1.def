@@ -38,4 +38,10 @@ sf_open_fd           @70
 sf_wchar_open        @71
 sf_open_virtual      @80
 sf_write_sync        @90
+sf_set_chunk         @100
+sf_get_chunk_size    @101
+sf_get_chunk_data    @102
+sf_get_chunk_iterator @103
+sf_next_chunk_iterator @104
+sf_current_byterate  @110
 

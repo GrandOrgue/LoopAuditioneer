@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2002-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2002-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@
 	#define WRITE_PERMS	(S_IRUSR | S_IWUSR | S_IRGRP)
 #endif
 
-#define	BUFFER_SIZE		(1<<18)
+#define	BUFFER_SIZE		(1 << 18)
 #define	BLOCK_COUNT		(30)
 #define	TEST_DURATION	(5)		/* 5 Seconds. */
 
@@ -328,7 +328,7 @@ calc_int_performance (int format, double read_rate, double write_rate)
 	int_data = data ;
 	item_count = BUFFER_SIZE ;
 	for (k = 0 ; k < item_count ; k++)
-		int_data [k] = 32700.0 * (1<<16) * sin (2 * M_PI * k / 32000.0) ;
+		int_data [k] = 32700.0 * (1 << 16) * sin (2 * M_PI * k / 32000.0) ;
 
 	/* Collect write stats */
 	printf ("    Write %-5s   to  %s : ", "int", subtype) ;

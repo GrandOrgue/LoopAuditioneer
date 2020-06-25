@@ -1,6 +1,6 @@
 /*
  * MyFrame.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2016 Lars Palo
+ * Copyright (C) 2011-2020 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -84,7 +84,7 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
   info.SetName(appName);
   info.SetVersion(appVersion);
   info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files."));
-  info.SetCopyright(wxT("Copyright (C) 2011-2016 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
+  info.SetCopyright(wxT("Copyright (C) 2011-2020 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
   info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
 
   wxAboutBox(info);
@@ -408,14 +408,14 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
 
 void MyFrame::UpdateCurrentFileInfo() {
   if (!m_audiofile->m_loops->loopsOut.empty()) {
-    wxString loopNbr = wxString::Format(wxT("%i"), m_audiofile->m_loops->loopsOut.size());
+    wxString loopNbr = wxString::Format(wxT("%u"), (unsigned int) m_audiofile->m_loops->loopsOut.size());
     m_fileListCtrl->SetItem(currentOpenFileIdx, 1, loopNbr);
   } else {
     m_fileListCtrl->SetItem(currentOpenFileIdx, 1, wxT("0"));
   }
 
   if (!m_audiofile->m_cues->exportedCues.empty()) {
-    wxString cueNbr = wxString::Format(wxT("%i"), m_audiofile->m_cues->exportedCues.size());
+    wxString cueNbr = wxString::Format(wxT("%u"), (unsigned int) m_audiofile->m_cues->exportedCues.size());
     m_fileListCtrl->SetItem(currentOpenFileIdx, 2, cueNbr);
   } else {
     m_fileListCtrl->SetItem(currentOpenFileIdx, 2, wxT("0"));
