@@ -44,7 +44,6 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(pare
   blue.Set(wxT("#0d0060"));
   green.Set(wxT("#00C800"));
   red.Set(wxT("#f90000"));
-  grey.Set(wxT("#d3d3d3"));
   xSize = 1;
   ySize = 1;
   topMargin = 10;
