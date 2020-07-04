@@ -24,7 +24,6 @@
 #include "FileHandling.h"
 #include "CutNFadeDialog.h"
 #include "CrossfadeDialog.h"
-#include "sndfile.hh"
 #include <wx/statline.h>
 #include <wx/listctrl.h>
 #include <wx/filename.h>
@@ -498,6 +497,10 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
           if (fh.FileCouldBeOpened()) {
+            // set sustainsection from slider data in autoloop settings to audiofile
+            fh.SetSliderSustainsection(m_loopSettings->GetStart(), m_loopSettings->GetEnd());
+            // adjust choice of sustainsection
+            fh.SetAutoSustainSearch(m_loopSettings->GetAutosearch());
             int nbLoops = fh.m_loops->GetNumberOfLoops();
             m_statusProgress->AppendText(wxString::Format(wxT("\tFile opened, it already contains %i loop(s)\n"), nbLoops));
             if (nbLoops < 16) {
@@ -510,23 +513,21 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
               }
 
               // now we need to search for loops and for that we need data as doubles
-              wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
-              SndfileHandle sfh;
-              sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
-              double *audioData = new double[sfh.frames() * sfh.channels()];
-              sfh.read(audioData, sfh.frames() * sfh.channels());
+              unsigned nbrOfSmpls = fh.ArrayLength / fh.m_channels;
+              double *audioData = new double[nbrOfSmpls];
+              fh.SeparateStrongestChannel(audioData);
+              // retrieve the used sustainsection
+              std::pair <unsigned, unsigned> sustainSection = fh.GetSustainsection();
               // vector to receive found loops
               std::vector<std::pair<std::pair<unsigned, unsigned>, double> > addLoops;
               // call to search for loops
               bool foundLoops = autoloop->AutoFindLoops(
                 audioData,
-                fh.ArrayLength,
-                fh.m_channels,
+                nbrOfSmpls,
                 fh.GetSampleRate(),
                 addLoops,
-                m_loopSettings->GetAutosearch(),
-                m_loopSettings->GetStart(),
-                m_loopSettings->GetEnd(),
+                sustainSection.first,
+                sustainSection.second,
                 loopsAlreadyInFile
               );
               // delete the now unneccessary array of double audio data
@@ -581,18 +582,11 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           if (fh.FileCouldBeOpened()) {
             m_statusProgress->AppendText(wxT("\tFile opened.\n"));
 
-            // now we need data as doubles
-            wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
-            SndfileHandle sfh;
-            sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
-            double *audioData = new double[sfh.frames() * sfh.channels()];
-            sfh.read(audioData, sfh.frames() * sfh.channels());
-
             // autosearch pitch and calculate midi note and pitch fraction
             double fftPitches[2];
             for (int j = 0; j < 2; j++)
               fftPitches[j] = 0;
-            fh.GetFFTPitch(audioData, fftPitches);
+            fh.GetFFTPitch(fftPitches);
             int midi_note = (69 + 12 * (log10(fftPitches[0] / 440.0) / log10(2)));
             double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
             double cent_deviation = 1200 * (log10(fftPitches[0] / midi_note_pitch) / log10(2));
@@ -606,8 +600,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch = %.2f Hz\n"), fftPitches[0]));
             m_statusProgress->AppendText(wxT("\tDone!\n"));
 
-            // delete the now unneccessary array of double audio data
-            delete[] audioData;
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
@@ -643,18 +635,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
           if (fh.FileCouldBeOpened()) {
-            // now we need data as doubles
-            wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
-            SndfileHandle sfh;
-            sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
-            double *audioData = new double[sfh.frames() * sfh.channels()];
-            sfh.read(audioData, sfh.frames() * sfh.channels());
 
             // autosearch pitch and calculate midi note and pitch fraction
             double fftPitches[2];
             for (int j = 0; j < 2; j++)
               fftPitches[j] = 0;
-            fh.GetFFTPitch(audioData, fftPitches);
+            fh.GetFFTPitch(fftPitches);
             int midi_note = (69 + 12 * (log10(fftPitches[0] / 440.0) / log10(2)));
             double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
             double cent_deviation = 1200 * (log10(fftPitches[0] / midi_note_pitch) / log10(2));
@@ -666,8 +652,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
-            // delete the now unneccessary array of double audio data
-            delete[] audioData;
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
@@ -692,18 +676,11 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           if (fh.FileCouldBeOpened()) {
             m_statusProgress->AppendText(wxT("\tFile opened.\n"));
 
-            // now we need data as doubles
-            wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
-            SndfileHandle sfh;
-            sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
-            double *audioData = new double[sfh.frames() * sfh.channels()];
-            sfh.read(audioData, sfh.frames() * sfh.channels());
-
             // autosearch pitch and calculate midi note and pitch fraction
             double fftPitches[2];
             for (int j = 0; j < 2; j++)
               fftPitches[j] = 0;
-            fh.GetFFTPitch(audioData, fftPitches);
+            fh.GetFFTPitch(fftPitches);
             int midi_note = (69 + 12 * (log10(fftPitches[1] / 440.0) / log10(2)));
             double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
             double cent_deviation = 1200 * (log10(fftPitches[1] / midi_note_pitch) / log10(2));
@@ -717,8 +694,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch = %.2f Hz\n"), fftPitches[1]));
             m_statusProgress->AppendText(wxT("\tDone!\n"));
 
-            // delete the now unneccessary array of double audio data
-            delete[] audioData;
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
@@ -754,18 +729,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
           if (fh.FileCouldBeOpened()) {
-            // now we need data as doubles
-            wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
-            SndfileHandle sfh;
-            sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
-            double *audioData = new double[sfh.frames() * sfh.channels()];
-            sfh.read(audioData, sfh.frames() * sfh.channels());
 
             // autosearch pitch and calculate midi note and pitch fraction
             double fftPitches[2];
             for (int j = 0; j < 2; j++)
               fftPitches[j] = 0;
-            fh.GetFFTPitch(audioData, fftPitches);
+            fh.GetFFTPitch(fftPitches);
             int midi_note = (69 + 12 * (log10(fftPitches[1] / 440.0) / log10(2)));
             double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
             double cent_deviation = 1200 * (log10(fftPitches[1] / midi_note_pitch) / log10(2));
@@ -777,8 +746,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
-            // delete the now unneccessary array of double audio data
-            delete[] audioData;
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
@@ -803,15 +770,8 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           if (fh.FileCouldBeOpened()) {
             m_statusProgress->AppendText(wxT("\tFile opened.\n"));
 
-            // now we need data as doubles
-            wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
-            SndfileHandle sfh;
-            sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
-            double *audioData = new double[sfh.frames() * sfh.channels()];
-            sfh.read(audioData, sfh.frames() * sfh.channels());
-
             // autosearch pitch and calculate midi note and pitch fraction
-            double pitch = fh.GetTDPitch(audioData);
+            double pitch = fh.GetTDPitch();
             int midi_note;
             double midi_note_pitch;
             double cent_deviation;
@@ -836,8 +796,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch = %.2f Hz\n"), pitch));
             m_statusProgress->AppendText(wxT("\tDone!\n"));
 
-            // delete the now unneccessary array of double audio data
-            delete[] audioData;
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
@@ -873,15 +831,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
           if (fh.FileCouldBeOpened()) {
-            // now we need data as doubles
-            wxString fullFilePath = m_sourceField->GetValue() + wxT("/") + filesToProcess.Item(i);
-            SndfileHandle sfh;
-            sfh = SndfileHandle(((const char*)fullFilePath.mb_str()));
-            double *audioData = new double[sfh.frames() * sfh.channels()];
-            sfh.read(audioData, sfh.frames() * sfh.channels());
 
             // autosearch pitch and calculate midi note and pitch fraction
-            double pitch = fh.GetTDPitch(audioData);
+            double pitch = fh.GetTDPitch();
             int midi_note;
             double midi_note_pitch;
             double cent_deviation;
@@ -902,8 +854,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
-            // delete the now unneccessary array of double audio data
-            delete[] audioData;
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
@@ -1171,40 +1121,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
                   m_statusProgress->AppendText(wxT("\nCouldn't trim from end!\n"));
               }
 
-              double *audioData = new double[fh.ArrayLength];
-
-              // convert audio data into doubles if needed
-              if (fh.shortAudioData != NULL) {
-                for (unsigned i = 0; i < fh.ArrayLength; i++)
-                  audioData[i] = (double) fh.shortAudioData[i] / (1.0 * 0x7FFF);
-              } else if (fh.intAudioData != NULL) {
-                for (unsigned i = 0; i < fh.ArrayLength; i++)
-                  audioData[i] = (double) fh.intAudioData[i] / (1.0 * 0x7FFFFFFF);
-              } else if (fh.doubleAudioData != NULL) {
-                for (unsigned i = 0; i < fh.ArrayLength; i++)
-                  audioData[i] = fh.doubleAudioData[i];
-              }
-
               // perform fade(s) as needed
               if (cfDlg.GetFadeStart() > 0)
-                fh.PerformFade(audioData, cfDlg.GetFadeStart(), 0);
+                fh.PerformFade(cfDlg.GetFadeStart(), 0);
 
               if (cfDlg.GetFadeEnd() > 0)
-                fh.PerformFade(audioData, cfDlg.GetFadeEnd(), 1);
-
-              // update the current audiodata in m_audiofile
-              if (fh.shortAudioData != NULL) {
-                for (unsigned i = 0; i < fh.ArrayLength; i++)
-                  fh.shortAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFF));
-              } else if (fh.intAudioData != NULL) {
-                for (unsigned i = 0; i < fh.ArrayLength; i++)
-                fh.intAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFFFFFF));
-              } else if (fh.doubleAudioData != NULL) {
-                for (unsigned i = 0; i < fh.ArrayLength; i++)
-                  fh.doubleAudioData[i] = audioData[i];
-              }
-
-              delete[] audioData;
+                fh.PerformFade(cfDlg.GetFadeEnd(), 1);
 
               // save file
               fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
@@ -1241,19 +1163,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
             if (fh.FileCouldBeOpened()) {
               if (fh.m_loops->GetNumberOfLoops() > 0) {
-                double *audioData = new double[fh.ArrayLength];
-
-                // convert audio data into doubles
-                if (fh.shortAudioData != NULL) {
-                  for (unsigned i = 0; i < fh.ArrayLength; i++)
-                    audioData[i] = (double) fh.shortAudioData[i] / (1.0 * 0x7FFF);
-                } else if (fh.intAudioData != NULL) {
-                  for (unsigned i = 0; i < fh.ArrayLength; i++)
-                    audioData[i] = (double) fh.intAudioData[i] / (1.0 * 0x7FFFFFFF);
-                } else if (fh.doubleAudioData != NULL) {
-                  for (unsigned i = 0; i < fh.ArrayLength; i++)
-                    audioData[i] = fh.doubleAudioData[i];
-                }
 
                 if (fh.m_loops->GetNumberOfLoops() > 1) {
                   // crossfading should be done in order of loop end point appearance
@@ -1308,29 +1217,15 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
                     if (actualFadeTime > 0) {
                       m_statusProgress->AppendText(wxString::Format(wxT("\t\tCrossfading loop %i with fadetime %.3f ms.\n"), crossfadeOrder[j] + 1, actualFadeTime));
                       // perform crossfading on the current loop with selected method
-                      fh.PerformCrossfade(audioData, crossfadeOrder[j], actualFadeTime, crossfadetype);
+                      fh.PerformCrossfade(crossfadeOrder[j], actualFadeTime, crossfadetype);
                     } else {
                       m_statusProgress->AppendText(wxString::Format(wxT("\tCouldn't crossfade loop %i!\n"), crossfadeOrder[j]));
                     }
                   }
                 } else {
                   // just one loop to crossfade
-                  fh.PerformCrossfade(audioData, 0, crossfadeTime, crossfadetype);
+                  fh.PerformCrossfade(0, crossfadeTime, crossfadetype);
                 }
-
-                // update the current audiodata in m_audiofile
-                if (fh.shortAudioData != NULL) {
-                  for (unsigned i = 0; i < fh.ArrayLength; i++)
-                    fh.shortAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFF));
-                } else if (fh.intAudioData != NULL) {
-                  for (unsigned i = 0; i < fh.ArrayLength; i++)
-                  fh.intAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFFFFFF));
-                } else if (fh.doubleAudioData != NULL) {
-                  for (unsigned i = 0; i < fh.ArrayLength; i++)
-                    fh.doubleAudioData[i] = audioData[i];
-                }
-
-                delete[] audioData;
 
                 // save file
                 fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());

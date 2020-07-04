@@ -185,6 +185,11 @@ void MyFrame::OpenAudioFile() {
   m_audiofile = new FileHandling(fileToOpen, workingDir);
 
   if (m_audiofile->FileCouldBeOpened()) {
+    // set sustainsection from slider data in autoloop settings to audiofile
+    m_audiofile->SetSliderSustainsection(m_autoloopSettings->GetStart(), m_autoloopSettings->GetEnd());
+    // adjust choice of sustainsection
+    m_audiofile->SetAutoSustainSearch(m_autoloopSettings->GetAutosearch());
+    
     wxString filePath;
     filePath = workingDir;
     filePath += wxFILE_SEP_PATH;
@@ -1217,11 +1222,14 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
   // prepare a vector to receive the loops
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > loops;
 
-  // get the audio data as doubles
-  double *audioData = new double[m_audiofile->ArrayLength];
-  bool gotData = m_audiofile->GetDoubleAudioData(audioData);
+  // get the strongest channel of audio data
+  unsigned nbrOfSmpls = m_audiofile->ArrayLength / m_audiofile->m_channels;
+  double *audioData = new double[nbrOfSmpls];
+  m_audiofile->SeparateStrongestChannel(audioData);
 
-  if (gotData) {
+  // retrieve the used sustainsection
+  std::pair <unsigned, unsigned> sustainSection = m_audiofile->GetSustainsection();
+  
     bool foundSomeLoops = false;
 
     if (!foundSomeLoops) {
@@ -1242,13 +1250,11 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
       // this is the call to search for loops
       foundSomeLoops = m_autoloop->AutoFindLoops(
         audioData,
-        m_audiofile->ArrayLength,
-        m_audiofile->m_channels,
+        nbrOfSmpls,
         m_audiofile->GetSampleRate(),
         loops,
-        m_autoloopSettings->GetAutosearch(),
-        m_autoloopSettings->GetStart(),
-        m_autoloopSettings->GetEnd(),
+        sustainSection.first,
+        sustainSection.second,
         loopsAlreadyInFile
       );
     }
@@ -1313,7 +1319,7 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
       );
       dialog->ShowModal();
     }
-  } else {
+/*  } else {
     // couldn't get audio data as doubles!
     wxString message = wxT("Sorry, couldn't get the audio data!");
     wxMessageDialog *dialog = new wxMessageDialog(
@@ -1323,7 +1329,7 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
       wxOK | wxICON_ERROR
     );
     dialog->ShowModal();
-  }
+  } */
   delete[] audioData;
 }
 
@@ -1341,6 +1347,14 @@ void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
     m_autoloop->SetLoops(m_autoloopSettings->GetNrLoops());
     m_autoloop->SetMultiple(m_autoloopSettings->GetMultiple());
     m_autoloop->SetBruteForce(m_autoloopSettings->GetBruteForce());
+    
+    // update audiofile slider sustainsection if changed
+    m_audiofile->SetSliderSustainsection(m_autoloopSettings->GetStart(), m_autoloopSettings->GetEnd());
+    // update chosen sustainsection selection
+    m_audiofile->SetAutoSustainSearch(m_autoloopSettings->GetAutosearch());
+    
+    // force a redraw as sustainsection might have changed
+    UpdateAllViews();
   } else {
     // Reset parameter values to actually used
     m_autoloopSettings->SetThreshold(m_autoloop->GetThreshold());
@@ -1359,14 +1373,6 @@ void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
 }
 
 void MyFrame::OnPitchSettings(wxCommandEvent& event) {
-  // get the audio data as doubles
-  double *audioData = new double[m_audiofile->ArrayLength];
-  bool gotData = m_audiofile->GetDoubleAudioData(audioData);
-  if (!gotData) {
-    delete[] audioData;
-    return;
-  }
-
   int midi_note;
   int hps_midi_note;
   int td_midi_note;
@@ -1382,8 +1388,8 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
   double fftPitches[2];
   for (int i = 0; i < 2; i++)
     fftPitches[i] = 0;
-  bool got_fftpitch = m_audiofile->GetFFTPitch(audioData, fftPitches);
-  double td_pitch = m_audiofile->GetTDPitch(audioData);
+  bool got_fftpitch = m_audiofile->GetFFTPitch(fftPitches);
+  double td_pitch = m_audiofile->GetTDPitch();
   double cent_from_file = (double) m_audiofile->m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
 
   if (got_fftpitch) {
@@ -1457,8 +1463,6 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
     fileMenu->Enable(wxID_SAVE, true);
     fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
   }
-
-  delete[] audioData;
 }
 
 void MyFrame::OnZoomInAmplitude(wxCommandEvent& event) {
@@ -1481,20 +1485,12 @@ void MyFrame::OnVolumeSlider(wxCommandEvent& event) {
 }
 
 void MyFrame::OnCrossfade(wxCommandEvent& event) {
-  // get the audio data as doubles
-  double *audioData = new double[m_audiofile->ArrayLength];
-  bool gotData = m_audiofile->GetDoubleAudioData(audioData);
-  if (!gotData) {
-    delete[] audioData;
-    return;
-  }
-
   wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
   int firstSelected;
   if (!selectedRows.IsEmpty())
     firstSelected = selectedRows[0];
   else {
-    delete[] audioData;
+    // there's no selected loop to crossfade
     return;
   }
 
@@ -1507,22 +1503,7 @@ void MyFrame::OnCrossfade(wxCommandEvent& event) {
     int crossfadetype = m_crossfades->GetFadetype();
 
     // perform crossfading on the first selected loop with selected method
-    m_audiofile->PerformCrossfade(audioData, firstSelected, crossfadeTime, crossfadetype);
-
-    // update the waveform data
-    m_audiofile->UpdateWaveTracks(audioData);
-
-    // change the current audiodata in m_audiofile
-    if (m_audiofile->shortAudioData != NULL) {
-      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
-        m_audiofile->shortAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFF));
-    } else if (m_audiofile->intAudioData != NULL) {
-      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
-        m_audiofile->intAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFFFFFF));
-    } else if (m_audiofile->doubleAudioData != NULL) {
-      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
-        m_audiofile->doubleAudioData[i] = audioData[i];
-    }
+    m_audiofile->PerformCrossfade(firstSelected, crossfadeTime, crossfadetype);
 
     // Enable save icon and menu
     toolBar->EnableTool(wxID_SAVE, true);
@@ -1534,8 +1515,6 @@ void MyFrame::OnCrossfade(wxCommandEvent& event) {
   } else {
     // user clicked cancel...
   }
-
-  delete[] audioData;
 }
 
 void MyFrame::OnEditLoop(wxCommandEvent& event) {
@@ -1665,41 +1644,12 @@ void MyFrame::OnCutFade(wxCommandEvent& event) {
       }
     }
 
-    double *audioData = new double[m_audiofile->ArrayLength];
-
-    // convert audio data into doubles if needed
-    if (m_audiofile->shortAudioData != NULL) {
-      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
-        audioData[i] = (double) m_audiofile->shortAudioData[i] / (1.0 * 0x7FFF);
-    } else if (m_audiofile->intAudioData != NULL) {
-      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
-        audioData[i] = (double) m_audiofile->intAudioData[i] / (1.0 * 0x7FFFFFFF);
-    } else if (m_audiofile->doubleAudioData != NULL) {
-      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
-        audioData[i] = m_audiofile->doubleAudioData[i];
-    }
-
     // perform fade(s) as needed
     if (m_cutNFade->GetFadeStart() > 0)
-      m_audiofile->PerformFade(audioData, m_cutNFade->GetFadeStart(), 0);
+      m_audiofile->PerformFade(m_cutNFade->GetFadeStart(), 0);
 
     if (m_cutNFade->GetFadeEnd() > 0)
-      m_audiofile->PerformFade(audioData, m_cutNFade->GetFadeEnd(), 1);
-
-    // update the waveform data
-    m_audiofile->UpdateWaveTracks(audioData);
-
-    // update the current audiodata in m_audiofile
-    if (m_audiofile->shortAudioData != NULL) {
-      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
-        m_audiofile->shortAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFF));
-    } else if (m_audiofile->intAudioData != NULL) {
-      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
-        m_audiofile->intAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFFFFFF));
-    } else if (m_audiofile->doubleAudioData != NULL) {
-      for (unsigned i = 0; i < m_audiofile->ArrayLength; i++)
-        m_audiofile->doubleAudioData[i] = audioData[i];
-    }
+      m_audiofile->PerformFade(m_cutNFade->GetFadeEnd(), 1);
 
     // Enable save icon and menu
     toolBar->EnableTool(wxID_SAVE, true);
@@ -1710,8 +1660,6 @@ void MyFrame::OnCutFade(wxCommandEvent& event) {
 
     // then we should make sure to update the views
     UpdateAllViews();
-
-    delete[] audioData;
   } else {
     // user clicked cancel...
   }

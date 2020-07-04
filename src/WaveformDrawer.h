@@ -82,6 +82,7 @@ private:
   wxColour blue;
   wxColour green;
   wxColour red;
+  wxColour grey;
   int trackWidth;
   int trackHeight;
   wxIcon playPositionMarker;
