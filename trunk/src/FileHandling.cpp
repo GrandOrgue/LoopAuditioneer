@@ -21,8 +21,10 @@
 #include "FileHandling.h"
 #include "FFT.h"
 #include <cfloat>
+#include <iostream>
 
-FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_timeDomainPitch(0) {
+FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_timeDomainPitch(0), m_autoSustainStart(0),
+m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
   m_loops = new LoopMarkers();
   m_cues = new CueMarkers();
   wxString filePath;
@@ -136,6 +138,13 @@ FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_
       }
       delete[] buffer;
     }
+    
+    // Auto calculate the sustainsection too
+    if (fileOpenWasSuccessful)
+      CalculateSustainStartAndEnd();
+    
+    // set a default, this will be set when the file is already opened from MyFrame
+    m_useAutoSustain = true;
 
   } else { // if file open didn't succeed we make a note of that
     fileOpenWasSuccessful = false;
@@ -232,8 +241,8 @@ bool FileHandling::FileCouldBeOpened() {
     return false;
 }
 
-bool FileHandling::GetFFTPitch(double data[], double pitches[]) {
-  bool gotPitch = DetectPitchByFFT(data);
+bool FileHandling::GetFFTPitch(double pitches[]) {
+  bool gotPitch = DetectPitchByFFT();
   if (gotPitch) {
     pitches[0] = m_fftPitch;
     pitches[1] = m_fftHPS;
@@ -243,7 +252,7 @@ bool FileHandling::GetFFTPitch(double data[], double pitches[]) {
     return false;
 }
 
-bool FileHandling::DetectPitchByFFT(double data[]) {
+bool FileHandling::DetectPitchByFFT() {
   std::vector<double> detectedPitches;
   std::vector<double> harmonicProductPitches;
   unsigned numberOfSamples = ArrayLength / m_channels;
@@ -252,16 +261,12 @@ bool FileHandling::DetectPitchByFFT(double data[]) {
   sustainStartAndEnd.second = 0;
   double *channel_data = new double[numberOfSamples];
 
-  // Get channel data if necessary
-  if (m_channels > 1)
-    SeparateStrongestChannel(data, channel_data);
-  else {
-    for (unsigned i = 0; i < numberOfSamples; i++)
-      channel_data[i] = data[i];
-  }
+  // Get channel data
+  SeparateStrongestChannel(channel_data);
 
   // Get sustainsection start and end
-  sustainStartAndEnd = GetSustainStartAndEnd(channel_data);
+  sustainStartAndEnd.first = m_autoSustainStart;
+  sustainStartAndEnd.second = m_autoSustainEnd;
 
   // Check if sustainsection is not valid and abort if so
   if (sustainStartAndEnd.first == 0 && sustainStartAndEnd.second == 0) {
@@ -521,24 +526,20 @@ double FileHandling::TranslateIndexToPitch(
   return pitchToReturn;
 }
 
-bool FileHandling::DetectPitchInTimeDomain(double audio[]) {
+bool FileHandling::DetectPitchInTimeDomain() {
   unsigned numberOfSamples = ArrayLength / m_channels;
   std::pair <unsigned, unsigned> sustainStartAndEnd;
   sustainStartAndEnd.first = 0;
   sustainStartAndEnd.second = 0;
   double *channel_data = new double[numberOfSamples];
 
-  // Get channel data if necessary
-  if (m_channels > 1)
-    SeparateStrongestChannel(audio, channel_data);
-  else {
-    for (unsigned i = 0; i < numberOfSamples; i++)
-      channel_data[i] = audio[i];
-  }
+  // Get channel data
+  SeparateStrongestChannel(channel_data);
 
   // Get sustainsection start and end
-  sustainStartAndEnd = GetSustainStartAndEnd(channel_data);
-
+  sustainStartAndEnd.first = m_autoSustainStart;
+  sustainStartAndEnd.second = m_autoSustainEnd;
+  
   // Check if sustainsection is not valid and abort if so
   if (sustainStartAndEnd.first == 0 && sustainStartAndEnd.second == 0) {
     delete[] channel_data;
@@ -614,15 +615,19 @@ bool FileHandling::DetectPitchInTimeDomain(double audio[]) {
   }
 }
 
-double FileHandling::GetTDPitch(double data[]) {
-  bool gotPitch = DetectPitchInTimeDomain(data);
+double FileHandling::GetTDPitch() {
+  bool gotPitch = DetectPitchInTimeDomain();
   if (gotPitch)
     return m_timeDomainPitch;
   else
     return 0;
 }
 
-void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double fadeLength, int fadeType) {
+void FileHandling::PerformCrossfade(int loopNumber, double fadeLength, int fadeType) {
+  // get the audio data as doubles
+  double *audioData = new double[ArrayLength];
+  bool gotData = GetDoubleAudioData(audioData);
+  
   LOOPDATA loopToCrossfade;
   m_loops->GetLoopData(loopNumber, loopToCrossfade);
   unsigned samplesToFade = m_samplerate * fadeLength;
@@ -722,111 +727,177 @@ void FileHandling::PerformCrossfade(double audioData[], int loopNumber, double f
     secondTargetIdx += m_channels;
     secondSourceIdx += m_channels;
   }
+  
+  // update the waveform data with the new data
+  UpdateWaveTracks(audioData);
+
+  // change the current audiodata stored after crossfade is done
+  if (shortAudioData != NULL) {
+    for (unsigned i = 0; i < ArrayLength; i++)
+      shortAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFF));
+  } else if (intAudioData != NULL) {
+    for (unsigned i = 0; i < ArrayLength; i++)
+      intAudioData[i] = lrint(audioData[i] * (1.0 * 0x7FFFFFFF));
+  } else if (doubleAudioData != NULL) {
+    for (unsigned i = 0; i < ArrayLength; i++)
+      doubleAudioData[i] = audioData[i];
+  }
+  delete[] audioData;
 }
 
-void FileHandling::SeparateStrongestChannel(double inData[], double outData[]) {
-  unsigned channel_idx = 0;
+void FileHandling::SeparateStrongestChannel(double outData[]) {
+  if (!waveTracks.empty()) {
+    if (m_channels > 1) {
+      // we have more than one channel so deal with that
+      double maxRMS = 0.0;
+      unsigned strongestChannelIdx = 0;
+      for (unsigned i = 0; i < waveTracks.size(); i++) {
+        // this is done for each channel
+        double channelRMS = 0.0;
+        double totalValues = 0.0;
+        for (unsigned j = 0; j < waveTracks[i].waveData.size(); j++) {
+          double currentValue = pow(waveTracks[i].waveData[j], 2);
+          totalValues += currentValue;
+        }
+        channelRMS = sqrt((totalValues / waveTracks[i].waveData.size()));
 
-  // detect strongest channel
-  double strongestValue = 0;
-  for (int i = 0; i < m_channels; i++) {
-    for (unsigned j = i; j < ArrayLength; j += m_channels) {
-      if (fabs(inData[j]) > strongestValue) {
-        strongestValue = fabs(inData[j]);
-        channel_idx = i;
+        if (channelRMS > maxRMS) {
+          maxRMS = channelRMS;
+          strongestChannelIdx = i;
+        }
       }
+      // now we should know which channel has the highest RMS
+      std::cout << "Strongest channel index is " << strongestChannelIdx << " \n";
+      for (unsigned i = 0; i < waveTracks[strongestChannelIdx].waveData.size(); i++)
+        outData[i] = waveTracks[strongestChannelIdx].waveData[i];
+    } else {
+      // there's just one channel so copy that double data
+      for (unsigned i = 0; i < waveTracks[0].waveData.size(); i++)
+        outData[i] = waveTracks[0].waveData[i];
     }
-  }
- 
-  // fill channel_data array with values from data[]
-  unsigned ch_idx = 0;
-  for (unsigned data_idx = channel_idx; data_idx < ArrayLength; data_idx += m_channels) {
-    outData[ch_idx] = inData[data_idx];
-    ch_idx++;
+  } else {
+    // for some reason there's no data in the waveTracks!
+    // for safety we then fill the outData array with zeros
+    for (unsigned i = 0; i < ArrayLength / m_channels; i++)
+        outData[i] = 0.0;
   }
 }
 
-std::pair<unsigned, unsigned> FileHandling::GetSustainStartAndEnd(double ch_data[]) {
+void FileHandling::CalculateSustainStartAndEnd() {
+  // prepare array for a single channel of audio data
   unsigned numberOfSamples = ArrayLength / m_channels;
-  std::pair<unsigned, unsigned> sustainsection;
-  sustainsection.first = 0;
-  sustainsection.second = 0;
+  double *ch_data = new double[numberOfSamples];
 
-  // Find strongest value
-  double maxValue = 0;
+  // populate channel data
+  SeparateStrongestChannel(ch_data);
+
+  // now detect sustain section
+  // set a windowsize (mono now!)
+  unsigned windowSize = m_samplerate / 10;
+  
+  // Find strongest value of any windowSize in file audio
+  double maxValue = 0.0;
   unsigned indexWithMaxValue = 0;
-  for (unsigned idx = 0; idx < numberOfSamples; idx++) {
-    double currentValue = fabs(ch_data[idx]);
+  for (unsigned idx = 0; idx < numberOfSamples - windowSize; idx += windowSize) {
+    double totalValues = 0.0;
+    double rmsInThisWindow = 0.0;
+    for (unsigned j = idx; j < idx + windowSize; j++) {
+      double currentValue = pow(ch_data[j], 2);
+      totalValues += currentValue;
+    }
+    rmsInThisWindow = sqrt((totalValues / windowSize));
 
-    if (currentValue > maxValue) {
-      maxValue = currentValue;
+    if (rmsInThisWindow > maxValue) {
+      maxValue = rmsInThisWindow;
       indexWithMaxValue = idx;
     }
   }
 
-  // now detect sustain section
-  // set a windowsize for a 20 Hz frequency in current file (mono now!)
-  unsigned windowSize = m_samplerate / 20;
-
   // Find sustainstart by scanning from the beginning
-  double maxAmplitudeValue = 0;
+  double maxRMSvalue = 0.0;
   
   for (unsigned idx = 0; idx < numberOfSamples - windowSize; idx += windowSize) {
-    double maxValueInThisWindow = 0;
+    double totalValues = 0.0;
+    double rmsInThisWindow = 0.0;
     for (unsigned j = idx; j < idx + windowSize; j++) {
-      double currentValue = fabs(ch_data[j]);
-
-      if (currentValue > maxValueInThisWindow)
-        maxValueInThisWindow = currentValue;
+      double currentValue = pow(ch_data[j], 2);
+      totalValues += currentValue;
     }
+    rmsInThisWindow = sqrt((totalValues / windowSize));
 
-    if (maxValueInThisWindow > maxAmplitudeValue)
-      maxAmplitudeValue = maxValueInThisWindow;
+    // if current max is too much less than max value
+    // we just continue searching
+    double comparedToMax = (maxValue - rmsInThisWindow) / maxValue;
+    if (rmsInThisWindow < maxValue && comparedToMax > 0.55) {
+      maxRMSvalue = rmsInThisWindow;
+      continue;
+    } else if (rmsInThisWindow > maxValue) { 
+      // sustainsection start should be reached
+      if (idx > windowSize)
+        m_autoSustainStart = idx - windowSize;
+      else
+        m_autoSustainStart = idx;
+      break;
+    }
+    double comparedToPrev = (rmsInThisWindow - maxRMSvalue) / maxRMSvalue;
+    if (rmsInThisWindow > maxRMSvalue && comparedToPrev > 0.15)
+      maxRMSvalue = rmsInThisWindow;
     else {
       // the max value in the window is not increasing anymore so 
-      // sustainsection is reached
-      sustainsection.first = idx + windowSize;
+      // sustainsection start is reached
+      if (idx > windowSize)
+        m_autoSustainStart = idx - windowSize;
+      else
+        m_autoSustainStart = idx;
       break;
     }
   }
 
-  // then we add an offset of 0.25 seconds to allow the tone to stabilize
-  sustainsection.first += m_samplerate / 4;
-
-  // now find sustainend by scanning from the end of audio data
-  maxAmplitudeValue = 0;
-  
+  // now find sustain end by scanning from the end of audio data
+  maxRMSvalue = 0.0;
+  std::cout << "max rms is: " << maxValue << "\n";
   for (unsigned idx = numberOfSamples - 1; idx > windowSize; idx -= windowSize) {
-    double maxValueInThisWindow = 0;
+    double totalValues = 0.0;
+    double rmsInThisWindow = 0.0;
+    
     for (unsigned j = idx; j > idx - windowSize; j--) {
-      double currentValue = fabs(ch_data[j]);
-
-      if (currentValue > maxValueInThisWindow)
-        maxValueInThisWindow = currentValue;
+      double currentValue = pow(ch_data[j], 2);
+      totalValues += currentValue;
     }
-
-    // if current max is less than one fourth of max value, or 12 dB lower
-    // we just continue searching backwards
-    if (maxValueInThisWindow < maxValue / 4) {
-      maxAmplitudeValue = maxValueInThisWindow;
+    rmsInThisWindow = sqrt((totalValues / windowSize));
+    std::cout << "rms in this window: " << rmsInThisWindow << " max so far (" << maxRMSvalue << ")\n";
+    
+    // if current max is too much lower than max value
+    // we just continue searching
+    double comparedToMax = (maxValue - rmsInThisWindow) / maxValue;
+    if (rmsInThisWindow < maxValue && comparedToMax > 0.4) {
+      maxRMSvalue = rmsInThisWindow;
+      std::cout << "RMS in this window is too low compared to maxValue (" << comparedToMax << ") so we continue...\n";
       continue;
+    } else if (rmsInThisWindow > maxValue) { 
+      // sustainsection end should be reached
+      std::cout << "RMS in this window is higher than maxValue!\n";
+      m_autoSustainEnd = idx;
+      if (m_autoSustainEnd > numberOfSamples - 1)
+        m_autoSustainEnd = numberOfSamples - 1;
+      break;
     }
-
-    if (maxValueInThisWindow > maxAmplitudeValue) {
-      maxAmplitudeValue = maxValueInThisWindow;
+    double comparedToPrev = (rmsInThisWindow - maxRMSvalue) / maxRMSvalue;
+    if (rmsInThisWindow > maxRMSvalue && comparedToPrev > 0.15) {
+      std::cout << "RMS is still rising by (" << comparedToPrev << "), to max (" << comparedToMax << ")so we continue...\n";
+      maxRMSvalue = rmsInThisWindow;
     } else {
-      // the max value in the window is not increasing anymore so 
-      // sustainsectionend should be reached
-      sustainsection.second = idx;
+      // the max value in the window is not increasing significantly anymore so 
+      // sustainsection end should have been reached in previous window
+      std::cout << "RMS in this window not increasing enough! Quota was " << comparedToPrev << "\n";
+      m_autoSustainEnd = idx + windowSize;
+      if (m_autoSustainEnd > numberOfSamples - 1)
+        m_autoSustainEnd = numberOfSamples - 1;
       break;
     }
   }
-  if (sustainsection.second > sustainsection.first) {
-    // then we remove an offset of 0.25 seconds to be sure
-    sustainsection.second -= m_samplerate / 4;
-  }
 
-  if (sustainsection.second < sustainsection.first) {
+  if (m_autoSustainEnd < m_autoSustainStart) {
     // this is an error situation where no sustainsection could be found
     // so we try another approach to detecting the part of sound that we can
     // analyze we know where the max value is located so we calculate where the
@@ -854,13 +925,12 @@ std::pair<unsigned, unsigned> FileHandling::GetSustainStartAndEnd(double ch_data
     if (absolutePeaks.empty() == false) {
       for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
         if (absolutePeaks[i].second > (maxValue / 2)) {
-          sustainsection.second = absolutePeaks[i].first;
+          m_autoSustainEnd = absolutePeaks[i].first;
           break;
         }
       }
     } else {
-      // we've really failed
-      return std::make_pair(0, 0);
+      // we've really failed to detect a better end, perhaps a better start could be found?
     }
 
     // now we search forwards from max index
@@ -886,25 +956,32 @@ std::pair<unsigned, unsigned> FileHandling::GetSustainStartAndEnd(double ch_data
     if (absolutePeaks.empty() == false) {
       for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
         if (absolutePeaks[i].second > (maxValue / 2)) {
-          sustainsection.first = absolutePeaks[i].first;
+          m_autoSustainStart = absolutePeaks[i].first;
           break;
         }
       }
     } else {
-      // we've really failed
-      return std::make_pair(0, 0);
+      // we've really failed to find a better start, lets crack on!
     }
-
-    if (sustainsection.first < sustainsection.second)
-      return sustainsection;
-    else
-      return std::make_pair(0, 0);
   }
 
-  if (sustainsection.first < sustainsection.second)
-    return sustainsection;
-  else
-    return std::make_pair(0, 0);
+  // and now a final check to catch possible faults and clean up
+  if (m_autoSustainStart < m_autoSustainEnd) {
+    // all is well just clean up
+    delete[] ch_data;
+  } else {
+    // still there's something wrong with the sustainsection calculation
+    // just set the values to start and end of the channel data array
+    m_autoSustainStart = 0;
+    // check that the array has a sane length
+    if (numberOfSamples > 0)
+      m_autoSustainStart = numberOfSamples - 1;
+    else
+      m_autoSustainEnd = 0;
+    
+    // clean up  
+    delete[] ch_data;
+  }
 }
 
 void FileHandling::TrimExcessData() {
@@ -1041,36 +1118,65 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
 
       for (unsigned i = 0; i < ArrayLength; i++)
         doubleAudioData[i] = audioData[i];
+        
+      // update the double data in wavetracks too
+      UpdateWaveTracks(doubleAudioData);
 
       delete[] audioData;
     } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
       short *audioData = new short[newArrayLength];
+      
+      double *oldDblData = new double[ArrayLength];
+      bool gotData = GetDoubleAudioData(oldDblData);
 
       for (unsigned i = 0; i < newArrayLength; i++)
         audioData[i] = shortAudioData[samplesToCut + i];
 
       delete[] shortAudioData;
       shortAudioData = new short[newArrayLength];
-      ArrayLength = newArrayLength;
 
-      for (unsigned i = 0; i < ArrayLength; i++)
+      for (unsigned i = 0; i < newArrayLength; i++)
         shortAudioData[i] = audioData[i];
 
+      // update the double data in wavetracks too!
+      double *newDblData = new double[newArrayLength];
+      for (unsigned i = 0; i < newArrayLength; i++)
+        newDblData[i] = oldDblData[samplesToCut + i];
+        
+      ArrayLength = newArrayLength;
+      
+      UpdateWaveTracks(newDblData);
+      
       delete[] audioData;
+      delete[] newDblData;
+      delete[] oldDblData;
     } else {
       int *audioData = new int[newArrayLength];
+      
+      double *oldDblData = new double[ArrayLength];
+      bool gotData = GetDoubleAudioData(oldDblData);
 
       for (unsigned i = 0; i < newArrayLength; i++)
         audioData[i] = intAudioData[samplesToCut + i];
 
       delete[] intAudioData;
       intAudioData = new int[newArrayLength];
+
+      for (unsigned i = 0; i < newArrayLength; i++)
+        intAudioData[i] = audioData[i];
+        
+      // update the double data in wavetracks too which will need converting
+      double *dblData = new double[newArrayLength];
+      for (unsigned i = 0; i < newArrayLength; i++)
+        dblData[i] = oldDblData[samplesToCut + i];
+
       ArrayLength = newArrayLength;
 
-      for (unsigned i = 0; i < ArrayLength; i++)
-        intAudioData[i] = audioData[i];
+      UpdateWaveTracks(dblData);
 
       delete[] audioData;
+      delete[] dblData;
+      delete[] oldDblData;
     }
 
     // if loops and/or cues exist they must now be moved!
@@ -1104,36 +1210,65 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
 
       for (unsigned i = 0; i < ArrayLength; i++)
         doubleAudioData[i] = audioData[i];
+        
+      // update the double data in wavetracks too
+      UpdateWaveTracks(doubleAudioData);
 
       delete[] audioData;
     } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
       short *audioData = new short[newArrayLength];
+      
+      double *oldDblData = new double[ArrayLength];
+      bool gotData = GetDoubleAudioData(oldDblData);
 
       for (unsigned i = 0; i < newArrayLength; i++)
         audioData[i] = shortAudioData[i];
 
       delete[] shortAudioData;
       shortAudioData = new short[newArrayLength];
-      ArrayLength = newArrayLength;
 
-      for (unsigned i = 0; i < ArrayLength; i++)
+      for (unsigned i = 0; i < newArrayLength; i++)
         shortAudioData[i] = audioData[i];
+        
+      // update the double data in wavetracks too
+      double *dblData = new double[newArrayLength];
+      for (unsigned i = 0; i < newArrayLength; i++)
+        dblData[i] = oldDblData[i];
+        
+      ArrayLength = newArrayLength;
+      
+      UpdateWaveTracks(dblData);
 
       delete[] audioData;
+      delete[] dblData;
+      delete[] oldDblData;
     } else {
       int *audioData = new int[newArrayLength];
+      
+      double *oldDblData = new double[ArrayLength];
+      bool gotData = GetDoubleAudioData(oldDblData);
 
       for (unsigned i = 0; i < newArrayLength; i++)
         audioData[i] = intAudioData[i];
 
       delete[] intAudioData;
       intAudioData = new int[newArrayLength];
-      ArrayLength = newArrayLength;
 
-      for (unsigned i = 0; i < ArrayLength; i++)
+      for (unsigned i = 0; i < newArrayLength; i++)
         intAudioData[i] = audioData[i];
+        
+      // update the double data in wavetracks too
+      double *dblData = new double[newArrayLength];
+      for (unsigned i = 0; i < newArrayLength; i++)
+        dblData[i] = oldDblData[i];
+        
+      ArrayLength = newArrayLength;
+      
+      UpdateWaveTracks(dblData);
 
       delete[] audioData;
+      delete[] dblData;
+      delete[] oldDblData;
     }
 
     // Check if loops and/or cues still is within audio data!
@@ -1146,7 +1281,10 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
   }
 }
 
-void FileHandling::PerformFade(double audioData[], unsigned fadeLength, int fadeType) {
+void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
+  double *audioData = new double[ArrayLength];
+  bool gotData = GetDoubleAudioData(audioData);
+  
   // fadeType 0 == fade in, anything else is a fade out
 
   unsigned samplesToFade = (fadeLength / 1000.0) * m_samplerate;
@@ -1162,15 +1300,33 @@ void FileHandling::PerformFade(double audioData[], unsigned fadeLength, int fade
     for (unsigned i = 0; i < samplesToFade; i++) {
       for (int j = 0; j < m_channels; j++) {
         audioData[i * m_channels + j] *= fadeData[i];
+        // also change stored audio data as type which might need conversion
+        if (shortAudioData != NULL) {
+          shortAudioData[i * m_channels + j] = lrint(audioData[i * m_channels + j] * (1.0 * 0x7FFF));
+        } else if (intAudioData != NULL) {
+          intAudioData[i * m_channels + j] = lrint(audioData[i * m_channels + j] * (1.0 * 0x7FFFFFFF));
+        } else if (doubleAudioData != NULL) {
+          doubleAudioData[i * m_channels + j] = audioData[i * m_channels + j];
+        }
       }
     }
   } else {
     for (unsigned i = 0; i < samplesToFade; i++) {
       for (int j = 0; j < m_channels; j++) {
         audioData[(ArrayLength - 1) - (i + j)] *= fadeData[i];
+        // also change stored audio data as type which might need conversion
+        if (shortAudioData != NULL) {
+          shortAudioData[(ArrayLength - 1) - (i + j)] = lrint(audioData[(ArrayLength - 1) - (i + j)] * (1.0 * 0x7FFF));
+        } else if (intAudioData != NULL) {
+          intAudioData[(ArrayLength - 1) - (i + j)] = lrint(audioData[(ArrayLength - 1) - (i + j)] * (1.0 * 0x7FFFFFFF));
+        } else if (doubleAudioData != NULL) {
+          doubleAudioData[(ArrayLength - 1) - (i + j)] = audioData[(ArrayLength - 1) - (i + j)];
+        }
       }
     }
   }
+  UpdateWaveTracks(audioData);
+  delete[] audioData;
 }
 
 bool FileHandling::GetDoubleAudioData(double audio[]) {
@@ -1196,14 +1352,40 @@ void FileHandling::UpdateWaveTracks(double audio[]) {
   for (int i = 0; i < waveTracks.size(); i++)
     waveTracks[i].waveData.clear();
 
-    // copy the new track data to right tracks
-    int index = 0;
-    for (unsigned i = 0; i < ArrayLength; i++) {
-      // de-interleaving
-      waveTracks[index].waveData.push_back(audio[i]);
-      index++;
+  // copy the new track data to right tracks
+  int index = 0;
+  for (unsigned i = 0; i < ArrayLength; i++) {
+    // de-interleaving
+    waveTracks[index].waveData.push_back(audio[i]);
+    index++;
 
-      if (index == m_channels)
-        index = 0;
-    }
+    if (index == m_channels)
+      index = 0;
+  }
+}
+
+std::pair<unsigned, unsigned> FileHandling::GetSustainsection() {
+  std::pair <unsigned, unsigned> sustainStartAndEnd;
+  
+  if (m_useAutoSustain) {
+    sustainStartAndEnd.first = m_autoSustainStart;
+    sustainStartAndEnd.second = m_autoSustainEnd;
+  } else {
+    sustainStartAndEnd.first = m_sliderSustainStart;
+    sustainStartAndEnd.second = m_sliderSustainEnd;
+  }
+  return sustainStartAndEnd;
+}
+
+void FileHandling::SetSliderSustainsection(int start, int end) {
+  m_sliderSustainStart = ((double) start / 100.0) * ArrayLength / m_channels;
+  m_sliderSustainEnd = ((double) end / 100.0) * ArrayLength / m_channels;
+}
+
+void FileHandling::SetAutoSustainSearch(bool choice) {
+  m_useAutoSustain = choice;
+}
+
+bool FileHandling::GetAutoSustainSearch() {
+  return m_useAutoSustain;
 }

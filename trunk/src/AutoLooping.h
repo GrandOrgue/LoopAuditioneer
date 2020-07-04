@@ -42,14 +42,12 @@ public:
   // this is the function that analyse the audio data for loops and will store
   // the best loops found in the vector sent by reference
   bool AutoFindLoops(
-    const double data[], // an array of audio data from the file
-    unsigned arrayLength,
-    int numberOfChannels,
+    const double data[], // an array of audio data from the strongest channel in file
+    unsigned arrayLength, // number of samples in array
     unsigned samplerate,
     std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
-    bool autosearchSustainsection,
-    int startPercentage,
-    int endPercentage,
+    unsigned sustainStart,
+    unsigned sustainEnd,
     std::vector<std::pair<unsigned, unsigned> > &loopsAlreadyInFile
   );
 

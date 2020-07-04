@@ -46,17 +46,23 @@ public:
   int GetAudioFormat();
   int GetWholeFormat();
   bool FileCouldBeOpened();
-  bool GetFFTPitch(double data[], double pitches[]);
-  double GetTDPitch(double data[]);
-  void PerformCrossfade(double audioData[], int loopNumber, double fadeLength, int fadeType);
+  bool GetFFTPitch(double pitches[]);
+  double GetTDPitch();
+  void PerformCrossfade(int loopNumber, double fadeLength, int fadeType);
   void TrimExcessData();
   bool TrimStart(unsigned timeToTrim);
   bool TrimEnd(unsigned timeToTrim);
-  void PerformFade(double audioData[], unsigned fadeLength, int fadeType);
+  void PerformFade(unsigned fadeLength, int fadeType);
   // Get audio data as doubles
   bool GetDoubleAudioData(double audio[]);
   // Update the wave data vector if audio is changed
   void UpdateWaveTracks(double audio[]);
+  void SetAutoSustainSearch(bool choice);
+  bool GetAutoSustainSearch();
+  std::pair<unsigned, unsigned> GetSustainsection();
+  void SetSliderSustainsection(int start, int end);
+  // Get strongest channel of audio data as doubles
+  void SeparateStrongestChannel(double outData[]);
 
   short *shortAudioData;
   int *intAudioData;
@@ -79,9 +85,14 @@ private:
   double m_fftPitch;
   double m_fftHPS;
   double m_timeDomainPitch;
+  unsigned m_autoSustainStart;
+  unsigned m_autoSustainEnd;
+  unsigned m_sliderSustainStart;
+  unsigned m_sliderSustainEnd;
+  bool m_useAutoSustain;
 
-  bool DetectPitchByFFT(double data[]);
-  bool DetectPitchInTimeDomain(double audio[]);
+  bool DetectPitchByFFT();
+  bool DetectPitchInTimeDomain();
   double TranslateIndexToPitch(
     int idxAtPeak,
     double valueBeforePeak,
@@ -89,8 +100,7 @@ private:
     double valueAfterPeak,
     unsigned wSize
   );
-  void SeparateStrongestChannel(double inData[], double outData[]);
-  std::pair<unsigned, unsigned> GetSustainStartAndEnd(double ch_data[]);
+  void CalculateSustainStartAndEnd();
 
 };
 

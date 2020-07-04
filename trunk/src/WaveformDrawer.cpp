@@ -24,6 +24,8 @@
 #include <cfloat>
 #include "LoopAuditioneer.h"
 #include "LoopAuditioneerDef.h"
+#include <wx/image.h>
+#include <wx/bitmap.h>
 
 BEGIN_EVENT_TABLE(WaveformDrawer, wxPanel)
   EVT_PAINT(WaveformDrawer::paintEvent)
@@ -42,6 +44,7 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(pare
   blue.Set(wxT("#0d0060"));
   green.Set(wxT("#00C800"));
   red.Set(wxT("#f90000"));
+  grey.Set(wxT("#d3d3d3"));
   xSize = 1;
   ySize = 1;
   topMargin = 10;
@@ -225,6 +228,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
           dc.DrawLine(xPositionS, yPositionHigh + overlap * (extent.GetHeight() + 5), xPositionE, yPositionHigh + overlap * (extent.GetHeight() + 5));
         }
       }
+      
       // draw time indicating lines at bottom
       dc.SetPen(wxPen(black, 1, wxPENSTYLE_SOLID));
       // starting at zero
@@ -254,6 +258,24 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
           }
         }
       }
+      // draw transparent rectangle that indicate current sustainsection in the file
+      std::pair<unsigned, unsigned> currentSustain = m_fileReference->GetSustainsection();
+      int yPosHigh = topMargin + 1;
+      int yExtent = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1) - yPosHigh;
+      int xPosLeft = currentSustain.first / samplesPerPixel + leftMargin;
+      int xExtent = (currentSustain.second - currentSustain.first) / samplesPerPixel;
+      wxImage sustainImage(xExtent, yExtent);
+      sustainImage.Clear(211);
+      sustainImage.InitAlpha();
+      if (sustainImage.HasAlpha()) {
+        for (int i = 0; i < xExtent; i++) {
+          for (int j = 0; j < yExtent; j++) {
+            sustainImage.SetAlpha(i, j, 128);
+          }
+        }
+      }
+      wxBitmap bmp( sustainImage );
+      dc.DrawBitmap( bmp, xPosLeft, yPosHigh, true );
     }
     // draw the indicator for the playposition
     dc.DrawIcon(playPositionMarker, playPosition, 1);

@@ -45,109 +45,21 @@ AutoLooping::~AutoLooping() {
 bool AutoLooping::AutoFindLoops(
   const double data[],
   unsigned arrayLength,
-  int numberOfChannels,
   unsigned samplerate,
-  std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
-  bool autosearchSustainsection,
-  int startPercentage,
-  int endPercentage,
+  std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops, 
+  unsigned sustainStart,
+  unsigned sustainEnd,
   std::vector<std::pair<unsigned, unsigned> > &loopsAlreadyInFile) {
 
-  // find out which channel is strongest
-  int strongestChannel = 0;
-  double maxValue = 0;
-  for (unsigned i = 0; i < arrayLength; i += numberOfChannels) {
-    for (int j = 0; j < numberOfChannels; j++) {
-      double currentValue = fabs(data[i + j]);
-
-      if (currentValue > maxValue) {
-        maxValue = currentValue;
-        strongestChannel = j;
-      }
-    }
-  }
-
-  unsigned sustainStartIndex = 0, sustainEndIndex = 0;
-  if (autosearchSustainsection) {
-    // set a windowsize for a 20 Hz frequency in current file
-    unsigned windowSize = samplerate / 20 * numberOfChannels;
-
-    // Find sustainstart by scanning from the beginning
-    double maxAmplitudeValue = 0;
-  
-    for (unsigned i = 0; i < arrayLength - windowSize; i += windowSize) {
-      double maxValueInThisWindow = 0;
-      for (unsigned j = i; j < i + windowSize; j++) {
-        double currentValue = fabs(data[j]);
-
-        if (currentValue > maxValueInThisWindow)
-          maxValueInThisWindow = currentValue;
-      }
-
-      if (maxValueInThisWindow > maxAmplitudeValue)
-        maxAmplitudeValue = maxValueInThisWindow;
-      else {
-        // the max value in the window is not increasing anymore so 
-        // sustainsection is reached
-        sustainStartIndex = i + windowSize;
-        break;
-      }
-    }
-
-    sustainStartIndex -= (sustainStartIndex % numberOfChannels);
-
-    // then we add an offset of 0.25 seconds to allow the tone to stabilize
-    sustainStartIndex += samplerate * numberOfChannels / 4;
-
-    // now find sustainend by scanning from the end of audio data
-    maxAmplitudeValue = 0;
-  
-    for (unsigned i = arrayLength; i > 0 + windowSize; i -= windowSize) {
-      double maxValueInThisWindow = 0;
-      for (unsigned j = i; j > i - windowSize; j--) {
-        double currentValue = fabs(data[j]);
-
-        if (currentValue > maxValueInThisWindow)
-          maxValueInThisWindow = currentValue;
-      }
-
-      // if current max is less than one fourth of max value, or 12 dB lower
-      // we just continue searching backwards
-      if (maxValueInThisWindow < maxValue / 4) {
-        maxAmplitudeValue = maxValueInThisWindow;
-        continue;
-      }
-
-      if (maxValueInThisWindow > maxAmplitudeValue) {
-        maxAmplitudeValue = maxValueInThisWindow;
-      } else {
-        // the max value in the window is not increasing anymore so 
-        // sustainsectionend is reached
-        sustainEndIndex = i;
-        break;
-      }
-    }
-
-    sustainEndIndex -= (sustainEndIndex % numberOfChannels);
-
-    if (sustainStartIndex > sustainEndIndex)
-      return false;
-  } else {
-    if (endPercentage < startPercentage)
-      return false;
-    sustainStartIndex = ((double) startPercentage / 100.0) * arrayLength;
-    sustainEndIndex = ((double) endPercentage / 100.0) * arrayLength;
-  }
-
-  // next we find maximum derivative in strongest channel which is where the
+  // we find maximum derivative in audio data which is where the
   // waveform will change the most (the opposite of what we're interested in)
   double maxDerivative = 0;
   for (
-    unsigned i = sustainStartIndex + strongestChannel; 
-    i < sustainEndIndex - numberOfChannels; 
-    i += numberOfChannels) {
+    unsigned i = sustainStart; 
+    i < sustainEnd - 1; 
+    i++) {
 
-    double currentDerivative = fabs( (data[i + numberOfChannels] - data[i]) );
+    double currentDerivative = fabs( (data[i + 1] - data[i]) );
 
     if (currentDerivative > maxDerivative)
       maxDerivative = currentDerivative;
@@ -159,11 +71,11 @@ bool AutoLooping::AutoFindLoops(
   std::vector<unsigned> everyLoopCandidates;
   double derivativeThreshold = maxDerivative * m_derivativeThreshold;
   for (
-    unsigned i = sustainStartIndex + strongestChannel; 
-    i < sustainEndIndex - numberOfChannels;
-    i += numberOfChannels) {
+    unsigned i = sustainStart; 
+    i < sustainEnd - 1;
+    i++) {
 
-    double currentDerivative = fabs( (data[i + numberOfChannels] - data[i]) );
+    double currentDerivative = fabs( (data[i + 1] - data[i]) );
 
     if (currentDerivative < derivativeThreshold)
       everyLoopCandidates.push_back(i);
@@ -191,9 +103,7 @@ bool AutoLooping::AutoFindLoops(
   }
 
   // Then we cross correlate the points and if we get a good match we push the
-  // sample indexes of start and end into the foundLoops vector, just remember
-  // that the values in the candidate vector is related to the selection and
-  // needs adjustment if strongest channel wasn't the first.
+  // sample indexes of start and end into the foundLoops vector
   // Also note that for both the loopstart and end we compare a "window" of
   // two samples before the candidate to two after the candidate which gives
   // five samples per channel to the window. If correlation is sufficiently
@@ -203,14 +113,14 @@ bool AutoLooping::AutoFindLoops(
     return false;
   for (unsigned i = 0; i < loopCandidates.size() - 1; i++) {
     // this is for the start point
-    unsigned loopStartIndex = loopCandidates[i] - strongestChannel;
-    unsigned compareStartIndex = loopStartIndex - 2 * numberOfChannels;
+    unsigned loopStartIndex = loopCandidates[i];
+    unsigned compareStartIndex = loopStartIndex - 2;
 
     // if loop start point is too close to already stored loop continue
     if (!foundLoops.empty()) {
       if (
-        (loopStartIndex - foundLoops.back().first.first * numberOfChannels) < 
-        (samplerate * m_distanceBetweenLoops * numberOfChannels) && !m_useBruteForce
+        (loopStartIndex - foundLoops.back().first.first) < 
+        (samplerate * m_distanceBetweenLoops) && !m_useBruteForce
       ) {
         continue;
       }
@@ -218,31 +128,31 @@ bool AutoLooping::AutoFindLoops(
 
     // and now compare to end point candidates
     for (unsigned j = i + 1; j < loopCandidates.size(); j++) {
-      unsigned loopEndIndex = loopCandidates[j] - strongestChannel;
+      unsigned loopEndIndex = loopCandidates[j];
       
       // check if the endpoint is too close to startpoint
-      if (loopEndIndex - loopStartIndex < samplerate * m_minLoopDuration * numberOfChannels)
+      if (loopEndIndex - loopStartIndex < samplerate * m_minLoopDuration)
         continue;
 
-      unsigned compareEndIndex = loopEndIndex - 2 * numberOfChannels;
+      unsigned compareEndIndex = loopEndIndex - 2;
 
       // now comes the actual cross correlation of the candidates
       double sum = 0, correlationValue = 0;
-      for (int k = 0; k < 5 * numberOfChannels; k++) {
+      for (int k = 0; k < 5; k++) {
         sum += pow( (data[compareStartIndex + k] - data[compareEndIndex + k]), 2);
   
-        correlationValue = sqrt(sum / (5.0 * numberOfChannels));
+        correlationValue = sqrt(sum / (5.0));
       }
 
       // if the quality of the correlation is above quality threshold add the loop
       // but remove one sample from end index for a better loop match
-      if (correlationValue < m_qualityFactor / 32767.0 * numberOfChannels) {
+      if (correlationValue < m_qualityFactor / 32767.0) {
         // make sure the loop doesn't already exist in file, or that it's too close to an existing!
         bool loopAlreadyExist = false;
         for (unsigned k = 0; k < loopsAlreadyInFile.size(); k++) {
-          unsigned startDifference = (loopsAlreadyInFile[k].first < (loopStartIndex / numberOfChannels)) ? ((loopStartIndex / numberOfChannels) - loopsAlreadyInFile[k].first) : (loopsAlreadyInFile[k].first - (loopStartIndex / numberOfChannels));
-          if (loopsAlreadyInFile[k].first == (loopStartIndex / numberOfChannels) &&
-            loopsAlreadyInFile[k].second == ((loopEndIndex / numberOfChannels) - 1)
+          unsigned startDifference = (loopsAlreadyInFile[k].first < (loopStartIndex)) ? ((loopStartIndex) - loopsAlreadyInFile[k].first) : (loopsAlreadyInFile[k].first - (loopStartIndex));
+          if (loopsAlreadyInFile[k].first == (loopStartIndex) &&
+            loopsAlreadyInFile[k].second == ((loopEndIndex) - 1)
           ) {
             loopAlreadyExist = true;
             break;
@@ -255,8 +165,8 @@ bool AutoLooping::AutoFindLoops(
           foundLoops.push_back(
             std::make_pair(
               std::make_pair(
-                (loopStartIndex / numberOfChannels),
-                ((loopEndIndex / numberOfChannels) - 1)
+                (loopStartIndex),
+                ((loopEndIndex) - 1)
               ),
               correlationValue
             )

@@ -1,4 +1,4 @@
-This is LoopAuditioneer 0.8.3
+This is LoopAuditioneer 0.8.4
 Copyright (C) 2011-2020 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
