@@ -21,7 +21,6 @@
 #include "FileHandling.h"
 #include "FFT.h"
 #include <cfloat>
-#include <iostream>
 
 FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_timeDomainPitch(0), m_autoSustainStart(0),
 m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
@@ -767,7 +766,6 @@ void FileHandling::SeparateStrongestChannel(double outData[]) {
         }
       }
       // now we should know which channel has the highest RMS
-      std::cout << "Strongest channel index is " << strongestChannelIdx << " \n";
       for (unsigned i = 0; i < waveTracks[strongestChannelIdx].waveData.size(); i++)
         outData[i] = waveTracks[strongestChannelIdx].waveData[i];
     } else {
@@ -855,7 +853,6 @@ void FileHandling::CalculateSustainStartAndEnd() {
 
   // now find sustain end by scanning from the end of audio data
   maxRMSvalue = 0.0;
-  std::cout << "max rms is: " << maxValue << "\n";
   for (unsigned idx = numberOfSamples - 1; idx > windowSize; idx -= windowSize) {
     double totalValues = 0.0;
     double rmsInThisWindow = 0.0;
@@ -865,18 +862,15 @@ void FileHandling::CalculateSustainStartAndEnd() {
       totalValues += currentValue;
     }
     rmsInThisWindow = sqrt((totalValues / windowSize));
-    std::cout << "rms in this window: " << rmsInThisWindow << " max so far (" << maxRMSvalue << ")\n";
     
     // if current max is too much lower than max value
     // we just continue searching
     double comparedToMax = (maxValue - rmsInThisWindow) / maxValue;
     if (rmsInThisWindow < maxValue && comparedToMax > 0.4) {
       maxRMSvalue = rmsInThisWindow;
-      std::cout << "RMS in this window is too low compared to maxValue (" << comparedToMax << ") so we continue...\n";
       continue;
     } else if (rmsInThisWindow > maxValue) { 
       // sustainsection end should be reached
-      std::cout << "RMS in this window is higher than maxValue!\n";
       m_autoSustainEnd = idx;
       if (m_autoSustainEnd > numberOfSamples - 1)
         m_autoSustainEnd = numberOfSamples - 1;
@@ -884,12 +878,10 @@ void FileHandling::CalculateSustainStartAndEnd() {
     }
     double comparedToPrev = (rmsInThisWindow - maxRMSvalue) / maxRMSvalue;
     if (rmsInThisWindow > maxRMSvalue && comparedToPrev > 0.15) {
-      std::cout << "RMS is still rising by (" << comparedToPrev << "), to max (" << comparedToMax << ")so we continue...\n";
       maxRMSvalue = rmsInThisWindow;
     } else {
       // the max value in the window is not increasing significantly anymore so 
       // sustainsection end should have been reached in previous window
-      std::cout << "RMS in this window not increasing enough! Quota was " << comparedToPrev << "\n";
       m_autoSustainEnd = idx + windowSize;
       if (m_autoSustainEnd > numberOfSamples - 1)
         m_autoSustainEnd = numberOfSamples - 1;
