@@ -77,6 +77,7 @@ public:
   void OnLoopPlayback(wxCommandEvent& event);
   void OnKeyboardInput(wxKeyEvent& event);
   void OnSize(wxSizeEvent& event);
+  void OnListInfo(wxCommandEvent& event);
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
