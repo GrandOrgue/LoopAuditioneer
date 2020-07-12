@@ -27,10 +27,20 @@
 #include "CueMarkers.h"
 #include <vector>
 #include "RtAudio.h"
+#include <wx/datetime.h>
 
 typedef struct {
   std::vector<double> waveData;
 } WAVETRACK;
+
+typedef struct {
+  // LIST INFO string data
+  wxString artist;
+  wxString copyright;
+  wxString software;
+  wxString comment;
+  wxDateTime creation_date;
+} WAV_LIST_INFO;
 
 class FileHandling {
 public:
@@ -68,6 +78,7 @@ public:
   int *intAudioData;
   double *doubleAudioData;
   std::vector<WAVETRACK> waveTracks;
+  WAV_LIST_INFO m_info;
 
   long unsigned int ArrayLength;
 

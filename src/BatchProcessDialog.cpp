@@ -24,10 +24,12 @@
 #include "FileHandling.h"
 #include "CutNFadeDialog.h"
 #include "CrossfadeDialog.h"
+#include "ListInfoDialog.h"
 #include <wx/statline.h>
 #include <wx/listctrl.h>
 #include <wx/filename.h>
 #include <wx/dir.h>
+#include <wx/datetime.h>
 #include <vector>
 #include <climits>
 #include <cmath>
@@ -78,6 +80,7 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Remove sound between last loop and cue"));
   m_batchProcessesAvailable.Add(wxT("Cut & Fade in/out"));
   m_batchProcessesAvailable.Add(wxT("Crossfade all loops"));
+  m_batchProcessesAvailable.Add(wxT("Set LIST INFO strings"));
 
   m_lastSource = wxEmptyString;
   m_lastTarget = wxEmptyString;
@@ -1243,6 +1246,64 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
         } else {
           m_statusProgress->AppendText(wxT("\nBatch process aborted!\n"));
         }
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+    
+    case 18:
+      // This is for setting LIST INFO strings
+      if (!filesToProcess.IsEmpty()) {
+
+        wxString art;
+        wxString copyr;
+        wxString comm;
+        wxDateTime cr_dt;
+        // we must actually open the first file to be able to create list info dialog
+        FileHandling *first = new FileHandling(filesToProcess.Item(0), m_sourceField->GetValue());
+        if (first->FileCouldBeOpened()) {
+          // create the list info dialog
+          ListInfoDialog infoDlg(first, this);
+          // show the ListInfoDialog to get variables filled
+          if (infoDlg.ShowModal() == wxID_OK) {
+            art = infoDlg.getArtist();
+            copyr = infoDlg.getCopyright();
+            comm = infoDlg.getComment();
+            cr_dt = infoDlg.getCreationDate();
+          } else {
+            // we must abort
+            m_statusProgress->AppendText(wxT("\nProcess cancelled!\n"));
+            break;
+          }
+        } else {
+          // we must abort
+          m_statusProgress->AppendText(wxT("\nThe first file couldn't be opened!\n"));
+          break;
+        }
+        // we're done with the first opening
+        delete first;
+        
+        // now we'll fill all the files with the set LIST INFO strings
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            // set info strings
+            fh.m_info.artist = art;
+            fh.m_info.copyright = copyr;
+            fh.m_info.comment = comm;
+            fh.m_info.creation_date = cr_dt;
+
+            // save file
+            fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+            m_statusProgress->AppendText(wxT("\tDone writing LIST INFO strings to "));
+            m_statusProgress->AppendText(filesToProcess.Item(i));
+            m_statusProgress->AppendText(wxT("\n"));
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+        }
+        m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
       } else {
         m_statusProgress->AppendText(wxT("No wav files to process!\n"));
       }

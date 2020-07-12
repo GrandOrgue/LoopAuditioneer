@@ -105,6 +105,12 @@
 		<param name="Name" value="Cutting and fading">
 	</OBJECT>
 <LI>
+<LI>
+	<OBJECT type="text/sitemap">
+		<param name="Local" value="ListInfo.htm">
+		<param name="Name" value="Info text">
+	</OBJECT>
+<LI>
 	<OBJECT type="text/sitemap">
 		<param name="Local" value="KeyboardShortcuts.htm">
 		<param name="Name" value="Keyboard shortcuts">

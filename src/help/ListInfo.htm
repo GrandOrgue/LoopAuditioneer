@@ -1,0 +1,18 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<Title>Info text</Title>
+</HEAD>
+<BODY>
+<h2>LIST INFO strings</h2>
+<p>With an audio file open it's possible to invoke the LIST INFO dialog from the Tools menu, the
+tool bar icon or from keyboard combination Ctrl + I. This feature makes it possible to read and set
+some strings that either already exist or will be embedded in the wave file.</p>
+<p><img src="images/ListInfoDialog.jpg" alt="A screenshot showing the LIST INFO dialog" /></p>
+<p>Of all the LIST INFO strings that can be set in a .wav file only Artist, Copyright, Software, Comment and Creation date
+can be read and modified by LoopAuditioneer. (since it uses libsndfile for audio I/O)</p>
+<p>Of the strings presented, all except Software can be set by the user. Software will always be set by the program itself if the
+.wav file is modified and saved back to disk by the program.</p>
+<p>The strings will be converted to c-strings so to be safe only ASCII characters should be used.</p>
+</BODY>
+</HTML>

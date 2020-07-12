@@ -138,6 +138,40 @@ m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
       delete[] buffer;
     }
     
+    // Try to get LIST INFO strings
+    if (sfHandle.getString(SF_STR_ARTIST) != NULL)
+      m_info.artist = wxString::FromUTF8(sfHandle.getString(SF_STR_ARTIST));
+    else
+      m_info.artist = wxEmptyString;
+    
+    if (sfHandle.getString(SF_STR_COPYRIGHT) != NULL)
+      m_info.copyright = wxString::FromUTF8(sfHandle.getString(SF_STR_COPYRIGHT));
+    else
+      m_info.copyright = wxEmptyString;
+    
+    if (sfHandle.getString(SF_STR_SOFTWARE) != NULL)
+      m_info.software = wxString::FromUTF8(sfHandle.getString(SF_STR_SOFTWARE));
+    else
+      m_info.software = wxEmptyString;
+    
+    if (sfHandle.getString(SF_STR_COMMENT) != NULL)
+      m_info.comment = wxString::FromUTF8(sfHandle.getString(SF_STR_COMMENT));
+    else
+      m_info.comment = wxEmptyString;
+    
+    // creation date is special
+    if (sfHandle.getString(SF_STR_DATE) != NULL) {
+      wxString dateString = wxString::FromUTF8(sfHandle.getString(SF_STR_DATE));
+      wxDateTime dt;
+      wxString::const_iterator end;
+      if (dt.ParseDate(dateString, &end))
+        m_info.creation_date = dt;
+      else
+        m_info.creation_date = wxDateTime::Now();
+    } else {
+      m_info.creation_date = wxDateTime::Now();
+    }
+    
     // Auto calculate the sustainsection too
     if (fileOpenWasSuccessful)
       CalculateSustainStartAndEnd();
@@ -204,7 +238,28 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
     cues.cue_points[i].sample_offset =  m_cues->exportedCues[i].dwSampleOffset;
   }
   sfh.command(4303, &cues, sizeof(cues));
-
+  
+  // Write LIST INFO strings if they are set
+  if (m_info.artist != wxEmptyString)
+    sfh.setString(SF_STR_ARTIST, (const char*)m_info.artist.mb_str());
+    
+  if (m_info.copyright != wxEmptyString)
+    sfh.setString(SF_STR_COPYRIGHT, (const char*)m_info.copyright.mb_str());
+  
+  // Remember to set the software string of the used software!
+  m_info.software = wxT("LoopAuditioneer");
+  if (m_info.software != wxEmptyString)
+    sfh.setString(SF_STR_SOFTWARE, (const char*)m_info.software.mb_str());
+  
+  if (m_info.comment != wxEmptyString)
+    sfh.setString(SF_STR_COMMENT, (const char*)m_info.comment.mb_str());
+  
+  // the creation date must be formatted as YYYY-MM-DD and nothing else
+  if (m_info.creation_date.IsValid()) {
+    wxString dateString = m_info.creation_date.FormatISODate();
+    sfh.setString(SF_STR_DATE, (const char*)dateString.mb_str());
+  }
+  
   // Finally write the data back
   if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
     sfh.write(doubleAudioData, ArrayLength);

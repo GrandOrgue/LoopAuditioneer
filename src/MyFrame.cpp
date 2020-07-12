@@ -33,6 +33,7 @@
 #include "sndfile.hh"
 #include <wx/settings.h>
 #include <wx/filename.h>
+#include "ListInfoDialog.h"
 
 bool MyFrame::loopPlay = true; // default to loop play
 int MyFrame::volumeMultiplier = 1; // default value
@@ -75,6 +76,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_TOOL(X_FADE, MyFrame::OnCrossfade)
   EVT_TOOL(VIEW_LOOPPOINTS, MyFrame::OnViewLoop)
   EVT_TOOL(CUT_N_FADE, MyFrame::OnCutFade)
+  EVT_TOOL(LIST_INFO, MyFrame::OnListInfo)
   EVT_KEY_DOWN(MyFrame::OnKeyboardInput)
   EVT_SIZE(MyFrame::OnSize)
 END_EVENT_TABLE()
@@ -96,6 +98,9 @@ void MyFrame::OnSelectDir(wxCommandEvent& event) {
     defaultPath = workingDir;
   wxDirDialog dialog(::wxGetApp().frame, wxT("Choose a folder with samples"), defaultPath);
   if (dialog.ShowModal() == wxID_OK) {
+    // close any open files
+    CloseOpenAudioFile();
+    
     workingDir = dialog.GetPath();
     EmptyListOfFileNames();
     PopulateListOfFileNames();
@@ -231,6 +236,8 @@ void MyFrame::OpenAudioFile() {
     viewMenu->Enable(ZOOM_OUT_AMP, true);
     toolBar->EnableTool(CUT_N_FADE, true);
     toolMenu->Enable(CUT_N_FADE, true);
+    toolBar->EnableTool(LIST_INFO, true);
+    toolMenu->Enable(LIST_INFO, true);
 
     // select first loop if such is present
     if (m_panel->m_grid->GetNumberRows() > 0) {
@@ -298,17 +305,27 @@ void MyFrame::CloseOpenAudioFile() {
   toolMenu->Enable(VIEW_LOOPPOINTS, false);
   toolBar->EnableTool(CUT_N_FADE, false);
   toolMenu->Enable(CUT_N_FADE, false);
+  toolBar->EnableTool(LIST_INFO, false);
+  toolMenu->Enable(LIST_INFO, false);
 
   m_sound->CloseAudioStream();
 
   if (m_audiofile)
     m_panel->EmptyTable();
-
-  delete m_audiofile;
-  delete m_waveform;
-  m_waveform = 0;
+  if (m_audiofile != NULL) {
+    delete m_audiofile;
+    m_audiofile = 0;
+  }
+  if (m_waveform != NULL) {
+    delete m_waveform;
+    m_waveform = 0;
+  }
 
   SetStatusText(wxEmptyString, 1);
+  m_panel->fileNameLabel->SetLabel(wxT("Current open file: "));
+  lowerBox->Clear();
+  lowerBox->AddStretchSpacer();
+  vbox->Layout();
 
   UpdateAllViews();
 }
@@ -619,6 +636,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolMenu->Append(X_FADE, wxT("&Crossfade\tCtrl+X"), wxT("Crossfade the selected loop"));
   toolMenu->Append(VIEW_LOOPPOINTS, wxT("View looppoints\tCtrl+W"), wxT("View waveform overlay at looppoints"));
   toolMenu->Append(CUT_N_FADE, wxT("Cut and &fade\tCtrl+C"), wxT("Cut & fade in/out"));
+  toolMenu->Append(LIST_INFO, wxT("Info text\tCtrl+I"), wxT("View/set info text"));
 
   toolMenu->Enable(ADD_LOOP, false);
   toolMenu->Enable(AUTOSEARCH_LOOPS, false);
@@ -626,6 +644,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolMenu->Enable(X_FADE, false);
   toolMenu->Enable(VIEW_LOOPPOINTS, false);
   toolMenu->Enable(CUT_N_FADE, false);
+  toolMenu->Enable(LIST_INFO, false);
 
   // Create a help menu
   helpMenu = new wxMenu();
@@ -677,6 +696,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   wxBitmap crossfade(wxT("../icons/24x24/Wizard.png"), wxBITMAP_TYPE_PNG);
   wxBitmap cutfade(wxT("../icons/24x24/Software.png"), wxBITMAP_TYPE_PNG);
   wxBitmap viewloop(wxT("../icons/24x24/Diagram.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap listInfo(wxT("../icons/24x24/Text.png"), wxBITMAP_TYPE_PNG);
   toolBar->AddTool(FILE_SELECT, wxT("Select working folder"), selectFolder, wxT("Select working folder"));
   toolBar->AddTool(OPEN_SELECTED, wxT("Open selected file"), openSelectedFile, wxT("Open selected file"));
   toolBar->AddTool(wxID_SAVE, wxT("Save file"), saveFile, wxT("Save file"));
@@ -693,6 +713,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->AddTool(X_FADE, wxT("Crossfade"), crossfade, wxT("Crossfade a selected loop"));
   toolBar->AddTool(VIEW_LOOPPOINTS, wxT("View looppoints"), viewloop, wxT("View waveform overlay at looppoints"));
   toolBar->AddTool(CUT_N_FADE, wxT("Cut & Fade"), cutfade, wxT("Cut & Fade in/out"));
+  toolBar->AddTool(LIST_INFO, wxT("Info text"), listInfo, wxT("Wiew/set info text"));
   toolBar->AddSeparator();
   toolBar->AddTool(ZOOM_IN_AMP, wxT("Zoom in"), zoomInAmp, wxT("Zoom in on amplitude"));
   toolBar->AddTool(ZOOM_OUT_AMP, wxT("Zoom out"), zoomOutAmp, wxT("Zoom out on amplitude"));
@@ -734,6 +755,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->EnableTool(X_FADE, false);
   toolBar->EnableTool(VIEW_LOOPPOINTS, false);
   toolBar->EnableTool(CUT_N_FADE, false);
+  toolBar->EnableTool(LIST_INFO, false);
   this->SetToolBar(toolBar);
 
   // Create sizers for frame content
@@ -1319,17 +1341,6 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
       );
       dialog->ShowModal();
     }
-/*  } else {
-    // couldn't get audio data as doubles!
-    wxString message = wxT("Sorry, couldn't get the audio data!");
-    wxMessageDialog *dialog = new wxMessageDialog(
-      NULL,
-      message,
-      wxT("Error getting audio data"),
-      wxOK | wxICON_ERROR
-    );
-    dialog->ShowModal();
-  } */
   delete[] audioData;
 }
 
@@ -1660,6 +1671,29 @@ void MyFrame::OnCutFade(wxCommandEvent& event) {
 
     // then we should make sure to update the views
     UpdateAllViews();
+  } else {
+    // user clicked cancel...
+  }
+}
+
+void MyFrame::OnListInfo(wxCommandEvent& event) {
+  ListInfoDialog infoDlg(m_audiofile, this);
+  // force update of values
+  infoDlg.Init(m_audiofile);
+  infoDlg.TransferDataToWindow();
+  
+  if (infoDlg.ShowModal() == wxID_OK) {
+    infoDlg.TransferDataFromWindow();
+    m_audiofile->m_info.artist = infoDlg.getArtist();
+    m_audiofile->m_info.copyright = infoDlg.getCopyright();
+    m_audiofile->m_info.software = infoDlg.getSoftware();
+    m_audiofile->m_info.comment = infoDlg.getComment();
+    m_audiofile->m_info.creation_date = infoDlg.getCreationDate();
+    
+    // Enable save icon and menu
+    toolBar->EnableTool(wxID_SAVE, true);
+    fileMenu->Enable(wxID_SAVE, true);
+    fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
   } else {
     // user clicked cancel...
   }
