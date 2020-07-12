@@ -839,6 +839,12 @@ void FileHandling::SeparateStrongestChannel(double outData[]) {
 void FileHandling::CalculateSustainStartAndEnd() {
   // prepare array for a single channel of audio data
   unsigned numberOfSamples = ArrayLength / m_channels;
+  if (numberOfSamples < 1) {
+    // there's no data to talk about!
+    m_autoSustainStart = 0;
+    m_autoSustainEnd = 0;
+    return;
+  }
   double *ch_data = new double[numberOfSamples];
 
   // populate channel data
@@ -847,9 +853,12 @@ void FileHandling::CalculateSustainStartAndEnd() {
   // now detect sustain section
   // set a windowsize (mono now!)
   unsigned windowSize = m_samplerate / 10;
+  if (windowSize > numberOfSamples)
+    windowSize = numberOfSamples - 1;
   
   // Find strongest value of any windowSize in file audio
   double maxValue = 0.0;
+  double individualMax = 0.0;
   unsigned indexWithMaxValue = 0;
   for (unsigned idx = 0; idx < numberOfSamples - windowSize; idx += windowSize) {
     double totalValues = 0.0;
@@ -857,12 +866,15 @@ void FileHandling::CalculateSustainStartAndEnd() {
     for (unsigned j = idx; j < idx + windowSize; j++) {
       double currentValue = pow(ch_data[j], 2);
       totalValues += currentValue;
+      if (currentValue > individualMax) {
+        individualMax = currentValue;
+        indexWithMaxValue = j;
+      }    
     }
     rmsInThisWindow = sqrt((totalValues / windowSize));
 
     if (rmsInThisWindow > maxValue) {
       maxValue = rmsInThisWindow;
-      indexWithMaxValue = idx;
     }
   }
 
@@ -943,11 +955,25 @@ void FileHandling::CalculateSustainStartAndEnd() {
       break;
     }
   }
-
+  // check if previous method worked
   if (m_autoSustainEnd < m_autoSustainStart) {
+    // First a sanity check that values can be valid at all
+    if (indexWithMaxValue < 1 || indexWithMaxValue > numberOfSamples - 3) {
+      // in this case we cannot calculate so just set sustain to whole file
+      m_autoSustainStart = 0;
+      // check that the array has a sane length
+      if (numberOfSamples > 0)
+        m_autoSustainStart = numberOfSamples - 1;
+      else
+        m_autoSustainEnd = 0;
+    
+      // clean up  
+      delete[] ch_data;
+      return;
+    }
     // this is an error situation where no sustainsection could be found
     // so we try another approach to detecting the part of sound that we can
-    // analyze we know where the max value is located so we calculate where the
+    // analyze. We know where the max value is located so we calculate where the
     // max values get no larger than one half of maxvalue in both directions
     // we start searching backwards from max index
     double lastValue = maxValue;
