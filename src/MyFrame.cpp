@@ -1359,10 +1359,13 @@ void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
     m_autoloop->SetMultiple(m_autoloopSettings->GetMultiple());
     m_autoloop->SetBruteForce(m_autoloopSettings->GetBruteForce());
     
-    // update audiofile slider sustainsection if changed
-    m_audiofile->SetSliderSustainsection(m_autoloopSettings->GetStart(), m_autoloopSettings->GetEnd());
-    // update chosen sustainsection selection
-    m_audiofile->SetAutoSustainSearch(m_autoloopSettings->GetAutosearch());
+    // Only update audiofile if it exist! It should be updated when loaded anyway!
+    if (m_audiofile) {
+      // update audiofile slider sustainsection if changed
+      m_audiofile->SetSliderSustainsection(m_autoloopSettings->GetStart(), m_autoloopSettings->GetEnd());
+      // update chosen sustainsection selection
+      m_audiofile->SetAutoSustainSearch(m_autoloopSettings->GetAutosearch());
+    }
     
     // force a redraw as sustainsection might have changed
     UpdateAllViews();
