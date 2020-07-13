@@ -547,7 +547,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
                   newLoop.shouldBeSaved = true;
                   fh.m_loops->AddLoop(newLoop);
                 }
-                m_statusProgress->AppendText(wxString::Format(wxT("\t%i loop(s) found.\n"), addLoops.size()));
+                m_statusProgress->AppendText(wxString::Format(wxT("\t%zu loop(s) found.\n"), addLoops.size()));
                 if (nbLoops + addLoops.size() > 16)
                   m_statusProgress->AppendText(wxString::Format(wxT("\tOnly %i first loops could be saved.\n"), 16 - nbLoops));
               } else {
@@ -649,9 +649,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             double cent_deviation = 1200 * (log10(fftPitches[0] / midi_note_pitch) / log10(2));
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tFFT detected pitch = %.2f Hz\n"), fftPitches[0]));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uMIDIKeyNumber=%u"), pipeNr, midi_note));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dMIDIKeyNumber=%d"), pipeNr, midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uPitchFraction="), pipeNr));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dPitchFraction="), pipeNr));
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
@@ -743,9 +743,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             double cent_deviation = 1200 * (log10(fftPitches[1] / midi_note_pitch) / log10(2));
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tHPS detected pitch = %.2f Hz\n"), fftPitches[1]));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uMIDIKeyNumber=%u"), pipeNr, midi_note));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dMIDIKeyNumber=%d"), pipeNr, midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uPitchFraction="), pipeNr));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dPitchFraction="), pipeNr));
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
@@ -851,9 +851,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
             }
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch in time domain = %.2f Hz\n"), pitch));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uMIDIKeyNumber=%u"), pipeNr, midi_note));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dMIDIKeyNumber=%d"), pipeNr, midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03uPitchFraction="), pipeNr));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dPitchFraction="), pipeNr));
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
@@ -1052,7 +1052,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
               } else {
                 // Write the pitch tuning line
                 m_statusProgress->AppendText(
-                  wxString::Format(wxT("Pipe%03uPitchTuning="), pipeNr)
+                  wxString::Format(wxT("Pipe%03dPitchTuning="), pipeNr)
                 );
                 m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
                 m_statusProgress->AppendText(wxT("\n"));

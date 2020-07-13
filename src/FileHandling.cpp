@@ -955,7 +955,7 @@ void FileHandling::CalculateSustainStartAndEnd() {
       break;
     }
   }
-  // check if previous method worked
+  // check if previous method didn't work
   if (m_autoSustainEnd < m_autoSustainStart) {
     // First a sanity check that values can be valid at all
     if (indexWithMaxValue < 1 || indexWithMaxValue > numberOfSamples - 3) {
@@ -963,7 +963,7 @@ void FileHandling::CalculateSustainStartAndEnd() {
       m_autoSustainStart = 0;
       // check that the array has a sane length
       if (numberOfSamples > 0)
-        m_autoSustainStart = numberOfSamples - 1;
+        m_autoSustainEnd = numberOfSamples - 1;
       else
         m_autoSustainEnd = 0;
     
@@ -1048,7 +1048,7 @@ void FileHandling::CalculateSustainStartAndEnd() {
     m_autoSustainStart = 0;
     // check that the array has a sane length
     if (numberOfSamples > 0)
-      m_autoSustainStart = numberOfSamples - 1;
+      m_autoSustainEnd = numberOfSamples - 1;
     else
       m_autoSustainEnd = 0;
     
