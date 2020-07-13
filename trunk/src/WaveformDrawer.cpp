@@ -263,18 +263,20 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
       int yExtent = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1) - yPosHigh;
       int xPosLeft = currentSustain.first / samplesPerPixel + leftMargin;
       int xExtent = (currentSustain.second - currentSustain.first) / samplesPerPixel;
-      wxImage sustainImage(xExtent, yExtent);
-      sustainImage.Clear(211);
-      sustainImage.InitAlpha();
-      if (sustainImage.HasAlpha()) {
-        for (int i = 0; i < xExtent; i++) {
-          for (int j = 0; j < yExtent; j++) {
-            sustainImage.SetAlpha(i, j, 128);
+      if (xExtent > 0) {
+        wxImage sustainImage(xExtent, yExtent);
+        sustainImage.Clear(211);
+        sustainImage.InitAlpha();
+        if (sustainImage.HasAlpha()) {
+          for (int i = 0; i < xExtent; i++) {
+            for (int j = 0; j < yExtent; j++) {
+              sustainImage.SetAlpha(i, j, 128);
+            }
           }
         }
+        wxBitmap bmp( sustainImage );
+        dc.DrawBitmap( bmp, xPosLeft, yPosHigh, true );
       }
-      wxBitmap bmp( sustainImage );
-      dc.DrawBitmap( bmp, xPosLeft, yPosHigh, true );
     }
     // draw the indicator for the playposition
     dc.DrawIcon(playPositionMarker, playPosition, 1);
