@@ -46,7 +46,7 @@ CrossfadeDialog::CrossfadeDialog(
  
 void CrossfadeDialog::Init() {
   m_fadeduration = 0.05;
-  m_fademethods.Add(wxT("Linar"));
+  m_fademethods.Add(wxT("Linear"));
   m_fademethods.Add(wxT("S-shape (cos)"));
   m_fademethods.Add(wxT("Equal power/gain"));
   m_fademethods.Add(wxT("Equal power (sin)"));

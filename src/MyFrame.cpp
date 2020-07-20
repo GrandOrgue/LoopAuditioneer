@@ -713,7 +713,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar->AddTool(X_FADE, wxT("Crossfade"), crossfade, wxT("Crossfade a selected loop"));
   toolBar->AddTool(VIEW_LOOPPOINTS, wxT("View looppoints"), viewloop, wxT("View waveform overlay at looppoints"));
   toolBar->AddTool(CUT_N_FADE, wxT("Cut & Fade"), cutfade, wxT("Cut & Fade in/out"));
-  toolBar->AddTool(LIST_INFO, wxT("Info text"), listInfo, wxT("Wiew/set info text"));
+  toolBar->AddTool(LIST_INFO, wxT("Info text"), listInfo, wxT("View/set info text"));
   toolBar->AddSeparator();
   toolBar->AddTool(ZOOM_IN_AMP, wxT("Zoom in"), zoomInAmp, wxT("Zoom in on amplitude"));
   toolBar->AddTool(ZOOM_OUT_AMP, wxT("Zoom out"), zoomOutAmp, wxT("Zoom out on amplitude"));
