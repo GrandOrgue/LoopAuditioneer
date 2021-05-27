@@ -28,17 +28,24 @@ in lib-src folder
 
 Compile RtAudio:
 in lib-src/rtaudio folder
-	./configure --host=i686-w64-mingw32 --with-ds
+	./configure --host=i686-w64-mingw32 --with-ds --with-wasapi
 	make
 	i686-w64-mingw32-ranlib .libs/librtaudio.a
 in lib-src folder
 	ln -sf rtaudio/.libs/librtaudio.a .
 
 
-
+Compile libsamplerate:
+in lib-src/libsamplerate folder:
+	./configure --host=i686-w64-mingw32 --disable-sndfile --disable-fftw
+	make
+in lib-src folder
+	ln -sf libsamplerate/src/.libs/libsamplerate.a .
+	
+	
 In src folder:
 
-i686-w64-mingw32-g++ -D__WINDOWS_DS__ -static -O3 -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -ffast-math -o LoopAuditioneer.exe LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp ListInfoDialog.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/rtaudio/include ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ldsound -lole32 -lwinmm -lm `/PATH_TO_WX_SOURCE/win-ur-static/wx-config --static=yes --cxxflags --libs` -Wl,--as-needed -lssp -lksuser -lmfplat -lmfuuid -lwmcodecdspuuid
+i686-w64-mingw32-g++ -D__WINDOWS_WASAPI__ -D__WINDOWS_DS__ -static -O3 -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -ffast-math -o LoopAuditioneer.exe LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp ListInfoDialog.cpp AudioSettingsDialog.cpp MyResampler.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/rtaudio/include -I../lib-src/libsamplerate/src ../lib-src/libsndfile.a ../lib-src/librtaudio.a ../lib-src/libsamplerate.a -ldsound -lole32 -lwinmm -lm `/PATH_TO_WX_SOURCE/win-ur-static/wx-config --static=yes --cxxflags --libs` -Wl,--as-needed -lssp -lksuser -lmfplat -lmfuuid -lwmcodecdspuuid
 
 
 To reduce size of binary:

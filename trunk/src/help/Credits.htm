@@ -10,6 +10,11 @@ for file I/O handling that contain a few modifications by Lars Palo mainly to al
 correct MIDIPitchFraction numbers. The modified source is available in the lib-src folder
 on sourceforge accessible by SVN.</p>
 <p>For sound the <a href="http://www.music.mcgill.ca/~gary/rtaudio/">RtAudio</a> library is used.</p>
+<p>If samplerate conversion is necessary for audio output the <a href="http://www.mega-nerd.com/SRC/">
+libsamplerate</a> library is used. However, the main reason for this to be necessary is if you're using
+Jack on Linux as audio Api. It would most likely be better to change the samplerate that is used by Jack
+to match the one of the actually loaded sample file to be sure that optimal fidelity of audio is preserved
+ - and by that giving you the best possibilities of correctly auditioneering the loops and cues in the file.</p>
 <p>The FFT routines is taken from the Audacity source and (FFT.cpp and FFT.h) has been slightly
 modified to better be integrated into LoopAuditioneer.</p>
 <p>The algorithm for pitch detection in the time domain is taken and adapted from a discussion on

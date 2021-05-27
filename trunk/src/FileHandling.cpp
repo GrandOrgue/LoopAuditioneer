@@ -1,6 +1,6 @@
 /*
  * FileHandling.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2020 Lars Palo
+ * Copyright (C) 2011-2021 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include "FFT.h"
 #include <cfloat>
 
-FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_timeDomainPitch(0), m_autoSustainStart(0),
+FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), floatAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_timeDomainPitch(0), m_autoSustainStart(0),
 m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
   m_loops = new LoopMarkers();
   m_cues = new CueMarkers();
@@ -91,10 +91,16 @@ m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
     }
 
     // Decide what format to store audio data as and copy it
-    if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+    if (m_minorFormat == SF_FORMAT_DOUBLE) {
       ArrayLength = sfHandle.frames() * sfHandle.channels();
       doubleAudioData = new double[ArrayLength];
       sfHandle.read(doubleAudioData, ArrayLength);
+
+      fileOpenWasSuccessful = true;
+    } else if (m_minorFormat == SF_FORMAT_FLOAT) {
+      ArrayLength = sfHandle.frames() * sfHandle.channels();
+      floatAudioData = new float[ArrayLength];
+      sfHandle.read(floatAudioData, ArrayLength);
 
       fileOpenWasSuccessful = true;
     } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
@@ -115,6 +121,7 @@ m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
     }
 
     // also store audio data as doubles de-interleaved if successful
+    // plus check if the float audio data needs to be read for playback
     if (fileOpenWasSuccessful) {
       // remember to "rewind" file before read
       sfHandle.seek(0, SEEK_SET);
@@ -136,6 +143,14 @@ m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
           index = 0;
       }
       delete[] buffer;
+      
+      if (m_minorFormat != SF_FORMAT_FLOAT) {
+        // if the format is something else than floats we also need data as
+        // floats for audio playback reasons
+        sfHandle.seek(0, SEEK_SET);
+        floatAudioData = new float[ArrayLength];
+        sfHandle.read(floatAudioData, ArrayLength);
+      }
     }
     
     // Try to get LIST INFO strings
@@ -194,6 +209,8 @@ FileHandling::~FileHandling() {
   delete[] intAudioData;
 
   delete[] doubleAudioData;
+  
+  delete[] floatAudioData;
 }
 
 void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
@@ -261,8 +278,10 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
   }
   
   // Finally write the data back
-  if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+  if (m_minorFormat == SF_FORMAT_DOUBLE) {
     sfh.write(doubleAudioData, ArrayLength);
+  } else if (m_minorFormat == SF_FORMAT_FLOAT) {
+    sfh.write(floatAudioData, ArrayLength);
   } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
     sfh.write(shortAudioData, ArrayLength);
   } else {
@@ -796,6 +815,11 @@ void FileHandling::PerformCrossfade(int loopNumber, double fadeLength, int fadeT
     for (unsigned i = 0; i < ArrayLength; i++)
       doubleAudioData[i] = audioData[i];
   }
+  if (floatAudioData != NULL) {
+    // this should always be the case as it's used for playback
+    for (unsigned i = 0; i < ArrayLength; i++)
+      floatAudioData[i] = (float) audioData[i];
+  }
   delete[] audioData;
 }
 
@@ -1179,7 +1203,7 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
     // calculate new arraylength
     long unsigned int newArrayLength = ArrayLength - samplesToCut;
 
-    if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+    if (m_minorFormat == SF_FORMAT_DOUBLE) {
       double *audioData = new double[newArrayLength];
 
       for (unsigned i = 0; i < newArrayLength; i++)
@@ -1191,14 +1215,12 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
 
       for (unsigned i = 0; i < ArrayLength; i++)
         doubleAudioData[i] = audioData[i];
-        
-      // update the double data in wavetracks too
-      UpdateWaveTracks(doubleAudioData);
 
       delete[] audioData;
+
     } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
       short *audioData = new short[newArrayLength];
-      
+
       double *oldDblData = new double[ArrayLength];
       bool gotData = GetDoubleAudioData(oldDblData);
 
@@ -1210,20 +1232,10 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
 
       for (unsigned i = 0; i < newArrayLength; i++)
         shortAudioData[i] = audioData[i];
-
-      // update the double data in wavetracks too!
-      double *newDblData = new double[newArrayLength];
-      for (unsigned i = 0; i < newArrayLength; i++)
-        newDblData[i] = oldDblData[samplesToCut + i];
-        
-      ArrayLength = newArrayLength;
-      
-      UpdateWaveTracks(newDblData);
       
       delete[] audioData;
-      delete[] newDblData;
-      delete[] oldDblData;
-    } else {
+
+    } else if ((m_minorFormat == SF_FORMAT_PCM_24) || (m_minorFormat == SF_FORMAT_PCM_32)) {
       int *audioData = new int[newArrayLength];
       
       double *oldDblData = new double[ArrayLength];
@@ -1237,20 +1249,38 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
 
       for (unsigned i = 0; i < newArrayLength; i++)
         intAudioData[i] = audioData[i];
-        
-      // update the double data in wavetracks too which will need converting
-      double *dblData = new double[newArrayLength];
-      for (unsigned i = 0; i < newArrayLength; i++)
-        dblData[i] = oldDblData[samplesToCut + i];
-
-      ArrayLength = newArrayLength;
-
-      UpdateWaveTracks(dblData);
 
       delete[] audioData;
-      delete[] dblData;
-      delete[] oldDblData;
+
     }
+
+    // always update float data as it's used for playback
+    float *audioData = new float[newArrayLength];
+
+    double *oldDblData = new double[ArrayLength];
+    bool gotData = GetDoubleAudioData(oldDblData);
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+    audioData[i] = floatAudioData[samplesToCut + i];
+
+    delete[] floatAudioData;
+    floatAudioData = new float[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      floatAudioData[i] = audioData[i];
+
+    // update the double data in wavetracks too!
+    double *newDblData = new double[newArrayLength];
+    for (unsigned i = 0; i < newArrayLength; i++)
+      newDblData[i] = oldDblData[samplesToCut + i];
+        
+    ArrayLength = newArrayLength;
+      
+    UpdateWaveTracks(newDblData);
+      
+    delete[] audioData;
+    delete[] newDblData;
+    delete[] oldDblData;
 
     // if loops and/or cues exist they must now be moved!
     m_loops->MoveLoops(samples);
@@ -1271,7 +1301,7 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
     // calculate new arraylength
     long unsigned int newArrayLength = ArrayLength - samplesToCut;
 
-    if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+    if (m_minorFormat == SF_FORMAT_DOUBLE) {
       double *audioData = new double[newArrayLength];
 
       for (unsigned i = 0; i < newArrayLength; i++)
@@ -1283,11 +1313,9 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
 
       for (unsigned i = 0; i < ArrayLength; i++)
         doubleAudioData[i] = audioData[i];
-        
-      // update the double data in wavetracks too
-      UpdateWaveTracks(doubleAudioData);
 
       delete[] audioData;
+
     } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
       short *audioData = new short[newArrayLength];
       
@@ -1302,24 +1330,11 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
 
       for (unsigned i = 0; i < newArrayLength; i++)
         shortAudioData[i] = audioData[i];
-        
-      // update the double data in wavetracks too
-      double *dblData = new double[newArrayLength];
-      for (unsigned i = 0; i < newArrayLength; i++)
-        dblData[i] = oldDblData[i];
-        
-      ArrayLength = newArrayLength;
-      
-      UpdateWaveTracks(dblData);
 
       delete[] audioData;
-      delete[] dblData;
-      delete[] oldDblData;
-    } else {
+
+    } else if ((m_minorFormat == SF_FORMAT_PCM_24) || (m_minorFormat == SF_FORMAT_PCM_32)){
       int *audioData = new int[newArrayLength];
-      
-      double *oldDblData = new double[ArrayLength];
-      bool gotData = GetDoubleAudioData(oldDblData);
 
       for (unsigned i = 0; i < newArrayLength; i++)
         audioData[i] = intAudioData[i];
@@ -1329,20 +1344,36 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
 
       for (unsigned i = 0; i < newArrayLength; i++)
         intAudioData[i] = audioData[i];
-        
-      // update the double data in wavetracks too
-      double *dblData = new double[newArrayLength];
-      for (unsigned i = 0; i < newArrayLength; i++)
-        dblData[i] = oldDblData[i];
-        
-      ArrayLength = newArrayLength;
-      
-      UpdateWaveTracks(dblData);
 
       delete[] audioData;
-      delete[] dblData;
-      delete[] oldDblData;
     }
+    
+    // always update float audio data since it's used for playback
+    float *audioData = new float[newArrayLength];
+
+    double *oldDblData = new double[ArrayLength];
+    bool gotData = GetDoubleAudioData(oldDblData);
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      audioData[i] = floatAudioData[i];
+
+    delete[] floatAudioData;
+    floatAudioData = new float[newArrayLength];
+    for (unsigned i = 0; i < newArrayLength; i++)
+      floatAudioData[i] = audioData[i];
+
+    // update the double data in wavetracks too
+    double *dblData = new double[newArrayLength];
+    for (unsigned i = 0; i < newArrayLength; i++)
+      dblData[i] = oldDblData[i];
+
+    ArrayLength = newArrayLength;
+
+    UpdateWaveTracks(dblData);
+
+    delete[] audioData;
+    delete[] dblData;
+    delete[] oldDblData;
 
     // Check if loops and/or cues still is within audio data!
     m_loops->AreLoopsStillValid(ArrayLength);
@@ -1381,6 +1412,8 @@ void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
         } else if (doubleAudioData != NULL) {
           doubleAudioData[i * m_channels + j] = audioData[i * m_channels + j];
         }
+        // this should always be the case as floats are used for playback
+        floatAudioData[i * m_channels + j] = (float) audioData[i * m_channels + j];
       }
     }
   } else {
@@ -1395,6 +1428,8 @@ void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
         } else if (doubleAudioData != NULL) {
           doubleAudioData[(ArrayLength - 1) - (i + j)] = audioData[(ArrayLength - 1) - (i + j)];
         }
+        // this should always be the case as floats are used for playback
+        floatAudioData[(ArrayLength - 1) - (i + j)] = (float) audioData[(ArrayLength - 1) - (i + j)];
       }
     }
   }

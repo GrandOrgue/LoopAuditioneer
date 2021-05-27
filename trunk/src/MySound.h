@@ -1,6 +1,6 @@
 /* 
  * MySound.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2020 Lars Palo 
+ * Copyright (C) 2011-2021 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,19 @@
 
 #include <wx/wx.h>
 #include "RtAudio.h"
+#include <vector>
 
 class MySound {
 public:
-  MySound();
+  MySound(wxString apiName, unsigned int deviceID);
   ~MySound();
 
+  void SetApiToUse(RtAudio::Api api);
+  void SetAudioDevice(unsigned int devID);
+  wxString GetApi();
+  unsigned int GetDevice();
+  unsigned int GetSampleRateToUse();
+  unsigned int GetChannelsUsed();
   void SetSampleRate(int sampleRate);
   void SetAudioFormat(int audioFormat);
   void SetChannels(int channels);
@@ -38,15 +45,23 @@ public:
   void CloseAudioStream();
   void SetLoopPosition(unsigned int currentPos, unsigned int lStart, unsigned int lEnd, int n_channels);
   void SetStartPosition(unsigned int startPos, int n_channels);
+  bool IsStreamActive();
+  bool StreamNeedsResampling();
   unsigned int pos[3]; // Used to keep track of position. [0] = current position, [1] = loop start, [2] = loop end
+  std::vector< RtAudio::Api > m_availableApis;
 
 private:
   RtAudio *m_audio;
   RtAudio::StreamParameters parameters;
   RtAudio::StreamOptions options;
+  RtAudio::DeviceInfo info;
   RtAudioFormat fmt;
   unsigned int bufferFrames;
   unsigned int sampleRateToUse;
+  unsigned int m_deviceID;
+  unsigned int m_channelsUsed;
+  wxString m_api;
+  bool m_needsResampling;
 };
 
 #endif
