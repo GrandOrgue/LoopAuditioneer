@@ -1,6 +1,6 @@
 /* 
  * LoopOverlay.cpp displays the waveforms overlayed at looppoints
- * Copyright (C) 2012-2020 Lars Palo 
+ * Copyright (C) 2012-2021 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

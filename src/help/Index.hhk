@@ -101,10 +101,14 @@
 	</OBJECT>
 <LI>
 	<OBJECT type="text/sitemap">
+		<param name="Local" value="WaveformOverlay.htm">
+		<param name="Name" value="Waveform overlay">
+	</OBJECT>
+<LI>
+	<OBJECT type="text/sitemap">
 		<param name="Local" value="CutFade.htm">
 		<param name="Name" value="Cutting and fading">
 	</OBJECT>
-<LI>
 <LI>
 	<OBJECT type="text/sitemap">
 		<param name="Local" value="ListInfo.htm">

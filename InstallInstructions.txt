@@ -17,19 +17,28 @@ in lib-src folder
 Compile rtaudio:
 
 in lib-src/rtaudio folder:
-	./configure --with-jack --with-alsa
+	./configure --with-pulse --with-jack --with-alsa
 	make
 in lib-src folder
 	ln -sf rtaudio/.libs/librtaudio.a .
 
 
+Compile libsamplerate:
+
+in lib-src/libsamplerate folder:
+	./configure
+	make
+in lib-src folder
+	ln -sf libsamplerate/src/.libs/libsamplerate.a .
+	
+
 To compile the program in src/ folder:
 
-g++ -D__UNIX_JACK__ -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp ListInfoDialog.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ljack -lasound -lpthread -lm `wx-config --cxxflags --unicode=yes --libs`
+g++ -D__LINUX_PULSE__ -D__UNIX_JACK__ -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp ListInfoDialog.cpp AudioSettingsDialog.cpp MyResampler.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/libsamplerate/src ../lib-src/libsndfile.a ../lib-src/librtaudio.a ../lib-src/libsamplerate.a -lpulse-simple -lpulse -ljack -lasound -lpthread -lm `wx-config --cxxflags --unicode=yes --libs`
 
 with example optimizations:
 
-g++ -O3 -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -ffast-math -D__UNIX_JACK__ -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp ListInfoDialog.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio ../lib-src/libsndfile.a ../lib-src/librtaudio.a -ljack -lasound -lpthread -lm `wx-config --cxxflags --unicode=yes --libs`
+g++ -O3 -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -ffast-math -D__LINUX_PULSE__ -D__UNIX_JACK__ -D__LINUX_ALSA__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp ListInfoDialog.cpp AudioSettingsDialog.cpp MyResampler.cpp -I../lib-src/libsndfile/src -I../lib-src/rtaudio -I../lib-src/libsamplerate/src ../lib-src/libsndfile.a ../lib-src/librtaudio.a ../lib-src/libsamplerate.a -lpulse-simple -lpulse -ljack -lasound -lpthread -lm `wx-config --cxxflags --unicode=yes --libs`
 
 To reduce executable size:
 

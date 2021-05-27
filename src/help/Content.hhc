@@ -126,27 +126,32 @@
 				</OBJECT>
 			<LI>
 				<OBJECT type="text/sitemap">
-					<param name="Name" value="Cutting and fading">
+					<param name="Name" value="Waveform overlay">
 					<param name="ID" value=20>
+					<param name="Local" value="WaveformOverlay.htm">
+				</OBJECT>
+			<LI>
+				<OBJECT type="text/sitemap">
+					<param name="Name" value="Cutting and fading">
+					<param name="ID" value=21>
 					<param name="Local" value="CutFade.htm">
 				</OBJECT>
 			<LI>
-			<LI>
 				<OBJECT type="text/sitemap">
 					<param name="Name" value="Info text">
-					<param name="ID" value=21>
+					<param name="ID" value=22>
 					<param name="Local" value="ListInfo.htm">
 				</OBJECT>
 			<LI>
 				<OBJECT type="text/sitemap">
 					<param name="Name" value="Keyboard shortcuts">
-					<param name="ID" value=22>
+					<param name="ID" value=23>
 					<param name="Local" value="KeyboardShortcuts.htm">
 				</OBJECT>
 			<LI>
 				<OBJECT type="text/sitemap">
 					<param name="Name" value="Batch processing">
-					<param name="ID" value=23>
+					<param name="ID" value=24>
 					<param name="Local" value="BatchProcessing.htm">
 				</OBJECT>
 		</UL>

@@ -1,6 +1,6 @@
 /*
  * MyFrame.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2020 Lars Palo
+ * Copyright (C) 2011-2021 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@
 #include <wx/settings.h>
 #include <wx/filename.h>
 #include "ListInfoDialog.h"
+#include "AudioSettingsDialog.h"
 
 bool MyFrame::loopPlay = true; // default to loop play
 int MyFrame::volumeMultiplier = 1; // default value
@@ -51,6 +52,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_MENU(LOOP_ONLY, MyFrame::OnLoopPlayback)
   EVT_MENU(SAVE_AND_OPEN_NEXT, MyFrame::OnSaveOpenNext)
   EVT_MENU(wxID_HELP, MyFrame::OnHelp)
+  EVT_MENU(AUDIO_SETTINGS, MyFrame::OnAudioSettings)
   EVT_LIST_ITEM_ACTIVATED(ID_LISTCTRL, MyFrame::OnDblClick)
   EVT_LIST_ITEM_SELECTED(ID_LISTCTRL, MyFrame::OnSelection)
   EVT_TOOL(OPEN_SELECTED, MyFrame::OnOpenSelected)
@@ -85,8 +87,8 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
   wxAboutDialogInfo info;
   info.SetName(appName);
   info.SetVersion(appVersion);
-  info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files."));
-  info.SetCopyright(wxT("Copyright (C) 2011-2020 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
+  info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files as well as perform other tasks necessary for preparing samples for usage in sample players."));
+  info.SetCopyright(wxT("Copyright (C) 2011-2021 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
   info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
 
   wxAboutBox(info);
@@ -137,6 +139,8 @@ void MyFrame::OnClose(wxCloseEvent & event) {
   config->Write(wxT("LoopSettings/Candidates"), m_autoloopSettings->GetCandidates());
   config->Write(wxT("LoopSettings/LoopsToReturn"), m_autoloopSettings->GetNrLoops());
   config->Write(wxT("LoopSettings/LoopPoolMultiple"), m_autoloopSettings->GetMultiple());
+  config->Write(wxT("Audio/Api"), m_sound->GetApi());
+  config->Write(wxT("Audio/Device"), m_sound->GetDevice());
   
   config->Flush();
 
@@ -205,9 +209,7 @@ void MyFrame::OpenAudioFile() {
     vbox->Layout();
 
     m_sound->SetSampleRate(m_audiofile->GetSampleRate());
-    m_sound->SetAudioFormat(m_audiofile->GetAudioFormat());
     m_sound->SetChannels(m_audiofile->m_channels);
-    m_sound->OpenAudioStream();
     wxFileName fullFilePath(filePath);
     m_panel->SetFileNameLabel(fullFilePath);
 
@@ -251,6 +253,18 @@ void MyFrame::OpenAudioFile() {
       toolBar->EnableTool(VIEW_LOOPPOINTS, true);
       toolMenu->Enable(VIEW_LOOPPOINTS, true);
     }
+
+    if (m_sound->StreamNeedsResampling()) {
+      // initialize samplerate converter
+      m_resampler = new MyResampler(m_audiofile->m_channels);
+      // fill resample data struct with values
+      double src_ratio = (1.0 * m_sound->GetSampleRateToUse()) / (1.0 * m_audiofile->GetSampleRate());
+      m_resampler->SetDataEndOfInput(0); // Set this later
+      m_resampler->SetDataInputFrames(m_audiofile->ArrayLength / m_audiofile->m_channels);
+      m_resampler->SetDataIn(m_audiofile->floatAudioData);
+      m_resampler->SetDataSrcRatio(src_ratio);
+      m_resampler->SimpleResample(m_audiofile->m_channels);
+    }
   } else {
     // libsndfile couldn't open the file or no audio data in file
     wxString message = wxT("Sorry, libsndfile couldn't open selected file:\n");
@@ -276,6 +290,17 @@ void MyFrame::OpenAudioFile() {
 }
 
 void MyFrame::CloseOpenAudioFile() {
+  // if audio stream is running it must be stopped first
+  if (m_sound->IsStreamActive()) {
+    DoStopPlay();
+  }
+
+  // Cleanup samplerate converter
+  if (m_resampler != NULL) {
+    delete m_resampler;
+    m_resampler = 0;
+  }
+
   toolBar->EnableTool(START_PLAYBACK, false);
   transportMenu->Enable(START_PLAYBACK, false);
 
@@ -509,6 +534,7 @@ void MyFrame::OnSaveFileAs(wxCommandEvent& event) {
 }
 
 void MyFrame::OnStartPlay(wxCommandEvent& event) {
+  m_sound->OpenAudioStream();
   m_timer.Start(50);
   // if it's a loop make sure start position is set to start of data
   // or to within the loop if that option is ticked
@@ -525,10 +551,16 @@ void MyFrame::OnStartPlay(wxCommandEvent& event) {
     } else {
       if (((double) (currentLoop.dwEnd - currentLoop.dwStart)) / (double) m_audiofile->GetSampleRate() > 0.5) {
         unsigned pos = currentLoop.dwEnd - (m_audiofile->GetSampleRate() / 2);
-        m_sound->SetStartPosition(pos, m_audiofile->m_channels);
+        if (m_sound->StreamNeedsResampling())
+          m_sound->SetStartPosition(pos * m_resampler->GetRatioUsed(), m_audiofile->m_channels);
+        else
+          m_sound->SetStartPosition(pos, m_audiofile->m_channels);
         m_waveform->SetPlayPosition(pos);
       } else {
-        m_sound->SetStartPosition(currentLoop.dwStart, m_audiofile->m_channels);
+        if (m_sound->StreamNeedsResampling())
+          m_sound->SetStartPosition(currentLoop.dwStart * m_resampler->GetRatioUsed(), m_audiofile->m_channels);
+        else
+          m_sound->SetStartPosition(currentLoop.dwStart, m_audiofile->m_channels);
         m_waveform->SetPlayPosition(currentLoop.dwStart);
       }
     }
@@ -538,7 +570,11 @@ void MyFrame::OnStartPlay(wxCommandEvent& event) {
   if (m_panel->m_cueGrid->IsSelection()) {
     CUEPOINT currentCue;
     m_audiofile->m_cues->GetCuePoint(m_panel->m_cueGrid->GetGridCursorRow(), currentCue);
-    m_sound->SetStartPosition(currentCue.dwSampleOffset, m_audiofile->m_channels);
+    if (m_sound->StreamNeedsResampling()) {
+      m_sound->SetStartPosition(currentCue.dwSampleOffset * m_resampler->GetRatioUsed(), m_audiofile->m_channels);
+    } else {
+      m_sound->SetStartPosition(currentCue.dwSampleOffset, m_audiofile->m_channels);
+    }
     m_waveform->SetPlayPosition(currentCue.dwSampleOffset);
   }
 
@@ -550,13 +586,11 @@ void MyFrame::OnStartPlay(wxCommandEvent& event) {
 }
 
 void MyFrame::OnStopPlay(wxCommandEvent& event) {
-  m_timer.Stop();
-  DoStopPlay();
-  m_waveform->SetPlayPosition(0);
-  m_waveform->paintNow();
+  DoStopPlay(); 
 }
 
 void MyFrame::DoStopPlay() {
+  m_timer.Stop();
   m_sound->StopAudioStream();
 
   toolBar->EnableTool(wxID_STOP, false);
@@ -564,12 +598,18 @@ void MyFrame::DoStopPlay() {
 
   transportMenu->Enable(START_PLAYBACK, true);
   transportMenu->Enable(wxID_STOP, false);
+
+  m_waveform->SetPlayPosition(0);
+  m_waveform->paintNow();
+
+  m_sound->CloseAudioStream();
+
 }
 
 MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_timer(this, TIMER_ID) {
   m_audiofile = NULL;
   m_waveform = NULL;
-  m_sound = new MySound();
+  m_resampler = NULL;
   m_autoloopSettings = new AutoLoopDialog(this);
   m_autoloop = new AutoLooping();
   m_crossfades = new CrossfadeDialog(this);
@@ -596,6 +636,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   fileMenu->Append(SAVE_AND_OPEN_NEXT, wxT("Save, open next\tCtrl+Alt+S"), wxT("Save current file and open next"));
   fileMenu->AppendSeparator();
   fileMenu->Append(AUTOLOOP_SETTINGS, wxT("&Autoloop settings\tCtrl+A"), wxT("Adjust settings for loop searching"));
+  fileMenu->Append(AUDIO_SETTINGS, wxT("Audio settings"), wxT("Adjust settings for audio api/device"));
   fileMenu->AppendSeparator();
   fileMenu->Append(wxID_EXIT, wxT("&Exit\tCtrl+Q"), wxT("Quit this program"));
 
@@ -793,6 +834,22 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   m_fileListCtrl->InsertColumn(3, wxT("Note"), wxLIST_FORMAT_CENTRE, colWidth);
   m_fileListCtrl->InsertColumn(4, wxT("Fraction"), wxLIST_FORMAT_CENTRE, colWidth);
 
+  // create sound output
+  wxString apiStr;
+  int deviceId;
+  if (config->Read(wxT("Audio/Api"), &apiStr)) {
+    // if value was found it's now in apiStr
+  } else {
+    apiStr = wxEmptyString;
+  }
+  if (config->Read(wxT("Audio/Device"), &deviceId)) {
+    // if value was found it's now in deviceId
+  } else {
+    // we set it too high so that the default device will be used instead
+    deviceId = INT_MAX;
+  }
+  m_sound = new MySound(apiStr, (unsigned int) deviceId);
+
   if (config->Read(wxT("General/LastWorkingDir"), &workingDir)) {
     // if value was found it's now in the variable workingDir
   } else {
@@ -900,6 +957,10 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
 MyFrame::~MyFrame() {
   delete config;
 
+  if (m_resampler) {
+    delete m_resampler;
+    m_resampler = 0;
+  }
   if (m_audiofile) {
     delete m_audiofile;
     m_audiofile = 0;
@@ -972,28 +1033,36 @@ int MyFrame::AudioCallback(void *outputBuffer,
                            RtAudioStreamStatus status,
                            void *userData ) {
   int nChannels = ::wxGetApp().frame->m_audiofile->m_channels;
+  unsigned int useChannels = ::wxGetApp().frame->m_sound->GetChannelsUsed();
+  unsigned int excessChannels = 0;
+  if (nChannels > useChannels)
+    excessChannels = nChannels - useChannels;
 
-  // First get what type of AudioData should we work with
-  if (::wxGetApp().frame->m_audiofile->shortAudioData) {
-    short *buffer = static_cast<short*>(outputBuffer);
+  float *buffer = static_cast<float*>(outputBuffer);
 
-    // keep track of position, see pos in MySound.h
-    unsigned int *position = (unsigned int *) userData;
+  // keep track of position, see pos in MySound.h
+  unsigned int *position = (unsigned int *) userData;
 
-    // Loop that feeds the outputBuffer with data
-    if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
-      for (unsigned int i = 0; i < nBufferFrames * nChannels; i++) {
-        *buffer++ = ::wxGetApp().frame->m_audiofile->shortAudioData[(position[0])] * volumeMultiplier;
-        position[0] += 1;
+  if (::wxGetApp().frame->m_sound->StreamNeedsResampling()) {
+    // audio stream uses the resampled audio data
+    if (position[0] < ::wxGetApp().frame->m_resampler->m_resampledDataLength) {
+      for (unsigned int i = 0; i < nBufferFrames; i++) {
+        for (unsigned int j = 0; j < useChannels; j++) {
+          *buffer++ = ::wxGetApp().frame->m_resampler->resampledAudioData[(position[0])] * volumeMultiplier;
+          position[0] += 1;
+        }
+
+        if (excessChannels)
+          position[0] += excessChannels;
 
         if (loopPlay) {
           // Check to control loop playback, see MySound.h pos member and MyFrame.h loopPlay member
-          if (position[0] > position[2])
-            position[0] = position[1];
+          if (position[0] > lround(position[2] / nChannels * ::wxGetApp().frame->m_resampler->GetRatioUsed()) * nChannels )
+            position[0] = lround(position[1] / nChannels * ::wxGetApp().frame->m_resampler->GetRatioUsed()) * nChannels;
         }
 
         // stop if end of file data is reached and reset current position to start of the cue
-        if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
+        if (position[0] > ::wxGetApp().frame->m_resampler->m_resampledDataLength - 1) {
           wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
           ::wxGetApp().frame->AddPendingEvent(evt);
 
@@ -1003,105 +1072,38 @@ int MyFrame::AudioCallback(void *outputBuffer,
     } else {
       // we end up here until buffer is drained?
     }
-
-    return 0;
-  } else if (::wxGetApp().frame->m_audiofile->intAudioData) {
-    int *buffer = static_cast<int*>(outputBuffer);
-
-    // keep track of position, see pos in MySound.h
-    unsigned int *position = (unsigned int *) userData;
-
-    // Loop that feeds the outputBuffer with data
-    if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
-      for (unsigned int i = 0; i < nBufferFrames * nChannels; i++) {
-        *buffer++ = ::wxGetApp().frame->m_audiofile->intAudioData[(position[0])] * volumeMultiplier;
-        position[0] += 1;
-
-        if (loopPlay) {
-          // Check to control loop playback, see MySound.h pos member and MyFrame.h loopPlay member
-          if (position[0] > position[2])
-          position[0] = position[1];
-        }
-
-        // stop if end of file data is reached and reset current position to start of the cue
-        if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
-          wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
-          ::wxGetApp().frame->AddPendingEvent(evt);
-
-          return 0;
-        }
-      }
-    } else {
-      // we end up here until buffer is drained?
-    }
-
-    return 0;
-  } else if (::wxGetApp().frame->m_audiofile->doubleAudioData && ::wxGetApp().frame->m_audiofile->GetAudioFormat() == SF_FORMAT_FLOAT) {
-    float *buffer = static_cast<float*>(outputBuffer);
-
-    // keep track of position, see pos in MySound.h
-    unsigned int *position = (unsigned int *) userData;
-
-    // Loop that feeds the outputBuffer with data
-    if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
-      for (unsigned int i = 0; i < nBufferFrames * nChannels; i++) {
-        *buffer++ = ::wxGetApp().frame->m_audiofile->doubleAudioData[(position[0])] * volumeMultiplier;
-        position[0] += 1;
-
-        if (loopPlay) {
-          // Check to control loop playback, see MySound.h pos member and MyFrame.h loopPlay member
-          if (position[0] > position[2])
-            position[0] = position[1];
-        }
-
-        // stop if end of file data is reached and reset current position to start of the cue
-        if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
-          wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
-          ::wxGetApp().frame->AddPendingEvent(evt);
-
-          return 0;
-        }
-      }
-    }  else {
-      // we end up here until buffer is drained?
-    }
-
-    return 0;
-  }  else if (::wxGetApp().frame->m_audiofile->doubleAudioData && ::wxGetApp().frame->m_audiofile->GetAudioFormat() == SF_FORMAT_DOUBLE) {
-    double *buffer = static_cast<double*>(outputBuffer);
-
-    // keep track of position, see pos in MySound.h
-    unsigned int *position = (unsigned int *) userData;
-
-    // Loop that feeds the outputBuffer with data
-    if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
-      for (unsigned int i = 0; i < nBufferFrames * nChannels; i++) {
-        *buffer++ = ::wxGetApp().frame->m_audiofile->doubleAudioData[(position[0])] * volumeMultiplier;
-        position[0] += 1;
-
-        if (loopPlay) {
-          // Check to control loop playback, see MySound.h pos member and MyFrame.h loopPlay member
-          if (position[0] > position[2])
-            position[0] = position[1];
-        }
-
-        // stop if end of file data is reached and reset current position to start of the cue
-        if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
-          wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
-          ::wxGetApp().frame->AddPendingEvent(evt);
-
-          return 0;
-        }
-      }
-    }  else {
-      // we end up here until buffer is drained?
-    }
-
-    return 0;
   } else {
-    // There is no audio data to play!
-    return 2;
+    // Loop that feeds the outputBuffer with data when no resampling is needed
+    if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
+      for (unsigned int i = 0; i < nBufferFrames; i++) {
+        for (unsigned int j = 0; j < useChannels; j++) {
+          *buffer++ = ::wxGetApp().frame->m_audiofile->floatAudioData[(position[0])] * volumeMultiplier;
+          position[0] += 1;
+        }
+
+        if (excessChannels)
+          position[0] += excessChannels;
+
+        if (loopPlay) {
+          // Check to control loop playback, see MySound.h pos member and MyFrame.h loopPlay member
+          if (position[0] > position[2])
+            position[0] = position[1];
+        }
+
+        // stop if end of file data is reached and reset current position to start of the cue
+        if (position[0] > ::wxGetApp().frame->m_audiofile->ArrayLength - 1) {
+          wxCommandEvent evt(wxEVT_COMMAND_TOOL_CLICKED, wxID_STOP);
+          ::wxGetApp().frame->AddPendingEvent(evt);
+
+          return 0;
+        }
+      }
+    } else {
+      // we end up here until buffer is drained?
+    }
   }
+
+  return 0;
 
 }
 
@@ -1114,7 +1116,10 @@ void MyFrame::SetLoopPlayback(bool looping) {
 
 void MyFrame::UpdatePlayPosition(wxTimerEvent& evt) {
   if (m_waveform) {
-    m_waveform->SetPlayPosition(m_sound->pos[0] / m_audiofile->m_channels);
+    if (m_sound->StreamNeedsResampling())
+      m_waveform->SetPlayPosition((m_sound->pos[0] / m_audiofile->m_channels) / m_resampler->GetRatioUsed());
+    else
+      m_waveform->SetPlayPosition(m_sound->pos[0] / m_audiofile->m_channels);
     m_waveform->paintNow();
   }
 }
@@ -1518,6 +1523,18 @@ void MyFrame::OnCrossfade(wxCommandEvent& event) {
 
     // perform crossfading on the first selected loop with selected method
     m_audiofile->PerformCrossfade(firstSelected, crossfadeTime, crossfadetype);
+    
+    // if resampled audio is used it must be updated too!
+    if (m_sound->StreamNeedsResampling()) {
+      m_resampler->ResetState();
+      // fill resample data struct with values
+      double src_ratio = (1.0 * m_sound->GetSampleRateToUse()) / (1.0 * m_audiofile->GetSampleRate());
+      m_resampler->SetDataEndOfInput(0); // Set this later
+      m_resampler->SetDataInputFrames(m_audiofile->ArrayLength / m_audiofile->m_channels);
+      m_resampler->SetDataIn(m_audiofile->floatAudioData);
+      m_resampler->SetDataSrcRatio(src_ratio);
+      m_resampler->SimpleResample(m_audiofile->m_channels);
+    }
 
     // Enable save icon and menu
     toolBar->EnableTool(wxID_SAVE, true);
@@ -1672,6 +1689,18 @@ void MyFrame::OnCutFade(wxCommandEvent& event) {
 
     UpdateLoopsAndCuesDisplay();
 
+    // if resampled audio is used it must be updated too!
+    if (m_sound->StreamNeedsResampling()) {
+      m_resampler->ResetState();
+      // fill resample data struct with values
+      double src_ratio = (1.0 * m_sound->GetSampleRateToUse()) / (1.0 * m_audiofile->GetSampleRate());
+      m_resampler->SetDataEndOfInput(0); // Set this later
+      m_resampler->SetDataInputFrames(m_audiofile->ArrayLength / m_audiofile->m_channels);
+      m_resampler->SetDataIn(m_audiofile->floatAudioData);
+      m_resampler->SetDataSrcRatio(src_ratio);
+      m_resampler->SimpleResample(m_audiofile->m_channels);
+    }
+
     // then we should make sure to update the views
     UpdateAllViews();
   } else {
@@ -1697,6 +1726,28 @@ void MyFrame::OnListInfo(wxCommandEvent& event) {
     toolBar->EnableTool(wxID_SAVE, true);
     fileMenu->Enable(wxID_SAVE, true);
     fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
+  } else {
+    // user clicked cancel...
+  }
+}
+
+void MyFrame::OnAudioSettings(wxCommandEvent& event) {
+  AudioSettingsDialog audioDlg(m_sound, this);
+
+  if (audioDlg.ShowModal() == wxID_OK) {
+    if (m_sound->IsStreamActive()) {
+      // if audio is playing we must reset things
+      DoStopPlay();
+    }
+    audioDlg.TransferDataFromWindow();
+    m_sound->SetApiToUse(RtAudio::getCompiledApiByName(std::string(audioDlg.GetSoundApi().mb_str())));
+    m_sound->SetAudioDevice(audioDlg.GetSoundDeviceId());
+    if (m_audiofile) {
+      // if a file already is open we must adjust device parameters to it
+      m_sound->SetSampleRate(m_audiofile->GetSampleRate());
+      m_sound->SetChannels(m_audiofile->m_channels);
+      m_sound->OpenAudioStream();
+    }
   } else {
     // user clicked cancel...
   }

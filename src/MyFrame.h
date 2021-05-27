@@ -1,6 +1,6 @@
 /* 
  * MyFrame.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2020 Lars Palo 
+ * Copyright (C) 2011-2021 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@
 #include "CutNFadeDialog.h"
 #include "BatchProcessDialog.h"
 #include <wx/fileconf.h>
+#include "MyResampler.h"
 
 class MyFrame : public wxFrame {
 public:
@@ -78,6 +79,7 @@ public:
   void OnKeyboardInput(wxKeyEvent& event);
   void OnSize(wxSizeEvent& event);
   void OnListInfo(wxCommandEvent& event);
+  void OnAudioSettings(wxCommandEvent& event);
 
   void EmptyListOfFileNames();
   void AddFileName(wxString fileName);
@@ -129,6 +131,7 @@ private:
   int m_frameWidth;
   int m_frameHeight;
   bool m_frameMaximized;
+  MyResampler *m_resampler;
 
   void PopulateListOfFileNames();
   void PopulateListCtrl();
