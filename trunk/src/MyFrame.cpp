@@ -1350,9 +1350,18 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
 }
 
 void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
+  if (m_audiofile && (!m_audiofile->GetAutoSustainSearch())) {
+    // update dialog with settings from file if they are changed there
+    std::pair<unsigned, unsigned> currentSustain = m_audiofile->GetSustainsection();
+    int start = ((double) currentSustain.first / (double) (m_audiofile->ArrayLength / m_audiofile->m_channels)) * 100 + 0.5;
+    int end = ((double) currentSustain.second / (double) (m_audiofile->ArrayLength / m_audiofile->m_channels)) * 100 + 0.5;
+    m_autoloopSettings->SetStart(start);
+    m_autoloopSettings->SetEnd(end);
+  }
   int oldStart = m_autoloopSettings->GetStart();
   int oldEnd = m_autoloopSettings->GetEnd();
   bool oldAutoSustain = m_autoloopSettings->GetAutosearch();
+  m_autoloopSettings->TransferDataToWindow();
   if (m_autoloopSettings->ShowModal() == wxID_OK) {
     // Update AutoLooping object
     m_autoloop->SetThreshold(m_autoloopSettings->GetThreshold());

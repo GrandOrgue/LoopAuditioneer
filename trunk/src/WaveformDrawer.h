@@ -24,6 +24,7 @@
 #include <wx/wx.h>
 #include <vector>
 #include "FileHandling.h"
+#include "wx/overlay.h"
 
 typedef struct {
   int placedInRow;
@@ -38,6 +39,13 @@ typedef struct {
   std::pair<wxCoord, wxCoord> flagDownRight;
 } CUELAYOUT;
 
+typedef struct {
+  int yPosHigh;
+  int yExtent;
+  int xPosLeft;
+  int xExtent;
+} SUSTAINSECTION_RECT;
+
 class WaveformDrawer : public wxPanel {
 public:
   WaveformDrawer(wxFrame *parent, FileHandling *fh);
@@ -47,7 +55,15 @@ public:
 
   void paintEvent(wxPaintEvent & evt);
   void OnLeftClick(wxMouseEvent& event);
+  void OnLeftRelease(wxMouseEvent& event);
   void OnRightClick(wxMouseEvent& event);
+  void OnMouseMotion(wxMouseEvent& event);
+  void OnMouseLeave(wxMouseEvent& event);
+  void OnMouseEnter(wxMouseEvent& event);
+  void DrawSustainSectionRectOutline();
+  void CalculateSustainRectZones();
+  void DrawSustainIndication();
+  void CalculateSustainIndication();
   void paintNow();
   void OnPaint(wxDC& dc);
   void OnPaintPlayPosition(wxDC& dc);
@@ -82,6 +98,7 @@ private:
   wxColour blue;
   wxColour green;
   wxColour red;
+  wxColour yellow;
   int trackWidth;
   int trackHeight;
   wxIcon playPositionMarker;
@@ -89,10 +106,23 @@ private:
   wxMenu *m_popupMenu;
   wxCoord m_x;
   wxCoord m_y;
+  wxCoord m_prev_x;
+  wxCoord m_prev_y;
   int selectedCueIndex;
   bool cueIsSelected;
   int m_amplitudeZoomLevel;
   FileHandling *m_fileReference;
+  SUSTAINSECTION_RECT m_sustainsection_rect;
+  SUSTAINSECTION_RECT m_old_sustainsection_rect;
+  bool mouseWithinSustainSection;
+  bool withinLeftChangeBorder;
+  bool withinRightChangeBorder;
+  wxOverlay m_overlay;
+  int m_leftBorderX;
+  int m_rightBorderX;
+  bool isChangingSustainSection;
+  bool outlineHasChanged;
+  bool outlineAlreadyDrawn;
 
   void OnClickAddCue(wxCommandEvent& event);
 

@@ -534,7 +534,9 @@ bool AutoLoopDialog::TransferDataToWindow() {
   autoCheck->SetValue(m_autoSearchSustain);
   bruteCheck->SetValue(m_searchBruteForce);
   startSl->SetValue(m_startPercentage);
+  m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %i %%"), m_startPercentage));
   endSl->SetValue(m_endPercentage);
+  m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %i %%"), m_endPercentage));
   candidatesSl->SetValue(m_candidates);
   loopsSl->SetValue(m_numberOfLoops);
   multipleSl->SetValue(m_loopMultiple);
