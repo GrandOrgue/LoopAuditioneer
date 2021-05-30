@@ -32,8 +32,12 @@ BEGIN_EVENT_TABLE(WaveformDrawer, wxPanel)
   EVT_RIGHT_DOWN(WaveformDrawer::OnRightClick)
   EVT_MENU(ADD_CUE, WaveformDrawer::OnClickAddCue)
   EVT_LEFT_DOWN(WaveformDrawer::OnLeftClick)
+  EVT_LEFT_UP(WaveformDrawer::OnLeftRelease)
   EVT_KEY_DOWN(WaveformDrawer::OnKeyDown)
   EVT_CHAR(WaveformDrawer::OnKeyDown)
+  EVT_MOTION(WaveformDrawer::OnMouseMotion)
+  EVT_LEAVE_WINDOW(WaveformDrawer::OnMouseLeave)
+  EVT_ENTER_WINDOW(WaveformDrawer::OnMouseEnter)
 END_EVENT_TABLE()
 
 WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE) {
@@ -44,6 +48,7 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(pare
   blue.Set(wxT("#0d0060"));
   green.Set(wxT("#00C800"));
   red.Set(wxT("#f90000"));
+  yellow.Set(wxT("#ffff00"));
   xSize = 1;
   ySize = 1;
   topMargin = 10;
@@ -60,6 +65,9 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(pare
   selectedCueIndex = 0;
   cueIsSelected = false;
   m_amplitudeZoomLevel = 1;
+  isChangingSustainSection = false;
+  outlineAlreadyDrawn = false;
+  outlineHasChanged = false;
 
   // create the popup menu for the waveform
   m_popupMenu = new wxMenu();
@@ -258,25 +266,8 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
         }
       }
       // draw transparent rectangle that indicate current sustainsection in the file
-      std::pair<unsigned, unsigned> currentSustain = m_fileReference->GetSustainsection();
-      int yPosHigh = topMargin + 1;
-      int yExtent = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1) - yPosHigh;
-      int xPosLeft = currentSustain.first / samplesPerPixel + leftMargin;
-      int xExtent = (currentSustain.second - currentSustain.first) / samplesPerPixel;
-      if (xExtent > 0) {
-        wxImage sustainImage(xExtent, yExtent);
-        sustainImage.Clear(211);
-        sustainImage.InitAlpha();
-        if (sustainImage.HasAlpha()) {
-          for (int i = 0; i < xExtent; i++) {
-            for (int j = 0; j < yExtent; j++) {
-              sustainImage.SetAlpha(i, j, 128);
-            }
-          }
-        }
-        wxBitmap bmp( sustainImage );
-        dc.DrawBitmap( bmp, xPosLeft, yPosHigh, true );
-      }
+      CalculateSustainIndication();
+      DrawSustainIndication();
     }
     // draw the indicator for the playposition
     dc.DrawIcon(playPositionMarker, playPosition, 1);
@@ -514,6 +505,22 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
     else
       samplesPerPixel = (nrOfSamples / trackWidth) + 1;
 
+    if (mouseWithinSustainSection) {
+      
+      if (!isChangingSustainSection) {
+        m_prev_x = m_x;
+        m_prev_y = m_y;
+
+        m_old_sustainsection_rect.yPosHigh = m_sustainsection_rect.yPosHigh;
+        m_old_sustainsection_rect.yExtent = m_sustainsection_rect.yExtent;
+        m_old_sustainsection_rect.xPosLeft = m_sustainsection_rect.xPosLeft;
+        m_old_sustainsection_rect.xExtent = m_sustainsection_rect.xExtent;
+      }
+      if (withinLeftChangeBorder || withinRightChangeBorder) {
+        isChangingSustainSection = true;
+      }
+    }
+
     if (cueIsSelected) {
       // a cue was selected so we'll change it's dwSampleOffset to a new position
       
@@ -589,6 +596,21 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
   }
 }
 
+void WaveformDrawer::OnLeftRelease(wxMouseEvent& event) {
+  if (!m_fileReference->GetAutoSustainSearch()) {
+    if (isChangingSustainSection) {
+      // we must update the sustainsection in the file reference as it could have changed
+      // the values to send is in percentage of track size
+      isChangingSustainSection = false;
+      CalculateSustainRectZones();
+      DrawSustainSectionRectOutline();
+      int start = ((double) (m_sustainsection_rect.xPosLeft - leftMargin) / trackWidth) * 100 + 0.5;
+      int end = ((double) (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - leftMargin) / trackWidth) * 100 + 0.5;
+      m_fileReference->SetSliderSustainsection(start, end);
+    }
+  }
+}
+
 void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
   m_x = event.GetX(); 
   m_y = event.GetY();
@@ -613,6 +635,191 @@ void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
     Refresh();
     Update();
   }
+}
+
+void WaveformDrawer::OnMouseMotion(wxMouseEvent& event) {
+if (!m_fileReference->GetAutoSustainSearch()) {
+  wxPoint pt = wxGetMousePosition();
+  int mouseX = pt.x - this->GetScreenPosition().x;
+  int mouseY = pt.y - this->GetScreenPosition().y;
+  
+  // check if mouse is within sustainsection
+  if ((mouseX >= m_sustainsection_rect.xPosLeft && mouseX <= (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) && mouseY >= m_sustainsection_rect.yPosHigh && mouseY <= (m_sustainsection_rect.yPosHigh + m_sustainsection_rect.yExtent)) || isChangingSustainSection) { 
+    mouseWithinSustainSection = true;
+
+    if (!isChangingSustainSection) {
+      if (mouseX <= m_leftBorderX) {
+        // within left sustainsection range
+        if (!withinLeftChangeBorder)
+          outlineAlreadyDrawn = false;
+        withinLeftChangeBorder = true;
+        withinRightChangeBorder = false;
+        ::wxGetApp().frame->SetStatusText(wxT("Click/drag to change start!"), 0);
+      } else if (mouseX >= m_rightBorderX) {
+        // within right sustainsection range
+        if (!withinRightChangeBorder)
+          outlineAlreadyDrawn = false;
+        withinLeftChangeBorder = false;
+        withinRightChangeBorder = true;
+        ::wxGetApp().frame->SetStatusText(wxT("Click/drag to change end!"), 0);
+      } else {
+        // in the middle part of sustainsection
+        ::wxGetApp().frame->SetStatusText(wxT("Sustainsection can be modified!"), 0);
+        if (withinLeftChangeBorder || withinRightChangeBorder)
+          outlineAlreadyDrawn = false;
+        withinLeftChangeBorder = false;
+        withinRightChangeBorder = false;
+      }
+    }
+
+    if (isChangingSustainSection) {
+      if (withinLeftChangeBorder) {
+        if (mouseX < m_prev_x && m_sustainsection_rect.xPosLeft > leftMargin) {
+          m_sustainsection_rect.xExtent += (m_prev_x - mouseX);
+          m_sustainsection_rect.xPosLeft -= (m_prev_x - mouseX);
+          outlineHasChanged = true;
+        } else if (mouseX > m_prev_x && m_sustainsection_rect.xPosLeft < (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 5)) {
+          m_sustainsection_rect.xExtent -= (mouseX - m_prev_x);
+          m_sustainsection_rect.xPosLeft += (mouseX - m_prev_x);
+          outlineHasChanged = true;
+        } else {
+          outlineHasChanged = false;
+        }
+        m_prev_x = mouseX;
+      } else if (withinRightChangeBorder) {
+        if (mouseX < m_prev_x && (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) > (m_sustainsection_rect.xPosLeft + 4)) {
+          m_sustainsection_rect.xExtent -= (m_prev_x - mouseX);
+          outlineHasChanged = true;
+        } else if (mouseX > m_prev_x && (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) < (leftMargin + trackWidth)) {
+          m_sustainsection_rect.xExtent += (mouseX - m_prev_x);
+          outlineHasChanged = true;
+        } else {
+          outlineHasChanged = false;
+        }
+        m_prev_x = mouseX;
+      }
+      if (outlineHasChanged) {
+        CalculateSustainRectZones();
+        DrawSustainSectionRectOutline();
+      }
+    }
+    if (!outlineAlreadyDrawn) {
+      DrawSustainSectionRectOutline();
+      outlineAlreadyDrawn = true;
+    }
+  } else {
+    ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
+    mouseWithinSustainSection = false;
+    if (outlineAlreadyDrawn) {
+      // Undo the rectangle indication sustainsection selection
+      DrawSustainIndication();
+      wxClientDC dc(this);
+      wxDCOverlay overlaydc( m_overlay, &dc );
+      overlaydc.Clear();
+      DrawSustainIndication();
+    }
+    outlineAlreadyDrawn = false;
+  }
+}
+}
+
+void WaveformDrawer::OnMouseLeave(wxMouseEvent& event) {
+if (!m_fileReference->GetAutoSustainSearch()) {
+  mouseWithinSustainSection = false;
+  withinLeftChangeBorder = false;
+  withinRightChangeBorder = false;
+  if (isChangingSustainSection) {
+    // we must reset to old sustainsection
+    m_sustainsection_rect.yPosHigh = m_old_sustainsection_rect.yPosHigh;
+    m_sustainsection_rect.yExtent = m_old_sustainsection_rect.yExtent;
+    m_sustainsection_rect.xPosLeft = m_old_sustainsection_rect.xPosLeft;
+    m_sustainsection_rect.xExtent = m_old_sustainsection_rect.xExtent;    
+  }
+  isChangingSustainSection = false;
+  if (outlineAlreadyDrawn) {
+    // Undo the rectangle indication sustainsection selection
+    wxClientDC dc(this);
+    wxDCOverlay overlaydc( m_overlay, &dc );
+    overlaydc.Clear();
+    ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
+    DrawSustainIndication();
+  }
+  outlineAlreadyDrawn = false;
+}
+}
+
+void WaveformDrawer::OnMouseEnter(wxMouseEvent& event) {
+
+}
+
+void WaveformDrawer::DrawSustainSectionRectOutline() {
+  // draw a rectangle indication sustainsection selection
+  wxClientDC dc(this);
+  wxDCOverlay overlaydc( m_overlay, &dc );
+  overlaydc.Clear();
+  DrawSustainIndication();
+  dc.SetBrush(*wxTRANSPARENT_BRUSH);
+  dc.SetPen(wxPen(yellow, 1, wxPENSTYLE_SOLID));
+  dc.DrawRectangle(m_sustainsection_rect.xPosLeft, m_sustainsection_rect.yPosHigh, m_sustainsection_rect.xExtent, m_sustainsection_rect.yExtent);
+  if (withinLeftChangeBorder) {
+    dc.DrawLine(m_leftBorderX, m_sustainsection_rect.yPosHigh + 1, m_leftBorderX, m_sustainsection_rect.yPosHigh + m_sustainsection_rect.yExtent - 1); 	
+  } else if (withinRightChangeBorder) {
+    dc.DrawLine(m_rightBorderX, m_sustainsection_rect.yPosHigh + 1, m_rightBorderX, m_sustainsection_rect.yPosHigh + m_sustainsection_rect.yExtent - 1);
+  }
+}
+
+void WaveformDrawer::CalculateSustainRectZones() {
+    if (m_sustainsection_rect.xExtent > 4 && m_sustainsection_rect.xExtent < 81) {
+        m_leftBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent / 4;
+        m_rightBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent * 0.75;
+    } else if (m_sustainsection_rect.xExtent > 80) {
+        m_leftBorderX = m_sustainsection_rect.xPosLeft + 20;
+        m_rightBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 20;
+    } else {
+      // sustain section is very small on the screen
+        m_leftBorderX = m_sustainsection_rect.xPosLeft;
+        m_rightBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 1;
+    }
+}
+
+void WaveformDrawer::DrawSustainIndication() {
+  wxClientDC dc(this);
+  wxDCOverlay overlaydc( m_overlay, &dc );
+
+  if (m_sustainsection_rect.xExtent > 0) {
+    wxImage sustainImage(m_sustainsection_rect.xExtent, m_sustainsection_rect.yExtent);
+    sustainImage.Clear(211);
+    sustainImage.InitAlpha();
+    if (sustainImage.HasAlpha()) {
+      for (int i = 0; i < m_sustainsection_rect.xExtent; i++) {
+        for (int j = 0; j < m_sustainsection_rect.yExtent; j++) {
+          sustainImage.SetAlpha(i, j, 128);
+        }
+      }
+    }
+    wxBitmap bmp( sustainImage );
+    dc.DrawBitmap( bmp, m_sustainsection_rect.xPosLeft, m_sustainsection_rect.yPosHigh, true );
+  }
+}
+
+void WaveformDrawer::CalculateSustainIndication() {
+  int nrOfSamples = m_fileReference->waveTracks[0].waveData.size();
+  int samplesPerPixel;
+    
+  if (nrOfSamples % trackWidth == 0)
+    samplesPerPixel = nrOfSamples / trackWidth;
+  else
+    samplesPerPixel = (nrOfSamples / trackWidth) + 1;
+  std::pair<unsigned, unsigned> currentSustain = m_fileReference->GetSustainsection();
+  int yPosHigh = topMargin + 1;
+  int yExtent = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1) - yPosHigh;
+  int xPosLeft = currentSustain.first / samplesPerPixel + leftMargin;
+  int xExtent = (currentSustain.second - currentSustain.first) / samplesPerPixel;
+  m_sustainsection_rect.yPosHigh = yPosHigh;
+  m_sustainsection_rect.yExtent = yExtent;
+  m_sustainsection_rect.xPosLeft = xPosLeft;
+  m_sustainsection_rect.xExtent = xExtent;
+  CalculateSustainRectZones();
 }
 
 void WaveformDrawer::OnClickAddCue(wxCommandEvent& event) {
