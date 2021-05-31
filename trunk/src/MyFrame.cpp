@@ -1161,7 +1161,40 @@ void MyFrame::OnAddLoop(wxCommandEvent& event) {
   std::pair<unsigned, unsigned> currentSustain = m_audiofile->GetSustainsection();
   unsigned int start = currentSustain.first;
   unsigned int end = currentSustain.second;
-  LoopParametersDialog loopDialog(start, end, m_audiofile->ArrayLength / m_audiofile->m_channels, this);
+  // get audio data to analyze
+  unsigned int nbrOfSmpls = m_audiofile->ArrayLength / m_audiofile->m_channels;
+  double *audioData = new double[nbrOfSmpls];
+  m_audiofile->SeparateStrongestChannel(audioData);
+  // adjust to reasonable loop points
+  // search for closest (going towards positive) zero crossing
+  unsigned int startIdx = start;
+  for (unsigned int i = start; i < end; i++) {
+    if (signbit(audioData[i])) {
+      if (!signbit(audioData[i + 1]) != !signbit(audioData[i])) {
+        // which is closer to zero
+        if (fabs(audioData[i]) < fabs(audioData[i + 1])) {
+          startIdx = i;
+          break;
+        } else {
+          startIdx = i + 1;
+          break;
+        }
+      }
+    }
+  }
+  // find a suitable match from end
+  unsigned int endIdx = end;
+  for (unsigned int i = end; i > startIdx; i--) {
+    if (!signbit(audioData[i])) {
+      if (signbit(audioData[i - 1]) != signbit(audioData[i])) {
+        endIdx = i - 1;
+          break;
+      }
+    }
+  }
+  // clean up
+  delete[] audioData;
+  LoopParametersDialog loopDialog(startIdx, endIdx, m_audiofile->ArrayLength / m_audiofile->m_channels, this);
 
   if (loopDialog.ShowModal() == wxID_OK) {
     unsigned int loopStartSample = loopDialog.GetLoopStart();
