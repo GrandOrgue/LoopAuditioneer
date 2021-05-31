@@ -76,14 +76,14 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(pare
 
 // Called when the panel needs to be redrawn (if the panel is resized)
 void WaveformDrawer::paintEvent(wxPaintEvent & evt) {
-    wxPaintDC dc(this);
-    OnPaint(dc);
+  wxPaintDC dc(this);
+  OnPaint(dc);
 }
  
 // Method to call when one wants to force redrawing for playback
 void WaveformDrawer::paintNow() {
-    wxClientDC dc(this);
-    OnPaintPlayPosition(dc);
+  wxClientDC dc(this);
+  OnPaintPlayPosition(dc);
 }
 
 // Here the actual drawing happens when either the panel is resized or something changes
@@ -324,6 +324,7 @@ void WaveformDrawer::AddCuePosition(unsigned int cuePos) {
 }
 
 void WaveformDrawer::AddLoopPosition(unsigned int startPos, unsigned int endPos) {
+  m_overlay.Reset();
   loopPositions.push_back(std::make_pair(startPos, endPos));
   somethingHasChanged = true;
 }

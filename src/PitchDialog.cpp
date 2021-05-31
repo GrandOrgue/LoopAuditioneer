@@ -335,7 +335,7 @@ void PitchDialog::CreateControls() {
   wxComboBox *noteCombo = new wxComboBox(
     this,
     ID_NOTECOMBO,
-    wxT("0"),
+    wxT("127"),
     wxDefaultPosition,
     wxDefaultSize,
     m_notenumbers,
@@ -343,7 +343,7 @@ void PitchDialog::CreateControls() {
   );
   noteCombo->SetValue(wxString::Format(wxT("%d"), m_fileMIDIUnityNote));
   noteCombo->Enable(false);
-  unityNoteRow->Add(noteCombo, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
+  unityNoteRow->Add(noteCombo, 1, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
   // A horizontal box sizer MIDIPitchFraction information
   wxBoxSizer* fractionRow = new wxBoxSizer(wxHORIZONTAL);
