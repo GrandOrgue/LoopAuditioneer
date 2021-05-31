@@ -1157,7 +1157,11 @@ void MyFrame::ChangeCuePosition(unsigned int offset, int index) {
 }
 
 void MyFrame::OnAddLoop(wxCommandEvent& event) {
-  LoopParametersDialog loopDialog(0, m_audiofile->ArrayLength / m_audiofile->m_channels, m_audiofile->ArrayLength / m_audiofile->m_channels, this);
+  // set default start and end as sustainsection
+  std::pair<unsigned, unsigned> currentSustain = m_audiofile->GetSustainsection();
+  unsigned int start = currentSustain.first;
+  unsigned int end = currentSustain.second;
+  LoopParametersDialog loopDialog(start, end, m_audiofile->ArrayLength / m_audiofile->m_channels, this);
 
   if (loopDialog.ShowModal() == wxID_OK) {
     unsigned int loopStartSample = loopDialog.GetLoopStart();
@@ -1185,6 +1189,22 @@ void MyFrame::OnAddLoop(wxCommandEvent& event) {
     fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
     UpdateAllViews();
+
+    // Make sure a loop in the grid is selected if no selection exist
+    if (!m_panel->m_grid->IsSelection() || !m_panel->m_cueGrid->IsSelection()) {
+      if (m_panel->m_grid->GetNumberRows() > 0) {
+        m_panel->m_grid->SelectRow(0, false);
+        toolBar->EnableTool(wxID_STOP, false);
+        toolBar->EnableTool(START_PLAYBACK, true);
+        transportMenu->Enable(START_PLAYBACK, true);
+        transportMenu->Enable(wxID_STOP, false);
+        toolBar->EnableTool(X_FADE, true);
+        toolMenu->Enable(X_FADE, true);
+        toolBar->EnableTool(VIEW_LOOPPOINTS, true);
+        toolMenu->Enable(VIEW_LOOPPOINTS, true);
+        m_panel->m_grid->SetGridCursor(0, 4);
+      }
+    }
   }
 }
 

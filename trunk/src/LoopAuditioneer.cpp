@@ -41,7 +41,8 @@ bool LoopAuditioneerApp::OnInit() {
   wxImage::AddHandler(new wxJPEGHandler);
   wxFileSystem::AddHandler(new wxZipFSHandler);
   m_helpController = new wxHtmlHelpController();
-  m_helpController->Initialize(wxT("help/help.zip"));
+  m_helpController->AddBook(wxFileName("help/help.zip"));
+  m_helpController->SetFrameParameters(wxT("%s"), wxDefaultSize, wxDefaultPosition); 	
 
   // load icons
   m_icons = wxIconBundle(wxIcon(wxT("icons/LoopyIcon-16.png"), wxBITMAP_TYPE_PNG));
