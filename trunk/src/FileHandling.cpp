@@ -50,8 +50,11 @@ m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
       m_loops->SetMIDIUnityNote(instr.basenote);
       m_loops->SetMIDIPitchFraction(instr.dwMIDIPitchFraction);
 
-      // Stort all the loops into m_loops loopsIn vector
-      for (int i = 0; i < instr.loop_count; i++) {
+      // Store all the loops into m_loops loopsIn vector
+      int loopsToRead = instr.loop_count;
+      if (loopsToRead > 16)
+        loopsToRead = 16;
+      for (int i = 0; i < loopsToRead; i++) {
         LOOPDATA temp;
         temp.dwType = instr.loops[i].mode;
         temp.dwStart = instr.loops[i].start;
