@@ -76,7 +76,7 @@ MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefault
   m_cueGrid->SetLabelBackgroundColour(wxColour(wxT("#f4f2ef")));
   vbox->Add(fileNameLabel, 0, wxALIGN_CENTER|wxTOP|wxBOTTOM, 5);
   vbox->Add(m_grid, 1, wxALIGN_CENTER | wxTOP| wxBOTTOM, 5);
-  vbox->Add(m_cueGrid, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, 5);
+  vbox->Add(m_cueGrid, 1, wxALIGN_CENTER | wxTOP | wxBOTTOM, 5);
   SetSizer(vbox);
   vbox->SetSizeHints(this);
   FitInside();
