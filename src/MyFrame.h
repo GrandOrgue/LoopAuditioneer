@@ -58,6 +58,8 @@ public:
   void OnSaveFile(wxCommandEvent& event);
   void OnSaveFileAs(wxCommandEvent& event);
   void OnSaveOpenNext(wxCommandEvent& event);
+  void OnCloseOpenPrev(wxCommandEvent& event);
+  void OnCloseOpenNext(wxCommandEvent& event);
   void OnHelp(wxCommandEvent& event);
   void OnStartPlay(wxCommandEvent& event);
   void OnStopPlay(wxCommandEvent& event);
