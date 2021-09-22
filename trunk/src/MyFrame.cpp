@@ -53,6 +53,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_MENU(SAVE_AND_OPEN_NEXT, MyFrame::OnSaveOpenNext)
   EVT_MENU(wxID_HELP, MyFrame::OnHelp)
   EVT_MENU(AUDIO_SETTINGS, MyFrame::OnAudioSettings)
+  EVT_MENU(CLOSE_OPEN_PREV, MyFrame::OnCloseOpenPrev)
+  EVT_MENU(CLOSE_OPEN_NEXT, MyFrame::OnCloseOpenNext)
   EVT_LIST_ITEM_ACTIVATED(ID_LISTCTRL, MyFrame::OnDblClick)
   EVT_LIST_ITEM_SELECTED(ID_LISTCTRL, MyFrame::OnSelection)
   EVT_TOOL(OPEN_SELECTED, MyFrame::OnOpenSelected)
@@ -187,6 +189,8 @@ void MyFrame::OnSelection(wxListEvent& event) {
     toolBar->EnableTool(OPEN_SELECTED, true);
   if (!fileMenu->IsEnabled(OPEN_SELECTED))
     fileMenu->Enable(OPEN_SELECTED, true);
+    fileMenu->Enable(CLOSE_OPEN_PREV, true);
+    fileMenu->Enable(CLOSE_OPEN_NEXT, true);
 }
 
 void MyFrame::OpenAudioFile() {
@@ -508,6 +512,34 @@ void MyFrame::OnSaveOpenNext(wxCommandEvent& event) {
   }
 }
 
+void MyFrame::OnCloseOpenPrev(wxCommandEvent& event) {
+  // open previous file if possible
+  if (currentSelectedIdx > 0 && currentSelectedIdx != wxNOT_FOUND) {
+    m_fileListCtrl->SetItemState(currentSelectedIdx - 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+    m_fileListCtrl->EnsureVisible(currentSelectedIdx);
+
+    wxCommandEvent evt(wxEVT_TOOL, OPEN_SELECTED);
+    ::wxGetApp().frame->AddPendingEvent(evt);
+  } else {
+    OpenAudioFile();
+    m_fileListCtrl->EnsureVisible(currentSelectedIdx);
+  }
+}
+
+void MyFrame::OnCloseOpenNext(wxCommandEvent& event) {
+  // open next file if possible
+  if (currentSelectedIdx < (fileNames.GetCount() - 1) && currentSelectedIdx != wxNOT_FOUND) {
+    m_fileListCtrl->SetItemState(currentSelectedIdx + 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+    m_fileListCtrl->EnsureVisible(currentSelectedIdx);
+
+    wxCommandEvent evt(wxEVT_TOOL, OPEN_SELECTED);
+    ::wxGetApp().frame->AddPendingEvent(evt);
+  } else {
+    OpenAudioFile();
+    m_fileListCtrl->EnsureVisible(currentSelectedIdx);
+  }
+}
+
 void MyFrame::OnSaveFileAs(wxCommandEvent& event) {
   wxFileDialog *saveFileAsDialog = new wxFileDialog(this, wxT("Save file as..."), workingDir, fileToOpen, wxT("WAV files (*.wav)|*.wav"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
@@ -631,6 +663,8 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   // Add file menu items
   fileMenu->Append(FILE_SELECT, wxT("&Choose folder\tCtrl+O"), wxT("Select working folder"));
   fileMenu->Append(OPEN_SELECTED, wxT("&Open file\tCtrl+F"), wxT("Open selected file"));
+  fileMenu->Append(CLOSE_OPEN_PREV, wxT("Open previous file\tCtrl+Alt+U"), wxT("Open next upper file in filelist"));
+  fileMenu->Append(CLOSE_OPEN_NEXT, wxT("Open next file\tCtrl+Alt+N"), wxT("Open next lower file in filelist"));
   fileMenu->Append(wxID_SAVE, wxT("&Save\tCtrl+S"), wxT("Save current file"));
   fileMenu->Append(wxID_SAVEAS, wxT("Save &as...\tShift+Ctrl+S"), wxT("Save current file with new name"));
   fileMenu->Append(SAVE_AND_OPEN_NEXT, wxT("Save, open next\tCtrl+Alt+S"), wxT("Save current file and open next"));
@@ -641,6 +675,8 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   fileMenu->Append(wxID_EXIT, wxT("&Exit\tCtrl+Q"), wxT("Quit this program"));
 
   fileMenu->Enable(OPEN_SELECTED, false);
+  fileMenu->Enable(CLOSE_OPEN_PREV, false);
+  fileMenu->Enable(CLOSE_OPEN_NEXT, false);
   fileMenu->Enable(wxID_SAVE, false);
   fileMenu->Enable(wxID_SAVEAS, false);
   fileMenu->Enable(SAVE_AND_OPEN_NEXT, false);
