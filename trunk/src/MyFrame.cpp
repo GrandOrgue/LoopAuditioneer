@@ -248,6 +248,7 @@ void MyFrame::OpenAudioFile() {
     // select first loop if such is present
     if (m_panel->m_grid->GetNumberRows() > 0) {
       m_panel->m_grid->SelectRow(0, false);
+      m_waveform->SetLoopSelection(0);
       toolBar->EnableTool(wxID_STOP, false);
       toolBar->EnableTool(START_PLAYBACK, true);
       transportMenu->Enable(START_PLAYBACK, true);
@@ -367,6 +368,10 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
       m_panel->m_cueGrid->ClearSelection();
     m_panel->m_grid->SelectRow(event.GetRow());
 
+    // notify waveform drawer of selected loop
+    m_waveform->SetLoopSelection(event.GetRow());
+    UpdateAllViews();
+
     // set/update the currently selected loops positions
     LOOPDATA currentLoop;
     m_audiofile->m_loops->GetLoopData(event.GetRow(), currentLoop);
@@ -419,6 +424,10 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
     if (m_panel->m_cueGrid->IsSelection())
       m_panel->m_cueGrid->ClearSelection();
     m_panel->m_cueGrid->SelectRow(event.GetRow());
+
+    // notify waveform drawer of cue selection
+    m_waveform->SetCueSelection(event.GetRow());
+    UpdateAllViews();
 
     // set the current position for the selected cue
     CUEPOINT currentCue;
@@ -1257,8 +1266,6 @@ void MyFrame::OnAddLoop(wxCommandEvent& event) {
     fileMenu->Enable(wxID_SAVE, true);
     fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
-    UpdateAllViews();
-
     // Make sure a loop in the grid is selected if no selection exist
     if (!m_panel->m_grid->IsSelection() || !m_panel->m_cueGrid->IsSelection()) {
       if (m_panel->m_grid->GetNumberRows() > 0) {
@@ -1272,8 +1279,11 @@ void MyFrame::OnAddLoop(wxCommandEvent& event) {
         toolBar->EnableTool(VIEW_LOOPPOINTS, true);
         toolMenu->Enable(VIEW_LOOPPOINTS, true);
         m_panel->m_grid->SetGridCursor(0, 4);
+        // notify waveform of selected loop
+        m_waveform->SetLoopSelection(0);
       }
     }
+    UpdateAllViews();
   }
 }
 
@@ -1406,8 +1416,6 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
       fileMenu->Enable(wxID_SAVE, true);
       fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
-      UpdateAllViews();
-
       // Make sure a loop in the grid is selected if no selection exist
       if (!m_panel->m_grid->IsSelection() || !m_panel->m_cueGrid->IsSelection()) {
         if (m_panel->m_grid->GetNumberRows() > 0) {
@@ -1421,9 +1429,11 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
           toolBar->EnableTool(VIEW_LOOPPOINTS, true);
           toolMenu->Enable(VIEW_LOOPPOINTS, true);
           m_panel->m_grid->SetGridCursor(0, 4);
+          // notify waveform drawer of selected loop
+          m_waveform->SetLoopSelection(0);
         }
       }
-
+      UpdateAllViews();
     } else {
       // no loops found!
       wxString message = wxT("Sorry, didn't find any loops!");
@@ -1939,6 +1949,9 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
             }
           }
         }
+        // notify waveform drawer of selected loop
+        m_waveform->SetLoopSelection(firstSelected - 1);
+        UpdateAllViews();
       } else {
         if (m_panel->m_cueGrid->IsSelection())
           m_panel->m_cueGrid->ClearSelection();
@@ -1963,6 +1976,9 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         toolMenu->Enable(X_FADE, true);
         toolBar->EnableTool(VIEW_LOOPPOINTS, true);
         toolMenu->Enable(VIEW_LOOPPOINTS, true);
+        // notify waveform drawer of selected loop
+        m_waveform->SetLoopSelection(0);
+        UpdateAllViews();
       }
     }
     return;
@@ -1992,6 +2008,9 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
             }
           }
         }
+        // notify waveform drawer of selected loop
+        m_waveform->SetLoopSelection(firstSelected + 1);
+        UpdateAllViews();
       } else {
         if (m_panel->m_cueGrid->IsSelection())
           m_panel->m_cueGrid->ClearSelection();
@@ -2016,6 +2035,9 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         toolMenu->Enable(X_FADE, true);
         toolBar->EnableTool(VIEW_LOOPPOINTS, true);
         toolMenu->Enable(VIEW_LOOPPOINTS, true);
+        // notify waveform drawer of selected loop
+        m_waveform->SetLoopSelection(0);
+        UpdateAllViews();
       }
     }
     return;
@@ -2037,6 +2059,10 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           m_sound->SetLoopPosition(currentCue.dwSampleOffset, currentCue.dwSampleOffset, currentCue.dwSampleOffset, m_audiofile->m_channels);
 
           SetLoopPlayback(false); // set the playback to not be for loops
+
+          // notify waveform drawer of selected cue
+          m_waveform->SetCueSelection(firstSelected - 1);
+          UpdateAllViews();
         }
       } else {
         if (m_panel->m_grid->IsSelection())
@@ -2054,6 +2080,10 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         toolMenu->Enable(X_FADE, false);
         toolBar->EnableTool(VIEW_LOOPPOINTS, false);
         toolMenu->Enable(VIEW_LOOPPOINTS, false);
+
+        // notify waveform drawer of selected cue
+        m_waveform->SetCueSelection(0);
+        UpdateAllViews();
       }
     }
     return;
@@ -2075,6 +2105,10 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
           m_sound->SetLoopPosition(currentCue.dwSampleOffset, currentCue.dwSampleOffset, currentCue.dwSampleOffset, m_audiofile->m_channels);
 
           SetLoopPlayback(false); // set the playback to not be for loops
+
+          // notify waveform drawer of selected cue
+          m_waveform->SetCueSelection(firstSelected + 1);
+          UpdateAllViews();
         }
       } else {
         if (m_panel->m_grid->IsSelection())
@@ -2092,6 +2126,10 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
         toolMenu->Enable(X_FADE, false);
         toolBar->EnableTool(VIEW_LOOPPOINTS, false);
         toolMenu->Enable(VIEW_LOOPPOINTS, false);
+
+        // notify waveform drawer of selected cue
+        m_waveform->SetCueSelection(0);
+        UpdateAllViews();
       }
     }
     return;

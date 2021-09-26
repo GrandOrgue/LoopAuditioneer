@@ -68,6 +68,10 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(pare
   isChangingSustainSection = false;
   outlineAlreadyDrawn = false;
   outlineHasChanged = false;
+  loopIndexSelection = -1;
+  hasLoopSelection = false;
+  cueIndexSelection = -1;
+  hasCueSelection = false;
 
   // create the popup menu for the waveform
   m_popupMenu = new wxMenu();
@@ -198,7 +202,11 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
           int xPosition = cueSampleOffset[i] / samplesPerPixel + leftMargin;
           int yPositionHigh = topMargin + 1;
           int yPositionLow = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1);
-          dc.SetPen(wxPen(green, 1, wxDOT));
+          if (hasCueSelection && i == cueIndexSelection) {
+            dc.SetPen(wxPen(green, 1, wxSOLID));
+          } else {
+            dc.SetPen(wxPen(green, 1, wxDOT));
+          }
           wxSize extent = dc.GetTextExtent(wxString::Format(wxT("M%i"), i + 1));
           dc.DrawLine(xPosition, yPositionLow, xPosition, yPositionHigh + overlap * (extent.GetHeight() + 5));
           dc.DrawRectangle(xPosition, yPositionHigh + overlap * (extent.GetHeight() + 5), extent.GetWidth() + 2, extent.GetHeight());
@@ -219,7 +227,11 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
 
           overlap = loopLayout[i].placedInRow;
 
-          dc.SetPen(wxPen(red, 1, wxDOT_DASH));
+          if (hasLoopSelection && i == loopIndexSelection) {
+            dc.SetPen(wxPen(red, 1, wxSOLID));
+          } else {
+            dc.SetPen(wxPen(red, 1, wxDOT_DASH));
+          }
           wxSize extent = dc.GetTextExtent(wxString::Format(wxT("L%i"), i + 1));
           dc.DrawLine(xPositionS, yPositionLow, xPositionS, yPositionHigh + overlap * (extent.GetHeight() + 5));
           dc.DrawRectangle(xPositionS, yPositionHigh + overlap * (extent.GetHeight() + 5), extent.GetWidth() + 2, extent.GetHeight());
@@ -889,4 +901,30 @@ void WaveformDrawer::ZoomOutAmplitude() {
 void WaveformDrawer::OnKeyDown(wxKeyEvent& event) {
   MyFrame *myParent = (MyFrame *) GetParent();
   myParent->OnKeyboardInput(event);
+}
+
+void WaveformDrawer::SetLoopSelection(int idx) {
+  if (idx < 0) {
+    loopIndexSelection = -1;
+    hasLoopSelection = false;
+  } else {
+    loopIndexSelection = idx;
+    hasLoopSelection = true;
+    cueIndexSelection = -1;
+    hasCueSelection = false;
+  }
+  somethingHasChanged = true;
+}
+
+void WaveformDrawer::SetCueSelection(int idx) {
+  if (idx < 0) {
+    cueIndexSelection = -1;
+    hasCueSelection = false;
+  } else {
+    loopIndexSelection = -1;
+    hasLoopSelection = false;
+    cueIndexSelection = idx;
+    hasCueSelection = true;  
+  }
+  somethingHasChanged = true;
 }

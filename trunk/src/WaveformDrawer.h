@@ -74,6 +74,8 @@ public:
   void ClearMetadata();
   void CalculateLayout();
   void OnKeyDown(wxKeyEvent& event);
+  void SetLoopSelection(int idx);
+  void SetCueSelection(int idx);
 
   // Methods for dealing with amplitude zoom level
   int GetAmplitudeZoomLevel();
@@ -108,8 +110,8 @@ private:
   wxCoord m_y;
   wxCoord m_prev_x;
   wxCoord m_prev_y;
-  int selectedCueIndex;
-  bool cueIsSelected;
+  int selectedCueIndex; // used when changing cue position
+  bool cueIsSelected; // used when changing cue position
   int m_amplitudeZoomLevel;
   FileHandling *m_fileReference;
   SUSTAINSECTION_RECT m_sustainsection_rect;
@@ -123,6 +125,10 @@ private:
   bool isChangingSustainSection;
   bool outlineHasChanged;
   bool outlineAlreadyDrawn;
+  int loopIndexSelection; // -1 when cue is selected otherwise index
+  bool hasLoopSelection;
+  int cueIndexSelection; // -1 when loop is selected otherwise index
+  bool hasCueSelection;
 
   void OnClickAddCue(wxCommandEvent& event);
 
