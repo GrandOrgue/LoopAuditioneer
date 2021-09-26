@@ -43,11 +43,15 @@ can toggle the save checkbox on/off for all cues present and no cue needs to be 
 <p>The waveform display shows all the channels of the file opened with a scaling to the left of an amplitude
 scaled between 1 and -1 at normal (default) zoom level. Below the channels a timeline in seconds is outlined
 and above the channels a playback marker shows the current playback position.</p>
-<p>If loops are present in the file they will be drawn in on the waveform in dotted red with start and end
-point having flags showing the loop number after an L. Cues will be shown with a dotted green line that has
+<p>If loops are present in the file they will be drawn in on the waveform in red with start and end
+point having flags showing the loop number after an L. Cues will be shown with a green line that has
 a flag with a M and the cue order number.</p>
+<p>The currently selected loop or cue will be drawn with a solid line while the other will be drawn with
+dotted lines to indicate that they are not selected.</p>
 <p>The current sustainsection (either auto detected or manually set) is shown on the waveform, as a rectangle
 covering the channels, indicating where loops will be searched for in the audio data. This can be useful to
 more accurately decide the placement of loops.</p>
+<p>If the sustainsection detection is set to manual it's possible to adjust the extent of the sustainsection
+directly on the waveform by clicking and dragging the end points of the sustainsection.</p>
 </BODY>
 </HTML>
