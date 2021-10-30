@@ -1308,8 +1308,9 @@ void MyFrame::OnLoopGridRightClick(wxGridEvent& event) {
       transportMenu->Enable(START_PLAYBACK, true);
     }
 
-    // Now we should have a context menu pop up where user can do something
-    PopupMenu(m_loopPopupMenu, event.GetPosition());
+    // Now we should have a context menu pop up where user can do something. event.GetPosition not correct to window
+    wxPoint pt = ScreenToClient(::wxGetMousePosition());
+    PopupMenu(m_loopPopupMenu, pt);
   }
 }
 
