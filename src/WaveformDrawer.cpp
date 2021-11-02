@@ -60,11 +60,12 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(pare
   trackHeight = 0;
   playPosition = 0;
   playPositionMarker = wxIcon(PlayPositionMarker_xpm);
-  m_background.Set(wxT("#f4f2ef"));
-  SetBackgroundColour(m_background);
   selectedCueIndex = 0;
   cueIsSelected = false;
   m_amplitudeZoomLevel = 1;
+  mouseWithinSustainSection = false;
+  withinLeftChangeBorder = false;
+  withinRightChangeBorder = false;
   isChangingSustainSection = false;
   outlineAlreadyDrawn = false;
   outlineHasChanged = false;
@@ -279,14 +280,18 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
       }
       // draw transparent rectangle that indicate current sustainsection in the file
       CalculateSustainIndication();
-      DrawSustainIndication();
+      if (mouseWithinSustainSection) {
+        DrawSustainIndication(dc);
+        DrawSustainSectionRectOutline();
+      } else
+        DrawSustainIndication(dc);
     }
     // draw the indicator for the playposition
     dc.DrawIcon(playPositionMarker, playPosition, 1);
     somethingHasChanged = false;
+    m_overlay.Reset();
   } else {
     // the panel is not resized so the waveform doesn't need redrawing but the playposition should be redrawn
-    dc.SetBackground(m_background);
     dc.SetClippingRegion(0, 0, leftMargin + trackWidth + rightMargin, 9);
     dc.Clear();
     dc.SetBrush(wxBrush(white));
@@ -302,7 +307,6 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
 
 void WaveformDrawer::OnPaintPlayPosition(wxDC& dc) {
   // the playposition should be redrawn during playback
-  dc.SetBackground(m_background);
   dc.SetClippingRegion(0, 0, leftMargin + trackWidth + rightMargin, 9);
   dc.Clear();
   dc.SetPen(wxPen(black, 1, wxPENSTYLE_SOLID));
@@ -616,10 +620,17 @@ void WaveformDrawer::OnLeftRelease(wxMouseEvent& event) {
       // the values to send is in percentage of track size
       isChangingSustainSection = false;
       CalculateSustainRectZones();
-      DrawSustainSectionRectOutline();
       int start = ((double) (m_sustainsection_rect.xPosLeft - leftMargin) / trackWidth) * 100 + 0.5;
       int end = ((double) (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - leftMargin) / trackWidth) * 100 + 0.5;
       m_fileReference->SetSliderSustainsection(start, end);
+
+      // also the auto loopsearch parameters must be updated
+      ::wxGetApp().frame->UpdateAutoloopSliderSustainsection(start, end);
+
+      // update display
+      m_overlay.Reset();
+      Update();
+      Refresh();
     }
   }
 }
@@ -651,114 +662,109 @@ void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
 }
 
 void WaveformDrawer::OnMouseMotion(wxMouseEvent& event) {
-if (!m_fileReference->GetAutoSustainSearch()) {
-  wxPoint pt = wxGetMousePosition();
-  int mouseX = pt.x - this->GetScreenPosition().x;
-  int mouseY = pt.y - this->GetScreenPosition().y;
-  
-  // check if mouse is within sustainsection
-  if ((mouseX >= m_sustainsection_rect.xPosLeft && mouseX <= (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) && mouseY >= m_sustainsection_rect.yPosHigh && mouseY <= (m_sustainsection_rect.yPosHigh + m_sustainsection_rect.yExtent)) || isChangingSustainSection) { 
-    mouseWithinSustainSection = true;
+  if (!m_fileReference->GetAutoSustainSearch()) {
+    wxPoint pt = wxGetMousePosition();
+    int mouseX = pt.x - this->GetScreenPosition().x;
+    int mouseY = pt.y - this->GetScreenPosition().y;
 
-    if (!isChangingSustainSection) {
-      if (mouseX <= m_leftBorderX) {
-        // within left sustainsection range
-        if (!withinLeftChangeBorder)
-          outlineAlreadyDrawn = false;
-        withinLeftChangeBorder = true;
-        withinRightChangeBorder = false;
-        ::wxGetApp().frame->SetStatusText(wxT("Click/drag to change start!"), 0);
-      } else if (mouseX >= m_rightBorderX) {
-        // within right sustainsection range
-        if (!withinRightChangeBorder)
-          outlineAlreadyDrawn = false;
-        withinLeftChangeBorder = false;
-        withinRightChangeBorder = true;
-        ::wxGetApp().frame->SetStatusText(wxT("Click/drag to change end!"), 0);
-      } else {
-        // in the middle part of sustainsection
-        ::wxGetApp().frame->SetStatusText(wxT("Sustainsection can be modified!"), 0);
-        if (withinLeftChangeBorder || withinRightChangeBorder)
-          outlineAlreadyDrawn = false;
-        withinLeftChangeBorder = false;
-        withinRightChangeBorder = false;
-      }
-    }
+    // check if mouse is within sustainsection
+    if ((mouseX >= m_sustainsection_rect.xPosLeft && mouseX <= (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) && mouseY >= m_sustainsection_rect.yPosHigh && mouseY <= (m_sustainsection_rect.yPosHigh + m_sustainsection_rect.yExtent)) || isChangingSustainSection) { 
+      mouseWithinSustainSection = true;
 
-    if (isChangingSustainSection) {
-      if (withinLeftChangeBorder) {
-        if (mouseX < m_prev_x && m_sustainsection_rect.xPosLeft > leftMargin) {
-          m_sustainsection_rect.xExtent += (m_prev_x - mouseX);
-          m_sustainsection_rect.xPosLeft -= (m_prev_x - mouseX);
-          outlineHasChanged = true;
-        } else if (mouseX > m_prev_x && m_sustainsection_rect.xPosLeft < (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 5)) {
-          m_sustainsection_rect.xExtent -= (mouseX - m_prev_x);
-          m_sustainsection_rect.xPosLeft += (mouseX - m_prev_x);
-          outlineHasChanged = true;
+      if (!isChangingSustainSection) {
+        if (mouseX <= m_leftBorderX) {
+          // within left sustainsection range
+          if (!withinLeftChangeBorder)
+            outlineAlreadyDrawn = false;
+          withinLeftChangeBorder = true;
+          withinRightChangeBorder = false;
+          ::wxGetApp().frame->SetStatusText(wxT("Click/drag to change start!"), 0);
+        } else if (mouseX >= m_rightBorderX) {
+          // within right sustainsection range
+          if (!withinRightChangeBorder)
+            outlineAlreadyDrawn = false;
+          withinLeftChangeBorder = false;
+          withinRightChangeBorder = true;
+          ::wxGetApp().frame->SetStatusText(wxT("Click/drag to change end!"), 0);
         } else {
-          outlineHasChanged = false;
+          // in the middle part of sustainsection
+          ::wxGetApp().frame->SetStatusText(wxT("Sustainsection can be modified!"), 0);
+          if (withinLeftChangeBorder || withinRightChangeBorder)
+            outlineAlreadyDrawn = false;
+          withinLeftChangeBorder = false;
+          withinRightChangeBorder = false;
         }
-        m_prev_x = mouseX;
-      } else if (withinRightChangeBorder) {
-        if (mouseX < m_prev_x && (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) > (m_sustainsection_rect.xPosLeft + 4)) {
-          m_sustainsection_rect.xExtent -= (m_prev_x - mouseX);
-          outlineHasChanged = true;
-        } else if (mouseX > m_prev_x && (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) < (leftMargin + trackWidth)) {
-          m_sustainsection_rect.xExtent += (mouseX - m_prev_x);
-          outlineHasChanged = true;
-        } else {
-          outlineHasChanged = false;
-        }
-        m_prev_x = mouseX;
       }
-      if (outlineHasChanged) {
-        CalculateSustainRectZones();
+
+      if (isChangingSustainSection) {
+        if (withinLeftChangeBorder) {
+          if (mouseX < m_prev_x && m_sustainsection_rect.xPosLeft > leftMargin) {
+            m_sustainsection_rect.xExtent += (m_prev_x - mouseX);
+            m_sustainsection_rect.xPosLeft -= (m_prev_x - mouseX);
+            outlineHasChanged = true;
+          } else if (mouseX > m_prev_x && m_sustainsection_rect.xPosLeft < (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 5)) {
+            m_sustainsection_rect.xExtent -= (mouseX - m_prev_x);
+            m_sustainsection_rect.xPosLeft += (mouseX - m_prev_x);
+            outlineHasChanged = true;
+          } else {
+            outlineHasChanged = false;
+          }
+          m_prev_x = mouseX;
+        } else if (withinRightChangeBorder) {
+          if (mouseX < m_prev_x && (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) > (m_sustainsection_rect.xPosLeft + 4)) {
+            m_sustainsection_rect.xExtent -= (m_prev_x - mouseX);
+            outlineHasChanged = true;
+          } else if (mouseX > m_prev_x && (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) < (leftMargin + trackWidth)) {
+            m_sustainsection_rect.xExtent += (mouseX - m_prev_x);
+            outlineHasChanged = true;
+          } else {
+            outlineHasChanged = false;
+          }
+          m_prev_x = mouseX;
+        }
+        if (outlineHasChanged) {
+          CalculateSustainRectZones();
+          DrawSustainSectionRectOutline();
+        }
+      }
+      if (!outlineAlreadyDrawn) {
         DrawSustainSectionRectOutline();
+        outlineAlreadyDrawn = true;
       }
+    } else {
+      ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
+      mouseWithinSustainSection = false;
+      if (outlineAlreadyDrawn) {
+        // Undo the rectangle indication sustainsection selection
+        Update();
+        Refresh();
+      }
+      outlineAlreadyDrawn = false;
     }
-    if (!outlineAlreadyDrawn) {
-      DrawSustainSectionRectOutline();
-      outlineAlreadyDrawn = true;
-    }
-  } else {
-    ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
-    mouseWithinSustainSection = false;
-    if (outlineAlreadyDrawn) {
-      // Undo the rectangle indication sustainsection selection
-      DrawSustainIndication();
-      wxClientDC dc(this);
-      wxDCOverlay overlaydc( m_overlay, &dc );
-      overlaydc.Clear();
-      DrawSustainIndication();
-    }
-    outlineAlreadyDrawn = false;
   }
-}
 }
 
 void WaveformDrawer::OnMouseLeave(wxMouseEvent& event) {
-if (!m_fileReference->GetAutoSustainSearch()) {
-  mouseWithinSustainSection = false;
-  withinLeftChangeBorder = false;
-  withinRightChangeBorder = false;
-  if (isChangingSustainSection) {
-    // we must reset to old sustainsection
-    m_sustainsection_rect.yPosHigh = m_old_sustainsection_rect.yPosHigh;
-    m_sustainsection_rect.yExtent = m_old_sustainsection_rect.yExtent;
-    m_sustainsection_rect.xPosLeft = m_old_sustainsection_rect.xPosLeft;
-    m_sustainsection_rect.xExtent = m_old_sustainsection_rect.xExtent;    
+  if (!m_fileReference->GetAutoSustainSearch()) {
+    mouseWithinSustainSection = false;
+    withinLeftChangeBorder = false;
+    withinRightChangeBorder = false;
+    if (isChangingSustainSection) {
+      // we must reset to old sustainsection
+      m_sustainsection_rect.yPosHigh = m_old_sustainsection_rect.yPosHigh;
+      m_sustainsection_rect.yExtent = m_old_sustainsection_rect.yExtent;
+      m_sustainsection_rect.xPosLeft = m_old_sustainsection_rect.xPosLeft;
+      m_sustainsection_rect.xExtent = m_old_sustainsection_rect.xExtent;    
+    }
+    isChangingSustainSection = false;
+    if (outlineAlreadyDrawn) {
+      // Undo the rectangle indication sustainsection selection
+      Update();
+      Refresh();
+      ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
+    }
+    outlineAlreadyDrawn = false;
   }
-  isChangingSustainSection = false;
-  if (outlineAlreadyDrawn) {
-    // Undo the rectangle indication sustainsection selection
-    wxClientDC dc(this);
-    wxDCOverlay overlaydc( m_overlay, &dc );
-    overlaydc.Clear();
-    ::wxGetApp().frame->SetStatusText(wxT("Ready"), 0);
-    DrawSustainIndication();
-  }
-  outlineAlreadyDrawn = false;
-}
 }
 
 void WaveformDrawer::OnMouseEnter(wxMouseEvent& event) {
@@ -768,9 +774,10 @@ void WaveformDrawer::OnMouseEnter(wxMouseEvent& event) {
 void WaveformDrawer::DrawSustainSectionRectOutline() {
   // draw a rectangle indication sustainsection selection
   wxClientDC dc(this);
-  wxDCOverlay overlaydc( m_overlay, &dc );
+  wxDCOverlay overlaydc(m_overlay, &dc);
   overlaydc.Clear();
-  DrawSustainIndication();
+  if (isChangingSustainSection)
+    DrawSustainIndication(dc);
   dc.SetBrush(*wxTRANSPARENT_BRUSH);
   dc.SetPen(wxPen(yellow, 1, wxPENSTYLE_SOLID));
   dc.DrawRectangle(m_sustainsection_rect.xPosLeft, m_sustainsection_rect.yPosHigh, m_sustainsection_rect.xExtent, m_sustainsection_rect.yExtent);
@@ -782,23 +789,20 @@ void WaveformDrawer::DrawSustainSectionRectOutline() {
 }
 
 void WaveformDrawer::CalculateSustainRectZones() {
-    if (m_sustainsection_rect.xExtent > 4 && m_sustainsection_rect.xExtent < 81) {
-        m_leftBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent / 4;
-        m_rightBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent * 0.75;
-    } else if (m_sustainsection_rect.xExtent > 80) {
-        m_leftBorderX = m_sustainsection_rect.xPosLeft + 20;
-        m_rightBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 20;
-    } else {
-      // sustain section is very small on the screen
-        m_leftBorderX = m_sustainsection_rect.xPosLeft;
-        m_rightBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 1;
-    }
+  if (m_sustainsection_rect.xExtent > 4 && m_sustainsection_rect.xExtent < 81) {
+    m_leftBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent / 4;
+    m_rightBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent * 0.75;
+  } else if (m_sustainsection_rect.xExtent > 80) {
+    m_leftBorderX = m_sustainsection_rect.xPosLeft + 20;
+    m_rightBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 20;
+  } else {
+    // sustain section is very small on the screen
+    m_leftBorderX = m_sustainsection_rect.xPosLeft;
+    m_rightBorderX = m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 1;
+  }
 }
 
-void WaveformDrawer::DrawSustainIndication() {
-  wxClientDC dc(this);
-  wxDCOverlay overlaydc( m_overlay, &dc );
-
+void WaveformDrawer::DrawSustainIndication(wxDC &dc) {
   if (m_sustainsection_rect.xExtent > 0) {
     wxImage sustainImage(m_sustainsection_rect.xExtent, m_sustainsection_rect.yExtent);
     sustainImage.Clear(211);

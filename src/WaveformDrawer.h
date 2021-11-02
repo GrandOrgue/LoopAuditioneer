@@ -62,7 +62,7 @@ public:
   void OnMouseEnter(wxMouseEvent& event);
   void DrawSustainSectionRectOutline();
   void CalculateSustainRectZones();
-  void DrawSustainIndication();
+  void DrawSustainIndication(wxDC &dc);
   void CalculateSustainIndication();
   void paintNow();
   void OnPaint(wxDC& dc);
@@ -104,7 +104,6 @@ private:
   int trackWidth;
   int trackHeight;
   wxIcon playPositionMarker;
-  wxColour m_background;
   wxMenu *m_popupMenu;
   wxCoord m_x;
   wxCoord m_y;
