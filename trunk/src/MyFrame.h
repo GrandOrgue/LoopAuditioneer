@@ -90,6 +90,7 @@ public:
   void AddNewCue(unsigned int offset);
   void ChangeCuePosition(unsigned int offset, int index);
   void UpdateLoopsAndCuesDisplay();
+  void UpdateAutoloopSliderSustainsection(int start, int end);
 
   static int AudioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
                     double streamTime, RtAudioStreamStatus status, void *userData );

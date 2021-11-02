@@ -123,6 +123,7 @@ void MyFrame::OnClose(wxCloseEvent & event) {
   int vol = volumeSl->GetValue();
   config->Write(wxT("General/LastVolume"), vol);
   config->Write(wxT("General/LoopOnlyPlayback"), m_loopOnly);
+  GetCurrentFrameSizes();
   config->Write(wxT("General/FrameXPosition"), m_xPosition);
   config->Write(wxT("General/FrameYPosition"), m_yPosition);
   config->Write(wxT("General/FrameWidth"), m_frameWidth);
@@ -665,6 +666,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   m_frameWidth = 1000;
   m_frameHeight = 560;
   m_frameMaximized = false;
+  SetBackgroundStyle(wxBG_STYLE_SYSTEM);
 
   // Create a file menu
   fileMenu = new wxMenu();
@@ -854,11 +856,11 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
     ID_LISTCTRL
   );
   m_fileListCtrl->SetMinSize(wxSize(385,150));
-  hbox->Add(m_fileListCtrl, 1, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, 10);
+  hbox->Add(m_fileListCtrl, 1, wxEXPAND | wxLEFT | wxTOP, 10);
 
   m_panel = new MyPanel(this);
   m_panel->SetMinSize(wxSize(600,150));
-  hbox->Add(m_panel, 2, wxEXPAND | wxALL, 10);
+  hbox->Add(m_panel, 2, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, 10);
 
   lowerBox = new wxBoxSizer(wxHORIZONTAL);
   lowerBox->AddStretchSpacer();
@@ -866,9 +868,8 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
 
   SetSizer(vbox);
   vbox->SetSizeHints(this);
-  // Layout();
+
   SetMinSize(wxSize(1000,560));
-  SetBackgroundColour(wxT("#f4f2ef"));
 
   // adjust width of the list control columns
   int colWidth = m_fileListCtrl->GetClientSize().GetWidth() / 5;
@@ -1328,6 +1329,8 @@ void MyFrame::UpdateAllViews() {
   }
 
   m_panel->SetFocus();
+  
+  Refresh();
 }
 
 void MyFrame::OnBatchProcess(wxCommandEvent& event) {
@@ -2371,5 +2374,12 @@ void MyFrame::UpdateLoopsAndCuesDisplay() {
     m_audiofile->m_cues->GetCuePoint(i, tempCue);
     m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);
     m_waveform->AddCuePosition(tempCue.dwSampleOffset);
+  }
+}
+
+void MyFrame::UpdateAutoloopSliderSustainsection(int start, int end) {
+  if (m_audiofile && (!m_audiofile->GetAutoSustainSearch())) {
+    m_autoloopSettings->SetStart(start);
+    m_autoloopSettings->SetEnd(end);
   }
 }
