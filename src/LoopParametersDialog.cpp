@@ -33,7 +33,7 @@ LoopParametersDialog::LoopParametersDialog(unsigned int start, unsigned int end,
 }
 
 LoopParametersDialog::LoopParametersDialog(
-  unsigned int start, 
+  unsigned int start,
   unsigned int end,
   unsigned int length,
   wxWindow* parent,
@@ -53,7 +53,7 @@ void LoopParametersDialog::Init(unsigned int start, unsigned int end, unsigned i
   m_lastSample = length;
 }
 
-bool LoopParametersDialog::Create( 
+bool LoopParametersDialog::Create(
   wxWindow* parent,
   wxWindowID id,
   const wxString& caption,
@@ -84,11 +84,11 @@ void LoopParametersDialog::CreateControls() {
 
   // Information message at top
   wxStaticText* info = new wxStaticText(
-    this, 
+    this,
     wxID_STATIC,
-    wxT("Enter loop start and end values in samples."), 
+    wxT("Enter loop start and end values in samples."),
     wxDefaultPosition,
-    wxDefaultSize, 
+    wxDefaultSize,
     0
   );
   boxSizer->Add(info, 0, wxALIGN_LEFT|wxALL, 5);
@@ -101,27 +101,27 @@ void LoopParametersDialog::CreateControls() {
   boxSizer->Add(firstRow, 0, wxGROW|wxALL, 5);
 
   // Label for the loop start
-  wxStaticText* loopStartLabel = new wxStaticText ( 
-    this, 
+  wxStaticText* loopStartLabel = new wxStaticText (
+    this,
     wxID_STATIC,
-    wxT("Loop start:"), 
-    wxDefaultPosition, 
-    wxDefaultSize, 
-    0 
+    wxT("Loop start:"),
+    wxDefaultPosition,
+    wxDefaultSize,
+    0
   );
   firstRow->Add(loopStartLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   // A spin control for the loop start value
-  wxSpinCtrl* loopStartSpin = new wxSpinCtrl ( 
-    this, 
+  wxSpinCtrl* loopStartSpin = new wxSpinCtrl (
+    this,
     ID_LOOPSTART,
-    wxEmptyString, 
-    wxDefaultPosition, 
+    wxEmptyString,
+    wxDefaultPosition,
     wxDefaultSize,
-    wxSP_ARROW_KEYS, 
-    0, 
-    m_lastSample - 1, 
-    m_loopStart 
+    wxSP_ARROW_KEYS,
+    0,
+    m_lastSample - 1,
+    m_loopStart
   );
   firstRow->Add(loopStartSpin, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
@@ -130,36 +130,36 @@ void LoopParametersDialog::CreateControls() {
   boxSizer->Add(secondRow, 0, wxGROW|wxALL, 5);
 
   // Label for the loop end
-  wxStaticText* loopEndLabel = new wxStaticText ( 
-    this, 
+  wxStaticText* loopEndLabel = new wxStaticText (
+    this,
     wxID_STATIC,
-    wxT("Loop end:"), 
-    wxDefaultPosition, 
-    wxDefaultSize, 
-    0 
+    wxT("Loop end:"),
+    wxDefaultPosition,
+    wxDefaultSize,
+    0
   );
   secondRow->Add(loopEndLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   // A spin control for the loop end value
-  wxSpinCtrl* loopEndSpin = new wxSpinCtrl ( 
-    this, 
+  wxSpinCtrl* loopEndSpin = new wxSpinCtrl (
+    this,
     ID_LOOPEND,
-    wxEmptyString, 
-    wxDefaultPosition, 
+    wxEmptyString,
+    wxDefaultPosition,
     wxDefaultSize,
-    wxSP_ARROW_KEYS, 
-    0, 
-    m_lastSample, 
-    m_loopEnd 
+    wxSP_ARROW_KEYS,
+    0,
+    m_lastSample,
+    m_loopEnd
   );
   secondRow->Add(loopEndSpin, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   // A horizontal line before the OK and Cancel buttons
   wxStaticLine *line = new wxStaticLine(
-    this, 
+    this,
     wxID_STATIC,
-    wxDefaultPosition, 
-    wxDefaultSize, 
+    wxDefaultPosition,
+    wxDefaultSize,
     wxLI_HORIZONTAL
   );
   boxSizer->Add(line, 0, wxGROW|wxALL, 5);
@@ -170,22 +170,22 @@ void LoopParametersDialog::CreateControls() {
 
   // The OK button
   wxButton* okButton = new wxButton(
-    this, 
-    wxID_OK, 
+    this,
+    wxID_OK,
     wxT("&OK"),
-    wxDefaultPosition, 
-    wxDefaultSize, 
+    wxDefaultPosition,
+    wxDefaultSize,
     0
   );
   thirdRow->Add(okButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   // The Cancel button
   wxButton* cancelButton = new wxButton(
-    this, 
+    this,
     wxID_CANCEL,
-    wxT("&Cancel"), 
-    wxDefaultPosition, 
-    wxDefaultSize, 
+    wxT("&Cancel"),
+    wxDefaultPosition,
+    wxDefaultSize,
     0
   );
   thirdRow->Add(cancelButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
@@ -234,7 +234,7 @@ bool LoopParametersDialog::TransferDataFromWindow() {
 }
 
 void LoopParametersDialog::OnLoopStartSpin(wxSpinEvent& event) {
-  if (event.GetPosition() < m_loopEnd  && event.GetPosition() < m_lastSample) {
+  if ((unsigned) event.GetPosition() < m_loopEnd && (unsigned) event.GetPosition() < m_lastSample) {
     m_loopStart = event.GetPosition();
     wxSpinCtrl *startCtrl = (wxSpinCtrl*) FindWindow(ID_LOOPSTART);
     startCtrl->SetValue(event.GetPosition());
@@ -245,7 +245,7 @@ void LoopParametersDialog::OnLoopStartSpin(wxSpinEvent& event) {
 }
 
 void LoopParametersDialog::OnLoopEndSpin(wxSpinEvent& event) {
-  if (event.GetPosition() > m_loopStart && event.GetPosition() <= m_lastSample) {
+  if ((unsigned) event.GetPosition() > m_loopStart && (unsigned) event.GetPosition() <= m_lastSample) {
     m_loopEnd = event.GetPosition();
     wxSpinCtrl *endCtrl = (wxSpinCtrl*) FindWindow(ID_LOOPEND);
     endCtrl->SetValue(event.GetPosition());

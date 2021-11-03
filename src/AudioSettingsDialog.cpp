@@ -50,7 +50,7 @@ AudioSettingsDialog::AudioSettingsDialog(
 void AudioSettingsDialog::Init(MySound *my_snd) {
   m_snd_api = my_snd->GetApi();
   m_snd_device = my_snd->GetDevice();
-  for (int i = 0; i < my_snd->m_availableApis.size(); i++)
+  for (unsigned i = 0; i < my_snd->m_availableApis.size(); i++)
     m_availableApis.Add(wxString(RtAudio::getApiName(my_snd->m_availableApis[i])));
   UpdateAvailableDevices();
 }

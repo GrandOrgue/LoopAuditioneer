@@ -70,7 +70,7 @@ m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
       // There are cues!
 
       // Check if the cue is a real cue or a label, only keep real cues!
-      for (int i = 0; i < cues.cue_count; i++) {
+      for (unsigned i = 0; i < cues.cue_count; i++) {
         bool toAdd = true;
 
         for (int j = 0; j < instr.loop_count; j++) {
@@ -137,7 +137,7 @@ m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
       sfHandle.read(buffer, ArrayLength);
 
       int index = 0;
-      for (unsigned int i = 0; i < ArrayLength; i++) {
+      for (unsigned i = 0; i < ArrayLength; i++) {
         // de-interleaving
         waveTracks[index].waveData.push_back(buffer[i]);
         index++;
@@ -249,7 +249,7 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
     cues.cue_count = 99;
   else
     cues.cue_count = cueCount;
-  for (int i = 0; i < cues.cue_count; i++) {
+  for (unsigned i = 0; i < cues.cue_count; i++) {
     cues.cue_points[i].indx =  m_cues->exportedCues[i].dwName;
     cues.cue_points[i].position =  m_cues->exportedCues[i].dwPosition;
     cues.cue_points[i].fcc_chunk =  m_cues->exportedCues[i].fccChunk;
@@ -472,7 +472,7 @@ bool FileHandling::DetectPitchByFFT() {
 
     if (allPeaksToConsider.size() > 1) {
       // now see if the maxpeak can be a harmonic of any other peak
-      for (int x = 0; x < allPeaksToConsider.size() - 1; x++) {
+      for (long unsigned x = 0; x < allPeaksToConsider.size() - 1; x++) {
         if (labs((long)(allPeaksToConsider[x] * 2) - (long)peakIndex) < 3) {
           // peakIndex could be the first harmonic
           peakIndex = allPeaksToConsider[x];
@@ -704,6 +704,9 @@ void FileHandling::PerformCrossfade(int loopNumber, double fadeLength, int fadeT
   double *audioData = new double[ArrayLength];
   bool gotData = GetDoubleAudioData(audioData);
   
+  if (!gotData)
+    return;
+  
   LOOPDATA loopToCrossfade;
   m_loops->GetLoopData(loopNumber, loopToCrossfade);
   unsigned samplesToFade = m_samplerate * fadeLength;
@@ -729,19 +732,19 @@ void FileHandling::PerformCrossfade(int loopNumber, double fadeLength, int fadeT
   switch(fadeType) {
     case 0:
       // linear data from 0 to 1
-      for (int i = 0; i < samplesToFade; i++)
+      for (unsigned i = 0; i < samplesToFade; i++)
         fadeData[i] = i * 1.0 / (samplesToFade - 1);
-      for (int i = 0; i < samplesToFadeOut; i++)
+      for (unsigned i = 0; i < samplesToFadeOut; i++)
         fadeOutData[i] = i * 1.0 / (samplesToFadeOut - 1);
       break;
 
     case 1:
       // create a S curve table from 0 to 1
-      for (int i = 0; i < samplesToFade; i++) {
+      for (unsigned i = 0; i < samplesToFade; i++) {
         double linear = i * 1.0 / (samplesToFade - 1);
         fadeData[i] = 0.5 * (1.0 + cos((1.0 - linear) * M_PI));
       }
-      for (int i = 0; i < samplesToFadeOut; i++) {
+      for (unsigned i = 0; i < samplesToFadeOut; i++) {
         double linear = i * 1.0 / (samplesToFadeOut - 1);
         fadeOutData[i] = 0.5 * (1.0 + cos((1.0 - linear) * M_PI));
       }
@@ -749,11 +752,11 @@ void FileHandling::PerformCrossfade(int loopNumber, double fadeLength, int fadeT
 
     case 2:
       // create a curve from 0 to 1 with equal power/gain
-      for (int i = 0; i < samplesToFade; i++) {
+      for (unsigned i = 0; i < samplesToFade; i++) {
         double linear = i * 1.0 / (samplesToFade - 1);
         fadeData[i] = linear / sqrt( pow(linear, 2) + pow((1 - linear), 2) );
       }
-      for (int i = 0; i < samplesToFadeOut; i++) {
+      for (unsigned i = 0; i < samplesToFadeOut; i++) {
         double linear = i * 1.0 / (samplesToFadeOut - 1);
         fadeOutData[i] = linear / sqrt( pow(linear, 2) + pow((1 - linear), 2) );
       }
@@ -761,11 +764,11 @@ void FileHandling::PerformCrossfade(int loopNumber, double fadeLength, int fadeT
 
     case 3:
        // create a sine curve table from 0 to 1
-      for (int i = 0; i < samplesToFade; i++) {
+      for (unsigned i = 0; i < samplesToFade; i++) {
         double linear = i * 1.0 / (samplesToFade - 1);
         fadeData[i] = sin(M_PI / 2 * linear);
       }
-      for (int i = 0; i < samplesToFadeOut; i++) {
+      for (unsigned i = 0; i < samplesToFadeOut; i++) {
         double linear = i * 1.0 / (samplesToFadeOut - 1);
         fadeOutData[i] = sin(M_PI / 2 * linear);
       }
@@ -773,9 +776,9 @@ void FileHandling::PerformCrossfade(int loopNumber, double fadeLength, int fadeT
 
     default:
       // linear data from 0 to 1
-      for (int i = 0; i < samplesToFade; i++)
+      for (unsigned i = 0; i < samplesToFade; i++)
         fadeData[i] = i * 1.0 / (samplesToFade - 1);
-      for (int i = 0; i < samplesToFadeOut; i++)
+      for (unsigned i = 0; i < samplesToFadeOut; i++)
         fadeOutData[i] = i * 1.0 / (samplesToFadeOut - 1);
   }
 
@@ -1109,7 +1112,7 @@ void FileHandling::TrimExcessData() {
       }
     }
 
-    long unsigned int newArrayLength = (lastEndSample + 3) * m_channels;
+    long unsigned newArrayLength = (lastEndSample + 3) * m_channels;
 
     if (firstCuePosAfter) {
       newArrayLength += (ArrayLength - ((firstCuePosAfter - 1) * m_channels));
@@ -1204,7 +1207,7 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
 
   if (samplesToCut < ArrayLength) {
     // calculate new arraylength
-    long unsigned int newArrayLength = ArrayLength - samplesToCut;
+    long unsigned newArrayLength = ArrayLength - samplesToCut;
 
     if (m_minorFormat == SF_FORMAT_DOUBLE) {
       double *audioData = new double[newArrayLength];
@@ -1227,6 +1230,9 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
       double *oldDblData = new double[ArrayLength];
       bool gotData = GetDoubleAudioData(oldDblData);
 
+      if (!gotData)
+        return false;
+
       for (unsigned i = 0; i < newArrayLength; i++)
         audioData[i] = shortAudioData[samplesToCut + i];
 
@@ -1240,9 +1246,12 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
 
     } else if ((m_minorFormat == SF_FORMAT_PCM_24) || (m_minorFormat == SF_FORMAT_PCM_32)) {
       int *audioData = new int[newArrayLength];
-      
+
       double *oldDblData = new double[ArrayLength];
       bool gotData = GetDoubleAudioData(oldDblData);
+
+      if (!gotData)
+        return false;
 
       for (unsigned i = 0; i < newArrayLength; i++)
         audioData[i] = intAudioData[samplesToCut + i];
@@ -1262,6 +1271,9 @@ bool FileHandling::TrimStart(unsigned timeToTrim) {
 
     double *oldDblData = new double[ArrayLength];
     bool gotData = GetDoubleAudioData(oldDblData);
+
+    if (!gotData)
+      return false;
 
     for (unsigned i = 0; i < newArrayLength; i++)
     audioData[i] = floatAudioData[samplesToCut + i];
@@ -1302,7 +1314,7 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
 
   if (samplesToCut < ArrayLength) {
     // calculate new arraylength
-    long unsigned int newArrayLength = ArrayLength - samplesToCut;
+    long unsigned newArrayLength = ArrayLength - samplesToCut;
 
     if (m_minorFormat == SF_FORMAT_DOUBLE) {
       double *audioData = new double[newArrayLength];
@@ -1324,6 +1336,9 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
       
       double *oldDblData = new double[ArrayLength];
       bool gotData = GetDoubleAudioData(oldDblData);
+
+      if (!gotData)
+        return false;
 
       for (unsigned i = 0; i < newArrayLength; i++)
         audioData[i] = shortAudioData[i];
@@ -1356,6 +1371,9 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
 
     double *oldDblData = new double[ArrayLength];
     bool gotData = GetDoubleAudioData(oldDblData);
+
+    if (!gotData)
+      return false;
 
     for (unsigned i = 0; i < newArrayLength; i++)
       audioData[i] = floatAudioData[i];
@@ -1391,6 +1409,9 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
 void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
   double *audioData = new double[ArrayLength];
   bool gotData = GetDoubleAudioData(audioData);
+
+  if (!gotData)
+    return;
   
   // fadeType 0 == fade in, anything else is a fade out
 
@@ -1400,7 +1421,7 @@ void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
   double fadeData[samplesToFade];
 
   // linear data from 0 to 1
-  for (int i = 0; i < samplesToFade; i++)
+  for (unsigned i = 0; i < samplesToFade; i++)
     fadeData[i] = i * 1.0 / (samplesToFade - 1);
 
   if (fadeType == 0) {
@@ -1460,7 +1481,7 @@ bool FileHandling::GetDoubleAudioData(double audio[]) {
 
 void FileHandling::UpdateWaveTracks(double audio[]) {
   // first empty old wavetracks
-  for (int i = 0; i < waveTracks.size(); i++)
+  for (unsigned i = 0; i < waveTracks.size(); i++)
     waveTracks[i].waveData.clear();
 
   // copy the new track data to right tracks
