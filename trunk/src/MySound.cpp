@@ -150,7 +150,7 @@ void MySound::SetStartPosition(unsigned int startPos, int n_channels) {
 
 void MySound::SetChannels(int channels) {
   if (info.probed) {
-    if (channels <= info.outputChannels) {
+    if ((unsigned) channels <= info.outputChannels) {
       // we can safely use this number of channels
       parameters.nChannels = channels;
       m_channelsUsed = channels;

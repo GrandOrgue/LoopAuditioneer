@@ -190,7 +190,9 @@ void MyFrame::OnSelection(wxListEvent& event) {
     toolBar->EnableTool(OPEN_SELECTED, true);
   if (!fileMenu->IsEnabled(OPEN_SELECTED))
     fileMenu->Enable(OPEN_SELECTED, true);
+  if (!fileMenu->IsEnabled(CLOSE_OPEN_PREV))
     fileMenu->Enable(CLOSE_OPEN_PREV, true);
+  if (!fileMenu->IsEnabled(CLOSE_OPEN_NEXT))
     fileMenu->Enable(CLOSE_OPEN_NEXT, true);
 }
 
@@ -469,14 +471,14 @@ void MyFrame::OnCueGridCellClick(wxGridEvent& event) {
 
 void MyFrame::UpdateCurrentFileInfo() {
   if (!m_audiofile->m_loops->loopsOut.empty()) {
-    wxString loopNbr = wxString::Format(wxT("%u"), (unsigned int) m_audiofile->m_loops->loopsOut.size());
+    wxString loopNbr = wxString::Format(wxT("%u"), (unsigned) m_audiofile->m_loops->loopsOut.size());
     m_fileListCtrl->SetItem(currentOpenFileIdx, 1, loopNbr);
   } else {
     m_fileListCtrl->SetItem(currentOpenFileIdx, 1, wxT("0"));
   }
 
   if (!m_audiofile->m_cues->exportedCues.empty()) {
-    wxString cueNbr = wxString::Format(wxT("%u"), (unsigned int) m_audiofile->m_cues->exportedCues.size());
+    wxString cueNbr = wxString::Format(wxT("%u"), (unsigned) m_audiofile->m_cues->exportedCues.size());
     m_fileListCtrl->SetItem(currentOpenFileIdx, 2, cueNbr);
   } else {
     m_fileListCtrl->SetItem(currentOpenFileIdx, 2, wxT("0"));
@@ -510,7 +512,7 @@ void MyFrame::OnSaveOpenNext(wxCommandEvent& event) {
   UpdateCurrentFileInfo();
 
   // open next file if possible
-  if (currentSelectedIdx < (fileNames.GetCount() - 1) && currentSelectedIdx != wxNOT_FOUND) {
+  if (currentSelectedIdx != wxNOT_FOUND && (unsigned) currentSelectedIdx < (fileNames.GetCount() - 1)) {
     m_fileListCtrl->SetItemState(currentSelectedIdx + 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
     m_fileListCtrl->EnsureVisible(currentSelectedIdx);
 
@@ -538,7 +540,7 @@ void MyFrame::OnCloseOpenPrev(wxCommandEvent& event) {
 
 void MyFrame::OnCloseOpenNext(wxCommandEvent& event) {
   // open next file if possible
-  if (currentSelectedIdx < (fileNames.GetCount() - 1) && currentSelectedIdx != wxNOT_FOUND) {
+  if (currentSelectedIdx != wxNOT_FOUND && (unsigned) currentSelectedIdx < (fileNames.GetCount() - 1)) {
     m_fileListCtrl->SetItemState(currentSelectedIdx + 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
     m_fileListCtrl->EnsureVisible(currentSelectedIdx);
 
@@ -894,7 +896,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
     // we set it too high so that the default device will be used instead
     deviceId = INT_MAX;
   }
-  m_sound = new MySound(apiStr, (unsigned int) deviceId);
+  m_sound = new MySound(apiStr, (unsigned) deviceId);
 
   if (config->Read(wxT("General/LastWorkingDir"), &workingDir)) {
     // if value was found it's now in the variable workingDir
@@ -1074,26 +1076,26 @@ void MyFrame::PopulateListOfFileNames() {
 
 int MyFrame::AudioCallback(void *outputBuffer,
                            void *inputBuffer,
-                           unsigned int nBufferFrames,
+                           unsigned nBufferFrames,
                            double streamTime,
                            RtAudioStreamStatus status,
                            void *userData ) {
-  int nChannels = ::wxGetApp().frame->m_audiofile->m_channels;
-  unsigned int useChannels = ::wxGetApp().frame->m_sound->GetChannelsUsed();
-  unsigned int excessChannels = 0;
+  unsigned nChannels = (unsigned) ::wxGetApp().frame->m_audiofile->m_channels;
+  unsigned useChannels = ::wxGetApp().frame->m_sound->GetChannelsUsed();
+  unsigned excessChannels = 0;
   if (nChannels > useChannels)
     excessChannels = nChannels - useChannels;
 
   float *buffer = static_cast<float*>(outputBuffer);
 
   // keep track of position, see pos in MySound.h
-  unsigned int *position = (unsigned int *) userData;
+  unsigned *position = (unsigned *) userData;
 
   if (::wxGetApp().frame->m_sound->StreamNeedsResampling()) {
     // audio stream uses the resampled audio data
     if (position[0] < ::wxGetApp().frame->m_resampler->m_resampledDataLength) {
-      for (unsigned int i = 0; i < nBufferFrames; i++) {
-        for (unsigned int j = 0; j < useChannels; j++) {
+      for (unsigned i = 0; i < nBufferFrames; i++) {
+        for (unsigned j = 0; j < useChannels; j++) {
           *buffer++ = ::wxGetApp().frame->m_resampler->resampledAudioData[(position[0])] * volumeMultiplier;
           position[0] += 1;
         }
@@ -1121,8 +1123,8 @@ int MyFrame::AudioCallback(void *outputBuffer,
   } else {
     // Loop that feeds the outputBuffer with data when no resampling is needed
     if (position[0] < ::wxGetApp().frame->m_audiofile->ArrayLength) {
-      for (unsigned int i = 0; i < nBufferFrames; i++) {
-        for (unsigned int j = 0; j < useChannels; j++) {
+      for (unsigned i = 0; i < nBufferFrames; i++) {
+        for (unsigned j = 0; j < useChannels; j++) {
           *buffer++ = ::wxGetApp().frame->m_audiofile->floatAudioData[(position[0])] * volumeMultiplier;
           position[0] += 1;
         }
@@ -1170,7 +1172,7 @@ void MyFrame::UpdatePlayPosition(wxTimerEvent& evt) {
   }
 }
 
-void MyFrame::AddNewCue(unsigned int offset) {
+void MyFrame::AddNewCue(unsigned offset) {
   CUEPOINT newCue;
   newCue.dwName = m_audiofile->m_cues->GetNumberOfCues(); // this should be the new cues index
   newCue.dwPosition = 0;
@@ -1191,7 +1193,7 @@ void MyFrame::AddNewCue(unsigned int offset) {
   fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 }
 
-void MyFrame::ChangeCuePosition(unsigned int offset, int index) {
+void MyFrame::ChangeCuePosition(unsigned offset, int index) {
   m_audiofile->m_cues->ChangePosition(offset, index);
   m_panel->ChangeCueData(offset, index);
 
@@ -1205,16 +1207,16 @@ void MyFrame::ChangeCuePosition(unsigned int offset, int index) {
 void MyFrame::OnAddLoop(wxCommandEvent& event) {
   // set default start and end as sustainsection
   std::pair<unsigned, unsigned> currentSustain = m_audiofile->GetSustainsection();
-  unsigned int start = currentSustain.first;
-  unsigned int end = currentSustain.second;
+  unsigned start = currentSustain.first;
+  unsigned end = currentSustain.second;
   // get audio data to analyze
-  unsigned int nbrOfSmpls = m_audiofile->ArrayLength / m_audiofile->m_channels;
+  unsigned nbrOfSmpls = m_audiofile->ArrayLength / m_audiofile->m_channels;
   double *audioData = new double[nbrOfSmpls];
   m_audiofile->SeparateStrongestChannel(audioData);
   // adjust to reasonable loop points
   // search for closest (going towards positive) zero crossing
-  unsigned int startIdx = start;
-  for (unsigned int i = start; i < end; i++) {
+  unsigned startIdx = start;
+  for (unsigned i = start; i < end; i++) {
     if (signbit(audioData[i])) {
       if (!signbit(audioData[i + 1]) != !signbit(audioData[i])) {
         // which is closer to zero
@@ -1229,8 +1231,8 @@ void MyFrame::OnAddLoop(wxCommandEvent& event) {
     }
   }
   // find a suitable match from end
-  unsigned int endIdx = end;
-  for (unsigned int i = end; i > startIdx; i--) {
+  unsigned endIdx = end;
+  for (unsigned i = end; i > startIdx; i--) {
     if (!signbit(audioData[i])) {
       if (signbit(audioData[i - 1]) != signbit(audioData[i])) {
         endIdx = i - 1;
@@ -1243,8 +1245,8 @@ void MyFrame::OnAddLoop(wxCommandEvent& event) {
   LoopParametersDialog loopDialog(startIdx, endIdx, m_audiofile->ArrayLength / m_audiofile->m_channels, this);
 
   if (loopDialog.ShowModal() == wxID_OK) {
-    unsigned int loopStartSample = loopDialog.GetLoopStart();
-    unsigned int loopEndSample = loopDialog.GetLoopEnd();
+    unsigned loopStartSample = loopDialog.GetLoopStart();
+    unsigned loopEndSample = loopDialog.GetLoopEnd();
 
     // Add the new loop to the loop vector
     LOOPDATA newLoop;
@@ -1513,9 +1515,9 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
   double cent_deviation;
   double hps_cent_deviation;
   double td_cent_deviation;
-  unsigned int midi_pitch_fraction;
-  unsigned int hps_midi_pitch_fraction;
-  unsigned int td_midi_pitch_fraction;
+  unsigned midi_pitch_fraction;
+  unsigned hps_midi_pitch_fraction;
+  unsigned td_midi_pitch_fraction;
   double fftPitches[2];
   for (int i = 0; i < 2; i++)
     fftPitches[i] = 0;
@@ -1685,8 +1687,8 @@ void MyFrame::OnEditLoop(wxCommandEvent& event) {
   );
 
   if (loopDialog.ShowModal() == wxID_OK) {
-    unsigned int loopStartSample = loopDialog.GetLoopStart();
-    unsigned int loopEndSample = loopDialog.GetLoopEnd();
+    unsigned loopStartSample = loopDialog.GetLoopStart();
+    unsigned loopEndSample = loopDialog.GetLoopEnd();
 
     // Store the changes to the loop in the loop vector
     m_audiofile->m_loops->SetLoopPositions(loopStartSample, loopEndSample, firstSelected);
@@ -1922,7 +1924,7 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
 
   // X moves selection down the filelist
   if (event.GetKeyCode() == 88 && event.GetModifiers() == wxMOD_NONE) {
-    if (currentSelectedIdx < (fileNames.GetCount() - 1) && currentSelectedIdx != wxNOT_FOUND) {
+    if (currentSelectedIdx != wxNOT_FOUND && (unsigned) currentSelectedIdx < (fileNames.GetCount() - 1)) {
       m_fileListCtrl->SetItemState(currentSelectedIdx + 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
       m_fileListCtrl->EnsureVisible(currentSelectedIdx);
     }
@@ -2264,7 +2266,7 @@ void MyFrame::PopulateListCtrl() {
   m_fileListCtrl->Hide();
 
   if (!fileNames.IsEmpty()) {
-    for (int i = 0; i < fileNames.GetCount(); i++) {
+    for (unsigned i = 0; i < fileNames.GetCount(); i++) {
       m_fileListCtrl->InsertItem(i, fileNames[i]);
 
       SF_INSTRUMENT instr;
@@ -2369,7 +2371,7 @@ void MyFrame::UpdateLoopsAndCuesDisplay() {
   }
 
   // populate the wxGrid m_cueGrid in m_panel with the cue data and add it to the waveform drawer
-  for (unsigned int i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
+  for (unsigned i = 0; i < m_audiofile->m_cues->GetNumberOfCues(); i++) {
     CUEPOINT tempCue;
     m_audiofile->m_cues->GetCuePoint(i, tempCue);
     m_panel->FillRowWithCueData(tempCue.dwName, tempCue.dwSampleOffset, tempCue.keepThisCue, i);

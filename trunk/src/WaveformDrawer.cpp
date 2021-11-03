@@ -203,7 +203,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
           int xPosition = cueSampleOffset[i] / samplesPerPixel + leftMargin;
           int yPositionHigh = topMargin + 1;
           int yPositionLow = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1);
-          if (hasCueSelection && i == cueIndexSelection) {
+          if (hasCueSelection && i == (unsigned) cueIndexSelection) {
             dc.SetPen(wxPen(green, 1, wxSOLID));
           } else {
             dc.SetPen(wxPen(green, 1, wxDOT));
@@ -228,7 +228,7 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
 
           overlap = loopLayout[i].placedInRow;
 
-          if (hasLoopSelection && i == loopIndexSelection) {
+          if (hasLoopSelection && i == (unsigned) loopIndexSelection) {
             dc.SetPen(wxPen(red, 1, wxSOLID));
           } else {
             dc.SetPen(wxPen(red, 1, wxDOT_DASH));

@@ -373,7 +373,7 @@ void LoopOverlay::UpdateAudioTracks() {
     int endIdx = currentLoopend * m_fileReference->m_channels - (halfOfSamples - 1) * m_fileReference->m_channels + i;
     if (startIdx > 0)
       startValue = audioData[startIdx];
-    if (endIdx < m_fileReference->ArrayLength - 1)
+    if ((unsigned) endIdx < m_fileReference->ArrayLength - 1)
       endValue = audioData[endIdx];
     // de-interleaving
     m_startTracks[index].startData.push_back(startValue);
@@ -502,7 +502,7 @@ void LoopOverlay::SetSaveButtonState() {
   LOOPDATA currentLoop;
   m_fileReference->m_loops->GetLoopData(m_selectedLoop, currentLoop);
 
-  if (loopStartSpin->GetValue() == currentLoop.dwStart && loopEndSpin->GetValue() == currentLoop.dwEnd)
+  if ((unsigned) loopStartSpin->GetValue() == currentLoop.dwStart && (unsigned) loopEndSpin->GetValue() == currentLoop.dwEnd)
     m_storeChanges->Enable(false);
   else
     m_storeChanges->Enable(true);
