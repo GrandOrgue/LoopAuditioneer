@@ -23,6 +23,8 @@
 #include "LoopAuditioneerDef.h"
 #include "wx/fs_zip.h"
 #include "wx/image.h"
+#include <wx/filename.h>
+#include <wx/stdpaths.h>
 
 IMPLEMENT_APP(LoopAuditioneerApp)
 
@@ -32,23 +34,33 @@ bool LoopAuditioneerApp::OnInit() {
   wxString fullAppName = wxEmptyString;
   fullAppName.Append(appName);
   fullAppName.Append(wxT(" "));
-  fullAppName.Append(appVersion);
+  fullAppName.Append(wxT(MY_APP_VERSION));
   frame = new MyFrame(fullAppName);
 
   frame->SetWindowStyle(wxDEFAULT_FRAME_STYLE | wxWANTS_CHARS);
+  
+  wxFileName fn(wxStandardPaths::Get().GetExecutablePath());
+  fn = fn.GetPath();
+  wxString BaseDir = fn.GetPath();
+  wxString ResourceDir = BaseDir + wxFILE_SEP_PATH + wxT("share");
 
   // the help controller
   wxImage::AddHandler(new wxJPEGHandler);
   wxFileSystem::AddHandler(new wxZipFSHandler);
   m_helpController = new wxHtmlHelpController();
-  m_helpController->AddBook(wxFileName("help/help.zip"));
+  m_helpController->AddBook(wxFileName(ResourceDir + wxFILE_SEP_PATH + wxT("LoopAuditioneer/help/help.zip")));
   m_helpController->SetFrameParameters(wxT("%s"), wxDefaultSize, wxDefaultPosition); 	
 
   // load icons
-  m_icons = wxIconBundle(wxIcon(wxT("icons/LoopyIcon-16.png"), wxBITMAP_TYPE_PNG));
-  m_icons.AddIcon(wxIcon(wxT("icons/LoopyIcon-24.png"), wxBITMAP_TYPE_PNG));
-  m_icons.AddIcon(wxIcon(wxT("icons/LoopyIcon-32.png"), wxBITMAP_TYPE_PNG));
-  m_icons.AddIcon(wxIcon(wxT("icons/LoopyIcon-48.png"), wxBITMAP_TYPE_PNG));
+  m_icons = wxIconBundle(wxIcon(ResourceDir + wxFILE_SEP_PATH + wxT("icons/hicolor/16x16/apps/LoopAuditioneer.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(ResourceDir + wxFILE_SEP_PATH + wxT("icons/hicolor/24x24/apps/LoopAuditioneer.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(ResourceDir + wxFILE_SEP_PATH + wxT("icons/hicolor/32x32/apps/LoopAuditioneer.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(ResourceDir + wxFILE_SEP_PATH + wxT("icons/hicolor/48x48/apps/LoopAuditioneer.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(ResourceDir + wxFILE_SEP_PATH + wxT("icons/hicolor/64x64/apps/LoopAuditioneer.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(ResourceDir + wxFILE_SEP_PATH + wxT("icons/hicolor/128x128/apps/LoopAuditioneer.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(ResourceDir + wxFILE_SEP_PATH + wxT("icons/hicolor/256x256/apps/LoopAuditioneer.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(ResourceDir + wxFILE_SEP_PATH + wxT("icons/hicolor/512x512/apps/LoopAuditioneer.png"), wxBITMAP_TYPE_PNG));
+  m_icons.AddIcon(wxIcon(ResourceDir + wxFILE_SEP_PATH + wxT("icons/hicolor/1024x1024/apps/LoopAuditioneer.png"), wxBITMAP_TYPE_PNG));
 
   frame->SetIcons(m_icons);
 

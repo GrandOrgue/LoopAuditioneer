@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=LoopAuditioneer
+GenericName=Audio sample editor
+Comment=LoopAuditioneer - Software for loop and cue handling in .wav files
+Exec=LoopAuditioneer
+Icon=LoopAuditioneer
+Terminal=false
+Type=Application
+Categories=Audio;AudioVideo;Music;
+MimeType=audio/x-wav;audio/wav;
