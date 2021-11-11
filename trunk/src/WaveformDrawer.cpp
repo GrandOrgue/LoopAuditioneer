@@ -19,7 +19,7 @@
  */
 
 #include "WaveformDrawer.h"
-#include "icons/PlayPositionMarker.xpm"
+#include "PlayPositionMarker.xpm"
 #include <cmath>
 #include <cfloat>
 #include "LoopAuditioneer.h"

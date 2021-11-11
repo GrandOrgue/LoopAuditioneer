@@ -1,0 +1,107 @@
+From the 0.9 release a cmake build system is in place. Some re-organization of
+project files has been done and a new icon design based on the original was
+created for higher resolution.
+
+The 0.8.8 release introduce an indication on the waveform for which loop or cue
+that's currently selected. Also some updates to the help documentation was done.
+
+From the 0.8.7 release it's possible to adjust the sustainsection (if not in
+automatic detection mode) directly on the waveform. If a new loop is manually 
+created a basic loop search will be done at endpoints of sustainsection. Options
+to directly open next upper or lower file from the currently selected one was
+added and can be used either by the file menu items or key combination.
+
+In the 0.8.6 release it's possible to select different sound Apis and Devices
+for audio output and not only rely on the default soundcard of the system. Also
+the audio output can now be resampled if the audio settings cannot handle what
+the audio file contain.
+
+The 0.8.5 release introduce the possiblitiy to read/write some LIST INFO stings
+in the wave file.
+
+With the 0.8.4 release the audio data handling has been streamlined and a new
+handling of the sustainsection developed. Now the currently used sustainsection
+is marked on the waveform so that one can see where loops are searched in the
+audio data.
+
+The 0.8.3 release updates the external libraries and is built on a newer tool-
+chain. Small code adjustments done to make it work with the new build tools.
+
+The 0.8.2 release introduces a new waveform overlay at looppoints and multiple
+fixes to various issues.
+
+With the 0.8.1.3 release a more updated tool-chain was used and some small
+corrections to the code were made because of the newer wxWidgets library.
+
+The 0.8.1.2 relese fixes the header display of the listctrl on Windows and also
+addresses the spacing of the columns.
+
+In the 0.8.1.1 release the playback of 32 bit float files are fixed. Also the
+loopsearch is now aware of already present loops in the file and takes them
+into account when searching for new loops.
+
+With the 0.8.1 version many changes are introduced. It's possible to do
+crossfades as a batch process, a few of the batch processes are re-worked to be
+more useful in providing lines for a GrandOrgue ODF. A complete help is now
+built into the program. It's possible to save a file and open next in the file
+list to speed up work by reducing the amount of operations needed. A few bug
+fixes are also included. Also a few of the loop search settings parameters have
+increased range now.
+
+The 0.8 version series introduce a new approach to file listing in a listctrl
+instead of a listbox to allow multiple columns showing beside the file name the
+number of loops, cues, the Midi note and pitchfraction of the files. The
+shortcut keys were modified so that the mostly used ones are placed better for
+lefthand only usage. Navigation between files in the listctrl and between loops
+and cues can also now be done with keyboard keys. Many of the settings are now
+saved to a config text file to allow the program to remember user settings from
+one session to another. Playback of only the loop part of a sample is also now
+possible.
+
+With the 0.7.5 release the loop finding parameters have been modified to have
+larger span to increase possibilities to find loops even in very difficult
+samples. A brute force option was added that will use a different strategy for
+the loop collection and selection that should result in the best possible loops
+found but also will take longer to complete the search process. Now it's also
+enforced that, if more than one loop is found, all found loops must overlap at
+least one other loop. Also the loop finding parameters now are shared between
+single mode and batch mode which means that any adjustments must be done in the
+main window.
+
+Starting with the 0.7 version series it's now possible to modify the audio data
+of a file. New features include the possibility to crossfade loops in a few
+different manners and also a new dialog to have a close-up view of the selected
+loop waveform overlayed at the looppoints. A possibility to cut and fade in/out
+has been added both to single file mode and in batch processing.
+
+It's now possible to edit cues by left clicking on the cue marker flag in the
+waveform and then left click again at the desired new location. It's also now
+possible to create new cue markers by right clicking at the desired position on
+the waveform and select Add cue from the popup menu.
+
+A new feature makes it possible to create loops from the toolbar or menu and 
+also edit already existing loops by right clicking on the loop row in the 
+table, which will trigger a dialog where the new start and end positions can be
+written. It's however recommended to use another software to automatically find
+good loop points, since that feature is not available in LoopAuditioneer.
+
+It's possible to autosearch for good natural loop points either by using the
+toolbar icon or the menu item. Fine control of the loopsearch settings is
+possible in the settings dialog available from both toolbar and menu.
+
+Now it's also possible to auto-detect the pitch of the sample and store this
+information as midi note and pitch fraction. Of course it's also possible to
+manually set this information. It's possible to use either the FFT based pitch
+detection or the time domain based one. Time domain is better for single notes
+at medium to lower frequencies while FFT is better for multiple notes 
+(like mixtures) and higher frequencies (approximately at 072-C of a 8' stop).
+A second FFT based pitch detection method is added (harmonic product spectrum)
+which works slightly differently to get another option for difficult samples.
+
+Batch processing of all wav files in folder is possible through the batch
+process dialog available both on toolbar and in menu.
+
+All menu items now also have keyboard shortcuts.
+
+For soft samples it's now possible to boost the volume to be able to better
+judge the quality of the found loops.

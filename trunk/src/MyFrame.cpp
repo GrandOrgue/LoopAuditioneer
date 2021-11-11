@@ -35,6 +35,7 @@
 #include <wx/filename.h>
 #include "ListInfoDialog.h"
 #include "AudioSettingsDialog.h"
+#include "FreePixelIcons.h"
 
 bool MyFrame::loopPlay = true; // default to loop play
 int MyFrame::volumeMultiplier = 1; // default value
@@ -88,7 +89,7 @@ END_EVENT_TABLE()
 void MyFrame::OnAbout(wxCommandEvent& event) {
   wxAboutDialogInfo info;
   info.SetName(appName);
-  info.SetVersion(appVersion);
+  info.SetVersion(wxT(MY_APP_VERSION));
   info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files as well as perform other tasks necessary for preparing samples for usage in sample players."));
   info.SetCopyright(wxT("Copyright (C) 2011-2021 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
   info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
@@ -770,23 +771,23 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   toolBar = CreateToolBar(wxNO_BORDER | wxTB_HORIZONTAL | wxTB_FLAT);
   toolBar->SetToolBitmapSize(wxSize(24, 24));
   wxImage::AddHandler(new wxPNGHandler);
-  wxBitmap selectFolder(wxT("../icons/24x24/Open_folder.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap openSelectedFile(wxT("../icons/24x24/Open_file.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap saveFile(wxT("../icons/24x24/Save.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap saveFileAs(wxT("../icons/24x24/Save_as.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap startPlayback(wxT("../icons/24x24/Right.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap stopPlayback(wxT("../icons/24x24/Stop.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap loopCreation(wxT("../icons/24x24/Refresh.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap autoLoop(wxT("../icons/24x24/Search.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap autoLoopSettings(wxT("../icons/24x24/Yin-Yang.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap batchProcess(wxT("../icons/24x24/Gear.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap pitchInfo(wxT("../icons/24x24/Bell.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap zoomInAmp(wxT("../icons/24x24/Zoom_in.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap zoomOutAmp(wxT("../icons/24x24/Zoom_out.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap crossfade(wxT("../icons/24x24/Wizard.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap cutfade(wxT("../icons/24x24/Software.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap viewloop(wxT("../icons/24x24/Diagram.png"), wxBITMAP_TYPE_PNG);
-  wxBitmap listInfo(wxT("../icons/24x24/Text.png"), wxBITMAP_TYPE_PNG);
+  wxBitmap selectFolder = wxBITMAP_PNG_FROM_DATA(Open_folder);
+  wxBitmap openSelectedFile = wxBITMAP_PNG_FROM_DATA(Open_file);
+  wxBitmap saveFile = wxBITMAP_PNG_FROM_DATA(Save);
+  wxBitmap saveFileAs = wxBITMAP_PNG_FROM_DATA(Save_as);
+  wxBitmap startPlayback = wxBITMAP_PNG_FROM_DATA(Right);
+  wxBitmap stopPlayback = wxBITMAP_PNG_FROM_DATA(Stop);
+  wxBitmap loopCreation = wxBITMAP_PNG_FROM_DATA(Refresh);
+  wxBitmap autoLoop = wxBITMAP_PNG_FROM_DATA(Search);
+  wxBitmap autoLoopSettings = wxBITMAP_PNG_FROM_DATA(Yin_Yang);
+  wxBitmap batchProcess = wxBITMAP_PNG_FROM_DATA(Gear);
+  wxBitmap pitchInfo = wxBITMAP_PNG_FROM_DATA(Bell);
+  wxBitmap zoomInAmp = wxBITMAP_PNG_FROM_DATA(Zoom_in);
+  wxBitmap zoomOutAmp = wxBITMAP_PNG_FROM_DATA(Zoom_out);
+  wxBitmap crossfade = wxBITMAP_PNG_FROM_DATA(Wizard);
+  wxBitmap cutfade = wxBITMAP_PNG_FROM_DATA(Software);
+  wxBitmap viewloop = wxBITMAP_PNG_FROM_DATA(Diagram);
+  wxBitmap listInfo = wxBITMAP_PNG_FROM_DATA(Text);
   toolBar->AddTool(FILE_SELECT, wxT("Select working folder"), selectFolder, wxT("Select working folder"));
   toolBar->AddTool(OPEN_SELECTED, wxT("Open selected file"), openSelectedFile, wxT("Open selected file"));
   toolBar->AddTool(wxID_SAVE, wxT("Save file"), saveFile, wxT("Save file"));
