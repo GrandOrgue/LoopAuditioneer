@@ -256,7 +256,7 @@ void LoopOverlay::OnPaint(wxDC& dc) {
   dc.SetBackground(wxBrush());
   dc.Clear();
   dc.SetBrush(wxBrush(*wxWHITE));
-  dc.SetPen(wxPen(*wxBLACK, 1, wxSOLID));
+  dc.SetPen(wxPen(*wxBLACK, 1, wxPENSTYLE_SOLID));
 
   // draw the track containing rectangles
   if (m_fileReference->m_channels > 0) {
@@ -269,7 +269,7 @@ void LoopOverlay::OnPaint(wxDC& dc) {
       dc.DrawRectangle(x1, y1, x2, y2);
 
       // text to the left of track rectangles
-      dc.SetFont(wxFont(10, wxFONTFAMILY_DEFAULT, wxNORMAL, wxNORMAL));
+      dc.SetFont(wxFont(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
       wxString ch_label = wxString::Format(wxT("Channel %i"), i + 1);
       wxSize extent = dc.GetTextExtent(ch_label);
       dc.DrawRotatedText(
@@ -278,7 +278,7 @@ void LoopOverlay::OnPaint(wxDC& dc) {
         topMargin + trackHeight / 2 + trackHeight * i + extent.x / 2,
         90
       );
-      dc.SetFont(wxFont(6, wxFONTFAMILY_DEFAULT, wxNORMAL, wxFONTWEIGHT_LIGHT));
+      dc.SetFont(wxFont(6, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_LIGHT));
       wxString highValue = wxString::Format(wxT("%.2f"), m_maxValue);
       extent = dc.GetTextExtent(highValue);
       dc.DrawText(highValue, (leftMargin - extent.x) / 2, topMargin + trackHeight * i);
@@ -288,7 +288,7 @@ void LoopOverlay::OnPaint(wxDC& dc) {
 
       // draw the zero line only if it should be visible
       if (m_maxValue > 0 && m_minValue < 0) {
-        dc.SetPen(wxPen(*wxGREEN, 1, wxSOLID));
+        dc.SetPen(wxPen(*wxGREEN, 1, wxPENSTYLE_SOLID));
         double normalizedZero = (0 - m_minValue) / m_valueRange;
         int zeroY = topMargin + trackHeight - trackHeight * normalizedZero + trackHeight * i;
         dc.DrawLine(
@@ -300,7 +300,7 @@ void LoopOverlay::OnPaint(wxDC& dc) {
       }
 
       // draw in the sample points and lines indicating the startpoint data
-      dc.SetPen(wxPen(*wxBLUE, 1, wxSOLID));
+      dc.SetPen(wxPen(*wxBLUE, 1, wxPENSTYLE_SOLID));
       wxPoint startWave[m_numberOfSamples];
       for (int j = 0; j < m_numberOfSamples; j++) {
         int x_value = leftMargin + (m_trackWidth / (m_numberOfSamples - 1)) * j;
@@ -316,11 +316,11 @@ void LoopOverlay::OnPaint(wxDC& dc) {
           }
         }
       }
-      dc.SetPen(wxPen(*wxBLUE, 1, wxSOLID));
+      dc.SetPen(wxPen(*wxBLUE, 1, wxPENSTYLE_SOLID));
       dc.DrawLines(m_numberOfSamples, startWave);
 
       // draw in the sample points and lines indicating the endpoint data
-      dc.SetPen(wxPen(*wxRED, 1, wxSOLID));
+      dc.SetPen(wxPen(*wxRED, 1, wxPENSTYLE_SOLID));
       wxPoint endWave[m_numberOfSamples];
       for (int j = 0; j < m_numberOfSamples; j++) {
         int x_value = leftMargin + (m_trackWidth / (m_numberOfSamples - 1)) * j;
@@ -336,11 +336,11 @@ void LoopOverlay::OnPaint(wxDC& dc) {
           }
         }
       }
-      dc.SetPen(wxPen(*wxRED, 1, wxSOLID));
+      dc.SetPen(wxPen(*wxRED, 1, wxPENSTYLE_SOLID));
       dc.DrawLines(m_numberOfSamples, endWave);
 
       // reset pen for next channel
-      dc.SetPen(wxPen(*wxBLACK, 1, wxSOLID));
+      dc.SetPen(wxPen(*wxBLACK, 1, wxPENSTYLE_SOLID));
     }
   }
   SetSampleSpinnerValues();

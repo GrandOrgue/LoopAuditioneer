@@ -204,9 +204,9 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
           int yPositionHigh = topMargin + 1;
           int yPositionLow = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1);
           if (hasCueSelection && i == (unsigned) cueIndexSelection) {
-            dc.SetPen(wxPen(green, 1, wxSOLID));
+            dc.SetPen(wxPen(green, 1, wxPENSTYLE_SOLID));
           } else {
-            dc.SetPen(wxPen(green, 1, wxDOT));
+            dc.SetPen(wxPen(green, 1, wxPENSTYLE_DOT));
           }
           wxSize extent = dc.GetTextExtent(wxString::Format(wxT("M%i"), i + 1));
           dc.DrawLine(xPosition, yPositionLow, xPosition, yPositionHigh + overlap * (extent.GetHeight() + 5));
@@ -229,9 +229,9 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
           overlap = loopLayout[i].placedInRow;
 
           if (hasLoopSelection && i == (unsigned) loopIndexSelection) {
-            dc.SetPen(wxPen(red, 1, wxSOLID));
+            dc.SetPen(wxPen(red, 1, wxPENSTYLE_SOLID));
           } else {
-            dc.SetPen(wxPen(red, 1, wxDOT_DASH));
+            dc.SetPen(wxPen(red, 1, wxPENSTYLE_DOT_DASH));
           }
           wxSize extent = dc.GetTextExtent(wxString::Format(wxT("L%i"), i + 1));
           dc.DrawLine(xPositionS, yPositionLow, xPositionS, yPositionHigh + overlap * (extent.GetHeight() + 5));
@@ -310,7 +310,7 @@ void WaveformDrawer::OnPaintPlayPosition(wxDC& dc) {
   dc.SetClippingRegion(0, 0, leftMargin + trackWidth + rightMargin, 9);
   dc.Clear();
   dc.SetPen(wxPen(black, 1, wxPENSTYLE_SOLID));
-  dc.SetBrush(wxBrush(white, wxPENSTYLE_SOLID));
+  dc.SetBrush(wxBrush(white, wxBRUSHSTYLE_SOLID));
 
   // draw playposition rectangle
   dc.DrawRectangle(leftMargin, 0, trackWidth, 10);
@@ -595,7 +595,7 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
       if (inCue) {
         cueIsSelected = true;
         wxClientDC dc(this);
-        dc.SetBrush(wxBrush(white, wxBDIAGONAL_HATCH));
+        dc.SetBrush(wxBrush(white, wxBRUSHSTYLE_BDIAGONAL_HATCH));
         dc.SetPen(wxPen(green, 1, wxPENSTYLE_SOLID));
         dc.DrawRectangle(cueLayout[selectedCueIndex].flagUpLeft.first, cueLayout[selectedCueIndex].flagUpLeft.second,
                          cueLayout[selectedCueIndex].flagDownRight.first - cueLayout[selectedCueIndex].flagUpLeft.first,
@@ -651,7 +651,7 @@ void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
     wxClientDC dc(this);
     int yPositionHigh = topMargin + 1;
     int yPositionLow = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1);
-    dc.SetPen(wxPen(green, 1, wxDOT));
+    dc.SetPen(wxPen(green, 1, wxPENSTYLE_DOT));
     dc.DrawLine(m_x, yPositionLow, m_x, yPositionHigh);
 
     PopupMenu(m_popupMenu, event.GetPosition());
