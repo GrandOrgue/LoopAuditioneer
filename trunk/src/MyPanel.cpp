@@ -132,6 +132,7 @@ void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bo
   m_grid->SetCellValue(index, 4, boolValue);
 
   m_grid->AutoSizeColumns(false);
+  GetSizer()->Layout();
 }
 
 void MyPanel::FillRowWithCueData(unsigned int id, unsigned int position, bool save, int index) {
@@ -159,6 +160,7 @@ void MyPanel::FillRowWithCueData(unsigned int id, unsigned int position, bool sa
   m_cueGrid->SetCellValue(index, 2, boolValue);
 
   m_cueGrid->AutoSizeColumns(false);
+  GetSizer()->Layout();
 }
 
 void MyPanel::EmptyTable() {
@@ -172,6 +174,7 @@ void MyPanel::EmptyTable() {
 
   m_grid->AutoSizeColumns(false);
   m_cueGrid->AutoSizeColumns(false);
+  GetSizer()->Layout();
 }
 
 void MyPanel::ChangeCueData(unsigned int offset, int index) {
