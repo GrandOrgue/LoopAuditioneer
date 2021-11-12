@@ -46,6 +46,12 @@ else()
   endif()
 endif()
 
+# add windows resources
+if(CMAKE_CROSSCOMPILING AND WIN32)
+  configure_file(${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.rc.in ${CMAKE_CURRENT_BINARY_DIR}/LoopAuditioneer.rc)
+  configure_file(${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.ico ${CMAKE_CURRENT_BINARY_DIR}/LoopAuditioneer.ico COPYONLY)
+endif()
+
 set(LA_SRC
   LoopAuditioneer.cpp
   MyFrame.cpp
@@ -76,6 +82,7 @@ if(CMAKE_CROSSCOMPILING AND WIN32)
   add_executable(${CMAKE_PROJECT_NAME}
     WIN32
     ${LA_SRC}
+    LoopAuditioneer.rc
   )
 else()
   add_executable(${CMAKE_PROJECT_NAME}
