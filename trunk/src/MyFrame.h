@@ -64,7 +64,7 @@ public:
   void OnStartPlay(wxCommandEvent& event);
   void OnStopPlay(wxCommandEvent& event);
   void DoStopPlay();
-  void UpdatePlayPosition(wxTimerEvent& evt);
+  void UpdatePlayPosition(wxTimerEvent& event);
   void OnAddLoop(wxCommandEvent& event);
   void OnBatchProcess(wxCommandEvent& event);
   void OnAutoLoop(wxCommandEvent& event);

@@ -84,7 +84,7 @@ private:
   int m_selectedLoop;
   bool m_hasChanged;
 
-  void OnPaintEvent(wxPaintEvent& evt);
+  void OnPaintEvent(wxPaintEvent& event);
   void OnPaint(wxDC& dc);
   void OnSize(wxSizeEvent& event);
   void UpdateAudioTracks();

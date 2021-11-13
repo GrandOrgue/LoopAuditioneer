@@ -258,11 +258,10 @@ double StopHarmonicDialog::GetSelectedPitch() {
   return m_pitch;
 }
 
-void StopHarmonicDialog::OnChoiceSelected(wxCommandEvent& event) {
+void StopHarmonicDialog::OnChoiceSelected(wxCommandEvent& WXUNUSED(event)) {
   m_selectedHarmonic = m_harmonicChoiceBox->GetSelection() + 1;
 }
 
-void StopHarmonicDialog::OnPitchChanged(wxSpinDoubleEvent& event) {
+void StopHarmonicDialog::OnPitchChanged(wxSpinDoubleEvent& WXUNUSED(event)) {
   m_pitch = m_pitchCtrl->GetValue();
 }
-

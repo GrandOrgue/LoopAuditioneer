@@ -225,7 +225,7 @@ void AudioSettingsDialog::UpdateAvailableDevices() {
   }
 }
 
-void AudioSettingsDialog::OnApiChoice(wxCommandEvent& event) {
+void AudioSettingsDialog::OnApiChoice(wxCommandEvent& WXUNUSED(event)) {
   wxChoice *apiChoice = (wxChoice*) FindWindow(ID_SOUND_API);
   wxString choiceStr = m_availableApis.Item(apiChoice->GetSelection());
   if (!choiceStr.IsSameAs(m_snd_api)) {
@@ -240,7 +240,7 @@ void AudioSettingsDialog::OnApiChoice(wxCommandEvent& event) {
   CheckIfOkCanBeEnabled();
 }
 
-void AudioSettingsDialog::OnDeviceChoice(wxCommandEvent& event) {
+void AudioSettingsDialog::OnDeviceChoice(wxCommandEvent& WXUNUSED(event)) {
   wxChoice *deviceChoice = (wxChoice*) FindWindow(ID_SOUND_DEVICE);
   unsigned int deviceIdx = deviceChoice->GetSelection();
   if (deviceIdx != m_snd_device) {

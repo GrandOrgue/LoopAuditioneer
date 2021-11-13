@@ -46,7 +46,7 @@ void CueMarkers::GetCuePoint(int index, CUEPOINT& cData) {
 }
 
 void CueMarkers::SetSaveOption(bool keep, unsigned index) {
-  if (index >= 0 && index < dwCuePoints)
+  if (index < dwCuePoints)
     cuePoints[index].keepThisCue = keep;
 }
 
@@ -71,7 +71,7 @@ void CueMarkers::ExportCues() {
 }
 
 void CueMarkers::ChangePosition(unsigned offset, unsigned index) {
-  if (index >= 0 && index < dwCuePoints)
+  if (index < dwCuePoints)
     cuePoints[index].dwSampleOffset = offset;
 }
 

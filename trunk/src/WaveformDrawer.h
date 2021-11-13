@@ -53,7 +53,7 @@ public:
 
   bool somethingHasChanged;
 
-  void paintEvent(wxPaintEvent & evt);
+  void paintEvent(wxPaintEvent& event);
   void OnLeftClick(wxMouseEvent& event);
   void OnLeftRelease(wxMouseEvent& event);
   void OnRightClick(wxMouseEvent& event);
