@@ -296,7 +296,7 @@ void BatchProcessDialog::CreateControls() {
 
 }
 
-void BatchProcessDialog::OnAddSource(wxCommandEvent& event) {
+void BatchProcessDialog::OnAddSource(wxCommandEvent& WXUNUSED(event)) {
   wxDirDialog *selectDirDialog = new wxDirDialog(
     this,
     wxT("Choose a source folder to batch process"),
@@ -317,7 +317,7 @@ void BatchProcessDialog::OnAddSource(wxCommandEvent& event) {
   ReadyToRockAndRoll();
 }
 
-void BatchProcessDialog::OnAddTarget(wxCommandEvent& event) {
+void BatchProcessDialog::OnAddTarget(wxCommandEvent& WXUNUSED(event)) {
   wxDirDialog *selectDirDialog = new wxDirDialog(
     this,
     wxT("Choose target folder for batch process"),
@@ -336,7 +336,7 @@ void BatchProcessDialog::OnAddTarget(wxCommandEvent& event) {
   ReadyToRockAndRoll();
 }
 
-void BatchProcessDialog::OnChoiceSelected(wxCommandEvent& event) {
+void BatchProcessDialog::OnChoiceSelected(wxCommandEvent& WXUNUSED(event)) {
   ReadyToRockAndRoll();
 }
 
@@ -357,7 +357,7 @@ void BatchProcessDialog::ReadyToRockAndRoll() {
   }
 }
 
-void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
+void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
   AutoLooping *autoloop = new AutoLooping();
   // Get all wav files in the source directory
   wxArrayString filesToProcess;
@@ -526,7 +526,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
               // call to search for loops
               bool foundLoops = autoloop->AutoFindLoops(
                 audioData,
-                nbrOfSmpls,
                 fh.GetSampleRate(),
                 addLoops,
                 sustainSection.first,
@@ -1169,7 +1168,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
 
                 if (fh.m_loops->GetNumberOfLoops() > 1) {
                   // crossfading should be done in order of loop end point appearance
-                  int crossfadeOrder[fh.m_loops->GetNumberOfLoops()];
+                  int *crossfadeOrder = new int[fh.m_loops->GetNumberOfLoops()];
                   for (int j = 0; j < fh.m_loops->GetNumberOfLoops(); j++)
                     crossfadeOrder[j] = j;
 
@@ -1225,6 +1224,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& event) {
                       m_statusProgress->AppendText(wxString::Format(wxT("\tCouldn't crossfade loop %i!\n"), crossfadeOrder[j]));
                     }
                   }
+                  delete[] crossfadeOrder;
                 } else {
                   // just one loop to crossfade
                   fh.PerformCrossfade(0, crossfadeTime, crossfadetype);

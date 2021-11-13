@@ -73,6 +73,12 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(pare
   hasLoopSelection = false;
   cueIndexSelection = -1;
   hasCueSelection = false;
+  m_x = 0;
+  m_y = 0;
+  m_prev_x = 0;
+  m_prev_y = 0;
+  m_leftBorderX = 0;
+  m_rightBorderX = 0;
 
   // create the popup menu for the waveform
   m_popupMenu = new wxMenu();
@@ -80,7 +86,7 @@ WaveformDrawer::WaveformDrawer(wxFrame *parent, FileHandling *fh) : wxPanel(pare
 }
 
 // Called when the panel needs to be redrawn (if the panel is resized)
-void WaveformDrawer::paintEvent(wxPaintEvent & evt) {
+void WaveformDrawer::paintEvent(wxPaintEvent& WXUNUSED(event)) {
   wxPaintDC dc(this);
   OnPaint(dc);
 }
@@ -613,7 +619,7 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
   }
 }
 
-void WaveformDrawer::OnLeftRelease(wxMouseEvent& event) {
+void WaveformDrawer::OnLeftRelease(wxMouseEvent& WXUNUSED(event)) {
   if (!m_fileReference->GetAutoSustainSearch()) {
     if (isChangingSustainSection) {
       // we must update the sustainsection in the file reference as it could have changed
@@ -661,7 +667,7 @@ void WaveformDrawer::OnRightClick(wxMouseEvent& event) {
   }
 }
 
-void WaveformDrawer::OnMouseMotion(wxMouseEvent& event) {
+void WaveformDrawer::OnMouseMotion(wxMouseEvent& WXUNUSED(event)) {
   if (!m_fileReference->GetAutoSustainSearch()) {
     wxPoint pt = wxGetMousePosition();
     int mouseX = pt.x - this->GetScreenPosition().x;
@@ -744,7 +750,7 @@ void WaveformDrawer::OnMouseMotion(wxMouseEvent& event) {
   }
 }
 
-void WaveformDrawer::OnMouseLeave(wxMouseEvent& event) {
+void WaveformDrawer::OnMouseLeave(wxMouseEvent& WXUNUSED(event)) {
   if (!m_fileReference->GetAutoSustainSearch()) {
     mouseWithinSustainSection = false;
     withinLeftChangeBorder = false;
@@ -767,8 +773,7 @@ void WaveformDrawer::OnMouseLeave(wxMouseEvent& event) {
   }
 }
 
-void WaveformDrawer::OnMouseEnter(wxMouseEvent& event) {
-
+void WaveformDrawer::OnMouseEnter(wxMouseEvent& WXUNUSED(event)) {
 }
 
 void WaveformDrawer::DrawSustainSectionRectOutline() {
@@ -839,7 +844,7 @@ void WaveformDrawer::CalculateSustainIndication() {
   CalculateSustainRectZones();
 }
 
-void WaveformDrawer::OnClickAddCue(wxCommandEvent& event) {
+void WaveformDrawer::OnClickAddCue(wxCommandEvent& WXUNUSED(event)) {
   // we should now calculate what sample have lowest RMS power around current position
   // so that a good dwSampleOffset value can be sent to the new cue
   int nrOfSamples = m_fileReference->waveTracks[0].waveData.size();

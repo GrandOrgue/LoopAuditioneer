@@ -194,14 +194,14 @@ bool CrossfadeDialog::TransferDataFromWindow() {
   return true;
 }
 
-void CrossfadeDialog::OnFadedurationSlider(wxCommandEvent& event) {
+void CrossfadeDialog::OnFadedurationSlider(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *durationSl = (wxSlider*) FindWindow(ID_FADEDURATION);
 
   double value = (double) durationSl->GetValue() / 1000.0;
   m_fadeduration = value;
 }
 
-void CrossfadeDialog::OnFademethodSelection(wxCommandEvent& event) {
+void CrossfadeDialog::OnFademethodSelection(wxCommandEvent& WXUNUSED(event)) {
   wxRadioBox *radioBox = (wxRadioBox*) FindWindow(ID_FADEMETHOD);
 
   selectedMethod = radioBox->GetSelection();

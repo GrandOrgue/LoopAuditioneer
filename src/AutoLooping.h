@@ -43,7 +43,6 @@ public:
   // the best loops found in the vector sent by reference
   bool AutoFindLoops(
     const double data[], // an array of audio data from the strongest channel in file
-    unsigned arrayLength, // number of samples in array
     unsigned samplerate,
     std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
     unsigned sustainStart,

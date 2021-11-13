@@ -44,7 +44,6 @@ AutoLooping::~AutoLooping() {
 
 bool AutoLooping::AutoFindLoops(
   const double data[],
-  unsigned arrayLength,
   unsigned samplerate,
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops, 
   unsigned sustainStart,

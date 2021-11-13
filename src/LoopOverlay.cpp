@@ -232,7 +232,7 @@ LoopOverlay::~LoopOverlay() {
     delete[] audioData;
 }
 
-void LoopOverlay::OnPaintEvent(wxPaintEvent & evt) {
+void LoopOverlay::OnPaintEvent(wxPaintEvent& WXUNUSED(event)) {
   wxPaintDC dcp(this);
   wxClientDC dc(m_drawingPanel);
   OnPaint(dc);
@@ -301,7 +301,7 @@ void LoopOverlay::OnPaint(wxDC& dc) {
 
       // draw in the sample points and lines indicating the startpoint data
       dc.SetPen(wxPen(*wxBLUE, 1, wxPENSTYLE_SOLID));
-      wxPoint startWave[m_numberOfSamples];
+      wxPoint *startWave = new wxPoint[m_numberOfSamples];
       for (int j = 0; j < m_numberOfSamples; j++) {
         int x_value = leftMargin + (m_trackWidth / (m_numberOfSamples - 1)) * j;
         double y = m_startTracks[i].startData[j]; // real value from audio data
@@ -321,7 +321,7 @@ void LoopOverlay::OnPaint(wxDC& dc) {
 
       // draw in the sample points and lines indicating the endpoint data
       dc.SetPen(wxPen(*wxRED, 1, wxPENSTYLE_SOLID));
-      wxPoint endWave[m_numberOfSamples];
+      wxPoint *endWave = new wxPoint[m_numberOfSamples];
       for (int j = 0; j < m_numberOfSamples; j++) {
         int x_value = leftMargin + (m_trackWidth / (m_numberOfSamples - 1)) * j;
         double y = m_endTracks[i].endData[j]; // real value from audio data
@@ -341,6 +341,8 @@ void LoopOverlay::OnPaint(wxDC& dc) {
 
       // reset pen for next channel
       dc.SetPen(wxPen(*wxBLACK, 1, wxPENSTYLE_SOLID));
+      delete[] startWave;
+      delete[] endWave;
     }
   }
   SetSampleSpinnerValues();
@@ -417,7 +419,7 @@ void LoopOverlay::DecideButtonState() {
     m_prevLoop->Enable(false);
 }
 
-void LoopOverlay::OnPrevButton(wxCommandEvent& event) {
+void LoopOverlay::OnPrevButton(wxCommandEvent& WXUNUSED(event)) {
   if (m_selectedLoop > 0) {
     m_selectedLoop--;
 
@@ -432,7 +434,7 @@ void LoopOverlay::OnPrevButton(wxCommandEvent& event) {
   }
 }
 
-void LoopOverlay::OnNextButton(wxCommandEvent& event) {
+void LoopOverlay::OnNextButton(wxCommandEvent& WXUNUSED(event)) {
   if (m_selectedLoop < m_fileReference->m_loops->GetNumberOfLoops() - 1) {
     m_selectedLoop++;
 
@@ -454,14 +456,14 @@ void LoopOverlay::UpdateSpinners() {
   loopEndSpin->SetValue(currentLoopend);
 }
 
-void LoopOverlay::OnLoopStartChange(wxSpinEvent& event) {
+void LoopOverlay::OnLoopStartChange(wxSpinEvent& WXUNUSED(event)) {
   currentLoopstart = loopStartSpin->GetValue();
   UpdateAudioTracks();
   SetSaveButtonState();
   PaintNow();
 }
 
-void LoopOverlay::OnLoopEndChange(wxSpinEvent& event) {
+void LoopOverlay::OnLoopEndChange(wxSpinEvent& WXUNUSED(event)) {
   currentLoopend = loopEndSpin->GetValue();
   UpdateAudioTracks();
   SetSaveButtonState();
@@ -481,7 +483,7 @@ void LoopOverlay::SetSampleSpinnerValues() {
   m_waveLength->SetRange(41, m_maxSamplesSpinner);
 }
 
-void LoopOverlay::OnWaveLengthChange(wxSpinEvent& event) {
+void LoopOverlay::OnWaveLengthChange(wxSpinEvent& WXUNUSED(event)) {
   m_numberOfSamples = m_waveLength->GetValue();
   if (m_numberOfSamples > m_maxSamplesSpinner) {
     m_numberOfSamples = m_maxSamplesSpinner;
@@ -492,7 +494,7 @@ void LoopOverlay::OnWaveLengthChange(wxSpinEvent& event) {
   }
 }
 
-void LoopOverlay::OnStoreChanges(wxCommandEvent& event) {
+void LoopOverlay::OnStoreChanges(wxCommandEvent& WXUNUSED(event)) {
   m_fileReference->m_loops->SetLoopPositions(currentLoopstart, currentLoopend, m_selectedLoop);
   SetSaveButtonState();
   m_hasChanged = true;
@@ -516,6 +518,6 @@ void LoopOverlay::PaintNow() {
   this->Refresh();
 }
 
-void LoopOverlay::OnSize(wxSizeEvent& event) {
+void LoopOverlay::OnSize(wxSizeEvent& WXUNUSED(event)) {
   Layout();
 }

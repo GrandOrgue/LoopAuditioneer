@@ -32,7 +32,7 @@ void LoopMarkers::AddLoop(LOOPDATA loopData) {
 }
 
 void LoopMarkers::SetSaveOption(bool toBeSaved, unsigned index) {
-  if (index >= 0 && index < loopsIn.size())
+  if (index < loopsIn.size())
     loopsIn[index].shouldBeSaved = toBeSaved;
 }
 

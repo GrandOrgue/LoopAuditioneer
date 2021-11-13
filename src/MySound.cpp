@@ -58,7 +58,7 @@ void MySound::SetApiToUse(RtAudio::Api api) {
 
 void MySound::SetAudioDevice(unsigned int devID) {
   if (m_audio->getDeviceCount() > 0) {
-    if ((devID >= 0) && (devID < m_audio->getDeviceCount())) {
+    if (devID < m_audio->getDeviceCount()) {
       // this should be a valid device
       m_deviceID = devID;
     } else {
@@ -93,6 +93,7 @@ void MySound::SetSampleRate(int sampleRate) {
 }
 
 void MySound::SetAudioFormat(int audioFormat) {
+  (void)audioFormat;
   fmt = RTAUDIO_FLOAT32;
 }
 

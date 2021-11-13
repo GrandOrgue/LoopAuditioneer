@@ -587,7 +587,7 @@ bool AutoLoopDialog::TransferDataFromWindow() {
   return true;
 }
 
-void AutoLoopDialog::OnAutosearchCheck(wxCommandEvent& event) {
+void AutoLoopDialog::OnAutosearchCheck(wxCommandEvent& WXUNUSED(event)) {
   wxCheckBox *autoCheck = (wxCheckBox*) FindWindow(ID_SEARCH_CHECK);
   wxSlider *startSl = (wxSlider*) FindWindow(ID_SUSTAINSTART);
   wxSlider *endSl = (wxSlider*) FindWindow(ID_SUSTAINEND);
@@ -602,12 +602,12 @@ void AutoLoopDialog::OnAutosearchCheck(wxCommandEvent& event) {
   }
 }
 
-void AutoLoopDialog::OnBruteForceCheck(wxCommandEvent& event) {
+void AutoLoopDialog::OnBruteForceCheck(wxCommandEvent& WXUNUSED(event)) {
   wxCheckBox *bruteCheck = (wxCheckBox*) FindWindow(ID_BRUTE_FORCE_CHECK);
   m_searchBruteForce = bruteCheck->GetValue();
 }
 
-void AutoLoopDialog::OnStartSliderMove(wxCommandEvent& event) {
+void AutoLoopDialog::OnStartSliderMove(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *startSl = (wxSlider*) FindWindow(ID_SUSTAINSTART);
   int value = startSl->GetValue();
 
@@ -618,7 +618,7 @@ void AutoLoopDialog::OnStartSliderMove(wxCommandEvent& event) {
     startSl->SetValue(m_startPercentage);
 }
 
-void AutoLoopDialog::OnEndSliderMove(wxCommandEvent& event) {
+void AutoLoopDialog::OnEndSliderMove(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *endSl = (wxSlider*) FindWindow(ID_SUSTAINEND);
   int value = endSl->GetValue();
 
@@ -629,7 +629,7 @@ void AutoLoopDialog::OnEndSliderMove(wxCommandEvent& event) {
     endSl->SetValue(m_endPercentage);
 }
 
-void AutoLoopDialog::OnThresholdSlider(wxCommandEvent& event) {
+void AutoLoopDialog::OnThresholdSlider(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *thresholdSl = (wxSlider*) FindWindow(ID_THRESHOLD);
 
   double value = (double) thresholdSl->GetValue() / 1000.0;
@@ -638,7 +638,7 @@ void AutoLoopDialog::OnThresholdSlider(wxCommandEvent& event) {
   m_thresholdLabel->SetLabel(wxString::Format(wxT("Derivative threshold: %.3f"), m_threshold));
 }
 
-void AutoLoopDialog::OnDurationSlider(wxCommandEvent& event) {
+void AutoLoopDialog::OnDurationSlider(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *durationSl = (wxSlider*) FindWindow(ID_DURATION);
 
   double value = (double) durationSl->GetValue() / 100.0;
@@ -647,7 +647,7 @@ void AutoLoopDialog::OnDurationSlider(wxCommandEvent& event) {
   m_durationLabel->SetLabel(wxString::Format(wxT("Min. loop lenght: %.2f s"), m_minDuration));
 }
 
-void AutoLoopDialog::OnBetweenSlider(wxCommandEvent& event) {
+void AutoLoopDialog::OnBetweenSlider(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *betweenSl = (wxSlider*) FindWindow(ID_BETWEEN);
 
   double value = (double) betweenSl->GetValue() / 100.0;
@@ -656,7 +656,7 @@ void AutoLoopDialog::OnBetweenSlider(wxCommandEvent& event) {
   m_distanceLabel->SetLabel(wxString::Format(wxT("Min. time between loops: %.2f s"), m_betweenLoops));
 }
 
-void AutoLoopDialog::OnQuality(wxCommandEvent& event) {
+void AutoLoopDialog::OnQuality(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *qualitySl = (wxSlider*) FindWindow(ID_QUALITY);
 
   double value = (double) qualitySl->GetValue() / 10.0;

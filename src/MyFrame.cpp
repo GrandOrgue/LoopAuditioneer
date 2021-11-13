@@ -86,7 +86,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_SIZE(MyFrame::OnSize)
 END_EVENT_TABLE()
 
-void MyFrame::OnAbout(wxCommandEvent& event) {
+void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event)) {
   wxAboutDialogInfo info;
   info.SetName(appName);
   info.SetVersion(wxT(MY_APP_VERSION));
@@ -97,7 +97,7 @@ void MyFrame::OnAbout(wxCommandEvent& event) {
   wxAboutBox(info);
 }
 
-void MyFrame::OnSelectDir(wxCommandEvent& event) {
+void MyFrame::OnSelectDir(wxCommandEvent& WXUNUSED(event)) {
   wxString defaultPath = wxT("/home/$USER");
   if (workingDir != wxEmptyString)
     defaultPath = workingDir;
@@ -118,7 +118,7 @@ void MyFrame::OnSelectDir(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnClose(wxCloseEvent & event) {
+void MyFrame::OnClose(wxCloseEvent& WXUNUSED(event)) {
   config->Write(wxT("General/LastWorkingDir"), workingDir);
   wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
   int vol = volumeSl->GetValue();
@@ -151,7 +151,7 @@ void MyFrame::OnClose(wxCloseEvent & event) {
   Destroy();
 }
 
-void MyFrame::OnQuit(wxCommandEvent& event) {
+void MyFrame::OnQuit(wxCommandEvent& WXUNUSED(event)) {
   // Close the frame by calling OnClose() via event generation
   Close(true);
 }
@@ -171,7 +171,7 @@ void MyFrame::OnDblClick(wxListEvent& event) {
   }
 }
 
-void MyFrame::OnOpenSelected(wxCommandEvent& event) {
+void MyFrame::OnOpenSelected(wxCommandEvent& WXUNUSED(event)) {
   if (currentSelectedIdx != -1) {
     wxListItem item;
     item.SetId(currentSelectedIdx);
@@ -494,7 +494,7 @@ void MyFrame::UpdateCurrentFileInfo() {
   m_fileListCtrl->SetItem(currentOpenFileIdx, 4, fraction);
 }
 
-void MyFrame::OnSaveFile(wxCommandEvent& event) {
+void MyFrame::OnSaveFile(wxCommandEvent& WXUNUSED(event)) {
   m_audiofile->SaveAudioFile(fileToOpen, workingDir);
 
   // make sure to update the listCtrl columns as things might have changed
@@ -506,7 +506,7 @@ void MyFrame::OnSaveFile(wxCommandEvent& event) {
   m_fileListCtrl->EnsureVisible(currentSelectedIdx);
 }
 
-void MyFrame::OnSaveOpenNext(wxCommandEvent& event) {
+void MyFrame::OnSaveOpenNext(wxCommandEvent& WXUNUSED(event)) {
   m_audiofile->SaveAudioFile(fileToOpen, workingDir);
 
   // make sure to update the listCtrl columns as things might have changed
@@ -525,7 +525,7 @@ void MyFrame::OnSaveOpenNext(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnCloseOpenPrev(wxCommandEvent& event) {
+void MyFrame::OnCloseOpenPrev(wxCommandEvent& WXUNUSED(event)) {
   // open previous file if possible
   if (currentSelectedIdx > 0 && currentSelectedIdx != wxNOT_FOUND) {
     m_fileListCtrl->SetItemState(currentSelectedIdx - 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
@@ -539,7 +539,7 @@ void MyFrame::OnCloseOpenPrev(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnCloseOpenNext(wxCommandEvent& event) {
+void MyFrame::OnCloseOpenNext(wxCommandEvent& WXUNUSED(event)) {
   // open next file if possible
   if (currentSelectedIdx != wxNOT_FOUND && (unsigned) currentSelectedIdx < (fileNames.GetCount() - 1)) {
     m_fileListCtrl->SetItemState(currentSelectedIdx + 1, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
@@ -553,7 +553,7 @@ void MyFrame::OnCloseOpenNext(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnSaveFileAs(wxCommandEvent& event) {
+void MyFrame::OnSaveFileAs(wxCommandEvent& WXUNUSED(event)) {
   wxFileDialog *saveFileAsDialog = new wxFileDialog(this, wxT("Save file as..."), workingDir, fileToOpen, wxT("WAV files (*.wav)|*.wav"), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
   if (saveFileAsDialog->ShowModal() == wxID_OK) {
@@ -578,7 +578,7 @@ void MyFrame::OnSaveFileAs(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnStartPlay(wxCommandEvent& event) {
+void MyFrame::OnStartPlay(wxCommandEvent& WXUNUSED(event)) {
   m_sound->OpenAudioStream();
   m_timer.Start(50);
   // if it's a loop make sure start position is set to start of data
@@ -630,7 +630,7 @@ void MyFrame::OnStartPlay(wxCommandEvent& event) {
   m_sound->StartAudioStream();
 }
 
-void MyFrame::OnStopPlay(wxCommandEvent& event) {
+void MyFrame::OnStopPlay(wxCommandEvent& WXUNUSED(event)) {
   DoStopPlay(); 
 }
 
@@ -1081,6 +1081,9 @@ int MyFrame::AudioCallback(void *outputBuffer,
                            double streamTime,
                            RtAudioStreamStatus status,
                            void *userData ) {
+  (void)inputBuffer;
+  (void)streamTime;
+  (void)status;
   unsigned nChannels = (unsigned) ::wxGetApp().frame->m_audiofile->m_channels;
   unsigned useChannels = ::wxGetApp().frame->m_sound->GetChannelsUsed();
   unsigned excessChannels = 0;
@@ -1163,7 +1166,7 @@ void MyFrame::SetLoopPlayback(bool looping) {
     loopPlay = false;
 }
 
-void MyFrame::UpdatePlayPosition(wxTimerEvent& evt) {
+void MyFrame::UpdatePlayPosition(wxTimerEvent& WXUNUSED(event)) {
   if (m_waveform) {
     if (m_sound->StreamNeedsResampling())
       m_waveform->SetPlayPosition((m_sound->pos[0] / m_audiofile->m_channels) / m_resampler->GetRatioUsed());
@@ -1205,7 +1208,7 @@ void MyFrame::ChangeCuePosition(unsigned offset, int index) {
   fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 }
 
-void MyFrame::OnAddLoop(wxCommandEvent& event) {
+void MyFrame::OnAddLoop(wxCommandEvent& WXUNUSED(event)) {
   // set default start and end as sustainsection
   std::pair<unsigned, unsigned> currentSustain = m_audiofile->GetSustainsection();
   unsigned start = currentSustain.first;
@@ -1336,7 +1339,7 @@ void MyFrame::UpdateAllViews() {
   Refresh();
 }
 
-void MyFrame::OnBatchProcess(wxCommandEvent& event) {
+void MyFrame::OnBatchProcess(wxCommandEvent& WXUNUSED(event)) {
   m_batchProcess->ClearStatusProgress();
   m_batchProcess->SetCurrentWorkingDir(workingDir);
   m_batchProcess->ShowModal();
@@ -1351,7 +1354,7 @@ void MyFrame::OnBatchProcess(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnAutoLoop(wxCommandEvent& event) {
+void MyFrame::OnAutoLoop(wxCommandEvent& WXUNUSED(event)) {
   // prepare a vector to receive the loops
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > loops;
 
@@ -1383,7 +1386,6 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
       // this is the call to search for loops
       foundSomeLoops = m_autoloop->AutoFindLoops(
         audioData,
-        nbrOfSmpls,
         m_audiofile->GetSampleRate(),
         loops,
         sustainSection.first,
@@ -1455,7 +1457,7 @@ void MyFrame::OnAutoLoop(wxCommandEvent& event) {
   delete[] audioData;
 }
 
-void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
+void MyFrame::OnAutoLoopSettings(wxCommandEvent& WXUNUSED(event)) {
   if (m_audiofile && (!m_audiofile->GetAutoSustainSearch())) {
     // update dialog with settings from file if they are changed there
     std::pair<unsigned, unsigned> currentSustain = m_audiofile->GetSustainsection();
@@ -1506,7 +1508,7 @@ void MyFrame::OnAutoLoopSettings(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnPitchSettings(wxCommandEvent& event) {
+void MyFrame::OnPitchSettings(wxCommandEvent& WXUNUSED(event)) {
   int midi_note;
   int hps_midi_note;
   int td_midi_note;
@@ -1599,26 +1601,26 @@ void MyFrame::OnPitchSettings(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnZoomInAmplitude(wxCommandEvent& event) {
+void MyFrame::OnZoomInAmplitude(wxCommandEvent& WXUNUSED(event)) {
   m_waveform->ZoomInAmplitude();
   SetStatusText(wxString::Format(wxT("Zoom level: x %i"), m_waveform->GetAmplitudeZoomLevel()), 1);
   UpdateAllViews();
 }
 
-void MyFrame::OnZoomOutAmplitude(wxCommandEvent& event) {
+void MyFrame::OnZoomOutAmplitude(wxCommandEvent& WXUNUSED(event)) {
   m_waveform->ZoomOutAmplitude();
   SetStatusText(wxString::Format(wxT("Zoom level: x %i"), m_waveform->GetAmplitudeZoomLevel()), 1);
   UpdateAllViews();
 }
 
-void MyFrame::OnVolumeSlider(wxCommandEvent& event) {
+void MyFrame::OnVolumeSlider(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *volumeSl = (wxSlider*) FindWindow(ID_VOLUME_SLIDER);
   int value = volumeSl->GetValue();
 
   volumeMultiplier = (int) (pow(2, (double) value));
 }
 
-void MyFrame::OnCrossfade(wxCommandEvent& event) {
+void MyFrame::OnCrossfade(wxCommandEvent& WXUNUSED(event)) {
   wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
   int firstSelected;
   if (!selectedRows.IsEmpty())
@@ -1663,7 +1665,7 @@ void MyFrame::OnCrossfade(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnEditLoop(wxCommandEvent& event) {
+void MyFrame::OnEditLoop(wxCommandEvent& WXUNUSED(event)) {
   wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
   int firstSelected;
   if (!selectedRows.IsEmpty())
@@ -1714,7 +1716,7 @@ void MyFrame::OnEditLoop(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnViewLoop(wxCommandEvent& event) {
+void MyFrame::OnViewLoop(wxCommandEvent& WXUNUSED(event)) {
   wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
   int firstSelected;
   if (!selectedRows.IsEmpty())
@@ -1750,7 +1752,7 @@ void MyFrame::OnViewLoop(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnCutFade(wxCommandEvent& event) {
+void MyFrame::OnCutFade(wxCommandEvent& WXUNUSED(event)) {
   // show the cut & fade dialog to get parameters
   if (m_cutNFade->ShowModal() == wxID_OK) {
     // update values
@@ -1823,7 +1825,7 @@ void MyFrame::OnCutFade(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnListInfo(wxCommandEvent& event) {
+void MyFrame::OnListInfo(wxCommandEvent& WXUNUSED(event)) {
   ListInfoDialog infoDlg(m_audiofile, this);
   // force update of values
   infoDlg.Init(m_audiofile);
@@ -1846,7 +1848,7 @@ void MyFrame::OnListInfo(wxCommandEvent& event) {
   }
 }
 
-void MyFrame::OnAudioSettings(wxCommandEvent& event) {
+void MyFrame::OnAudioSettings(wxCommandEvent& WXUNUSED(event)) {
   AudioSettingsDialog audioDlg(m_sound, this);
 
   if (audioDlg.ShowModal() == wxID_OK) {
@@ -2340,7 +2342,7 @@ void MyFrame::PopulateListCtrl() {
   m_fileListCtrl->Show();
 }
 
-void MyFrame::OnHelp(wxCommandEvent& event) {
+void MyFrame::OnHelp(wxCommandEvent& WXUNUSED(event)) {
   ::wxGetApp().m_helpController->DisplayContents();
 }
 

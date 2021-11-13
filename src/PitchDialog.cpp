@@ -454,7 +454,7 @@ int PitchDialog::GetMethodUsed() {
     return 0;
 }
 
-void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& event) {
+void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& WXUNUSED(event)) {
   wxRadioBox *radioBox = (wxRadioBox*) FindWindow(ID_PITCH_METHOD);
   wxComboBox *midinote = (wxComboBox*) FindWindow(ID_NOTECOMBO);
   wxSlider *pitchFract = (wxSlider*) FindWindow(ID_PITCHFRACTION);
@@ -494,7 +494,7 @@ void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& event) {
   }
 }
 
-void PitchDialog::OnNoteChange(wxCommandEvent& event) {
+void PitchDialog::OnNoteChange(wxCommandEvent& WXUNUSED(event)) {
   wxComboBox *midinote = (wxComboBox*) FindWindow(ID_NOTECOMBO);
   m_fileMIDIUnityNote = wxAtoi(midinote->GetValue());
 
@@ -502,7 +502,7 @@ void PitchDialog::OnNoteChange(wxCommandEvent& event) {
   resultingPitchLabel->SetLabel(wxString::Format(wxT("Resulting pitch: %.2f Hz"), m_resultingPitch));
 }
 
-void PitchDialog::OnFractionChange(wxCommandEvent& event) {
+void PitchDialog::OnFractionChange(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *pitchFract = (wxSlider*) FindWindow(ID_PITCHFRACTION);
   m_fileMIDIPitchFraction = (double) pitchFract->GetValue() / 100.0;
   fractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_fileMIDIPitchFraction));

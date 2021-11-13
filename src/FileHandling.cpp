@@ -726,8 +726,8 @@ void FileHandling::PerformCrossfade(int loopNumber, double fadeLength, int fadeT
   unsigned secondSourceIdx = loopToCrossfade.dwStart * m_channels;
 
   // prepare arrays for the crossfade curve data
-  double fadeData[samplesToFade];
-  double fadeOutData[samplesToFadeOut];
+  double *fadeData = new double[samplesToFade];
+  double *fadeOutData = new double[samplesToFadeOut];
 
   switch(fadeType) {
     case 0:
@@ -827,6 +827,8 @@ void FileHandling::PerformCrossfade(int loopNumber, double fadeLength, int fadeT
       floatAudioData[i] = (float) audioData[i];
   }
   delete[] audioData;
+  delete[] fadeData;
+  delete[] fadeOutData;
 }
 
 void FileHandling::SeparateStrongestChannel(double outData[]) {
@@ -1418,7 +1420,7 @@ void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
   unsigned samplesToFade = (fadeLength / 1000.0) * m_samplerate;
 
   // prepare an array for the crossfade curve data
-  double fadeData[samplesToFade];
+  double *fadeData = new double[samplesToFade];
 
   // linear data from 0 to 1
   for (unsigned i = 0; i < samplesToFade; i++)
@@ -1459,6 +1461,7 @@ void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
   }
   UpdateWaveTracks(audioData);
   delete[] audioData;
+  delete[] fadeData;
 }
 
 bool FileHandling::GetDoubleAudioData(double audio[]) {
