@@ -90,6 +90,9 @@ private:
   AutoLoopDialog *m_loopSettings;
   wxString m_currentWorkingDir;
   bool m_mustRefreshMainDir;
+  wxString m_infoArtist;
+  wxString m_infoCopyright;
+  wxString m_infoComment;
 
   // Event methods
   void OnAddSource(wxCommandEvent& event);
