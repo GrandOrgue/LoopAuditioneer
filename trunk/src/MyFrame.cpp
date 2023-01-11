@@ -1273,22 +1273,20 @@ void MyFrame::OnAddLoop(wxCommandEvent& WXUNUSED(event)) {
     fileMenu->Enable(wxID_SAVE, true);
     fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
-    // Make sure a loop in the grid is selected if no selection exist
-    if (!m_panel->m_grid->IsSelection() || !m_panel->m_cueGrid->IsSelection()) {
-      if (m_panel->m_grid->GetNumberRows() > 0) {
-        m_panel->m_grid->SelectRow(0, false);
-        toolBar->EnableTool(wxID_STOP, false);
-        toolBar->EnableTool(START_PLAYBACK, true);
-        transportMenu->Enable(START_PLAYBACK, true);
-        transportMenu->Enable(wxID_STOP, false);
-        toolBar->EnableTool(X_FADE, true);
-        toolMenu->Enable(X_FADE, true);
-        toolBar->EnableTool(VIEW_LOOPPOINTS, true);
-        toolMenu->Enable(VIEW_LOOPPOINTS, true);
-        m_panel->m_grid->SetGridCursor(0, 4);
-        // notify waveform of selected loop
-        m_waveform->SetLoopSelection(0);
-      }
+    // Make sure the new loop in the grid is selected
+    if (m_panel->m_grid->GetNumberRows() > 0) {
+      m_panel->m_grid->SelectRow((m_audiofile->m_loops->GetNumberOfLoops() - 1), false);
+      toolBar->EnableTool(wxID_STOP, false);
+      toolBar->EnableTool(START_PLAYBACK, true);
+      transportMenu->Enable(START_PLAYBACK, true);
+      transportMenu->Enable(wxID_STOP, false);
+      toolBar->EnableTool(X_FADE, true);
+      toolMenu->Enable(X_FADE, true);
+      toolBar->EnableTool(VIEW_LOOPPOINTS, true);
+      toolMenu->Enable(VIEW_LOOPPOINTS, true);
+      m_panel->m_grid->SetGridCursor((m_audiofile->m_loops->GetNumberOfLoops() - 1), 4);
+      // notify waveform of selected loop
+      m_waveform->SetLoopSelection((m_audiofile->m_loops->GetNumberOfLoops() - 1));
     }
     UpdateAllViews();
   }
