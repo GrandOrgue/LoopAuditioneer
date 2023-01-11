@@ -50,7 +50,7 @@ LoopParametersDialog::LoopParametersDialog(
 void LoopParametersDialog::Init(unsigned int start, unsigned int end, unsigned int length) {
   m_loopStart = start;
   m_loopEnd = end;
-  m_lastSample = length;
+  m_lastSample = length - 1;
 }
 
 bool LoopParametersDialog::Create(
@@ -189,6 +189,10 @@ void LoopParametersDialog::CreateControls() {
     0
   );
   thirdRow->Add(cancelButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+  
+  // Set OK button as default
+  okButton->SetDefault();
+  okButton->SetFocus();
 }
 
 void LoopParametersDialog::SetLoopStart(unsigned int loopStart) {
@@ -208,7 +212,7 @@ unsigned int LoopParametersDialog::GetLoopEnd() {
 }
 
 void LoopParametersDialog::SetLastSample(unsigned int lastSample) {
-  m_lastSample = lastSample;
+  m_lastSample = lastSample - 1;
 }
 
 // Override of transfer data to the window
@@ -234,13 +238,13 @@ bool LoopParametersDialog::TransferDataFromWindow() {
 }
 
 void LoopParametersDialog::OnLoopStartSpin(wxSpinEvent& event) {
-  if ((unsigned) event.GetPosition() < m_loopEnd && (unsigned) event.GetPosition() < m_lastSample) {
+  if ((unsigned) event.GetPosition() < m_loopEnd && (unsigned) event.GetPosition() < m_lastSample - 1) {
     m_loopStart = event.GetPosition();
     wxSpinCtrl *startCtrl = (wxSpinCtrl*) FindWindow(ID_LOOPSTART);
     startCtrl->SetValue(event.GetPosition());
   } else {
     wxSpinCtrl *startCtrl = (wxSpinCtrl*) FindWindow(ID_LOOPSTART);
-    startCtrl->SetValue(0);
+    startCtrl->SetValue(m_loopEnd - 1);
   }
 }
 
