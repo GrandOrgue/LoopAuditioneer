@@ -417,6 +417,10 @@ void PitchDialog::CreateControls() {
     0
   );
   thirdRow->Add(cancelButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+
+  // Set OK button as default
+  okButton->SetDefault();
+  okButton->SetFocus();
 }
 
 // Override of transfer data to the window
