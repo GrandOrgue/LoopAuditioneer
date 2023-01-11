@@ -249,6 +249,9 @@ void ListInfoDialog::CreateControls() {
   );
   buttonRow->Add(cancelButton, 0, wxALIGN_CENTER|wxALL, 5);
 
+  // Make OK button default
+  okButton->SetDefault();
+  okButton->SetFocus();
 }
 
 wxString ListInfoDialog::getArtist() {  return m_artist;}
@@ -295,4 +298,16 @@ void ListInfoDialog::OnDateChange(wxDateEvent& event) {
   // update m_creation_date
   if (event.GetDate().IsValid())
     m_creation_date = event.GetDate();
+}
+
+void ListInfoDialog::setArtist(wxString artist) {
+  m_artist = artist;
+}
+
+void ListInfoDialog::setCopyright(wxString copy) {
+  m_copyright = copy;
+}
+
+void ListInfoDialog::setComment(wxString comment) {
+  m_comment = comment;
 }

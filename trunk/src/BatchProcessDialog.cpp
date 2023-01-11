@@ -88,6 +88,9 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
 
   m_loopSettings = autoloopSettings;
   m_currentWorkingDir = wxEmptyString;
+  m_infoArtist = wxEmptyString;
+  m_infoCopyright = wxEmptyString;
+  m_infoComment = wxEmptyString;
 }
 
 bool BatchProcessDialog::Create(
@@ -287,13 +290,16 @@ void BatchProcessDialog::CreateControls() {
   wxStaticText *m_info = new wxStaticText(
     this,
     wxID_STATIC,
-    wxT("Choose source and target folders to process and click OK to run batch on all wav files."),
+    wxT("Choose source and target folders to process and click Run batch to execute."),
     wxDefaultPosition,
     wxDefaultSize,
     0
   );
   boxSizer->Add(m_info, 0, wxALIGN_LEFT|wxALL, 5);
 
+  // set "OK" button as default
+  m_runButton->SetDefault();
+  m_runButton->SetFocus();
 }
 
 void BatchProcessDialog::OnAddSource(wxCommandEvent& WXUNUSED(event)) {
@@ -346,6 +352,7 @@ void BatchProcessDialog::ReadyToRockAndRoll() {
     if (m_targetField->GetValue() != wxEmptyString) {
       if (m_processChoiceBox->GetSelection() > 0) {
         m_runButton->Enable(true);
+        m_runButton->SetFocus();
       } else {
           m_runButton->Enable(false);
       }
@@ -1265,12 +1272,25 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
         if (first->FileCouldBeOpened()) {
           // create the list info dialog
           ListInfoDialog infoDlg(first, this);
+          // adjust default values if they don't exist in file but we have previous values
+          if (infoDlg.getArtist() == wxEmptyString && m_infoArtist != wxEmptyString)
+            infoDlg.setArtist(m_infoArtist);
+          if (infoDlg.getCopyright() == wxEmptyString && m_infoCopyright != wxEmptyString)
+            infoDlg.setCopyright(m_infoCopyright);
+          if (infoDlg.getComment() == wxEmptyString && m_infoComment != wxEmptyString)
+            infoDlg.setComment(m_infoComment);
+          // update dialog
+          infoDlg.TransferDataToWindow();
           // show the ListInfoDialog to get variables filled
           if (infoDlg.ShowModal() == wxID_OK) {
             art = infoDlg.getArtist();
             copyr = infoDlg.getCopyright();
             comm = infoDlg.getComment();
             cr_dt = infoDlg.getCreationDate();
+            // then we store/update them here for possible future usage
+            m_infoArtist = art;
+            m_infoCopyright = copyr;
+            m_infoComment = comm;
           } else {
             // we must abort
             m_statusProgress->AppendText(wxT("\nProcess cancelled!\n"));

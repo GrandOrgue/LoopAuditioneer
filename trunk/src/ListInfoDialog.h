@@ -74,8 +74,11 @@ public:
   wxString getSoftware();
   wxString getComment();
   wxDateTime getCreationDate();
+  void setArtist(wxString artist);
+  void setCopyright(wxString copy);
+  void setComment(wxString comment);
   
-    // Overrides
+  // Overrides
   bool TransferDataToWindow();
   bool TransferDataFromWindow();
 
