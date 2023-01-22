@@ -68,11 +68,11 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Kill loops & cues"));
   m_batchProcessesAvailable.Add(wxT("Search for loops"));
   m_batchProcessesAvailable.Add(wxT("Store FFT detected pitch info"));
-  m_batchProcessesAvailable.Add(wxT("List FFT pitch deviations"));
+  m_batchProcessesAvailable.Add(wxT("List detected FFT pitch"));
   m_batchProcessesAvailable.Add(wxT("Store HPS detected pitch info"));
-  m_batchProcessesAvailable.Add(wxT("List HPS pitch deviations"));
+  m_batchProcessesAvailable.Add(wxT("List HPS detected pitch"));
   m_batchProcessesAvailable.Add(wxT("Store time domain detected pitch info"));
-  m_batchProcessesAvailable.Add(wxT("List time domain pitch deviations"));
+  m_batchProcessesAvailable.Add(wxT("List time domain detected pitch"));
   m_batchProcessesAvailable.Add(wxT("List existing pitch info in file(s)"));
   m_batchProcessesAvailable.Add(wxT("Set pitch info from file name nr."));
   m_batchProcessesAvailable.Add(wxT("Copy pitch info from corresponding file(s)"));
@@ -621,25 +621,13 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     break;
 
     case 6:
-      // This is for autosearching pitch information with FFT and list it and lines to specify it in an ODF
+      // This is for detecting pitch with FFT and list it with lines to specify it in an ODF
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
 
-        int lastMidiNr = 0;
-        int pipeNr = 0;
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
-          // get midi number from file name
-          wxString currentFileName = filesToProcess.Item(i);
-          wxString midiNrStr = currentFileName.Mid(0, 3);
-          int midiNr = wxAtoi(midiNrStr);
-          if (midiNr == 0 || midiNr == lastMidiNr)
-            continue;
-          else {
-            lastMidiNr = midiNr;
-            pipeNr++;
-          }
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -655,9 +643,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             double cent_deviation = 1200 * (log10(fftPitches[0] / midi_note_pitch) / log10(2));
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tFFT detected pitch = %.2f Hz\n"), fftPitches[0]));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dMIDIKeyNumber=%d"), pipeNr, midi_note));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIKeyNumber=%d"), midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dPitchFraction="), pipeNr));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPitchCorrection=")));
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
@@ -715,25 +703,13 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     break;
 
     case 8:
-      // This is for autosearching pitch information with HPS and list deviations in cent
+      // This is for detecting pitch with HPS and list it with lines to specify it in ODF
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
 
-        int lastMidiNr = 0;
-        int pipeNr = 0;
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
-          // get midi number from file name
-          wxString currentFileName = filesToProcess.Item(i);
-          wxString midiNrStr = currentFileName.Mid(0, 3);
-          int midiNr = wxAtoi(midiNrStr);
-          if (midiNr == 0 || midiNr == lastMidiNr)
-            continue;
-          else {
-            lastMidiNr = midiNr;
-            pipeNr++;
-          }
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -749,9 +725,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             double cent_deviation = 1200 * (log10(fftPitches[1] / midi_note_pitch) / log10(2));
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tHPS detected pitch = %.2f Hz\n"), fftPitches[1]));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dMIDIKeyNumber=%d"), pipeNr, midi_note));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIKeyNumber=%d"), midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dPitchFraction="), pipeNr));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPitchCorrection=")));
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
@@ -817,25 +793,13 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     break;
 
     case 10:
-      // This is for autosearching pitch information in timedomain and list deviations in cent
+      // This is for detecting pitch in timedomain and list it for specification in an ODF
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
         m_statusProgress->AppendText(wxT("\n"));
         m_statusProgress->AppendText(wxT("\n"));
 
-        int lastMidiNr = 0;
-        int pipeNr = 0;
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
-          // get midi number from file name
-          wxString currentFileName = filesToProcess.Item(i);
-          wxString midiNrStr = currentFileName.Mid(0, 3);
-          int midiNr = wxAtoi(midiNrStr);
-          if (midiNr == 0 || midiNr == lastMidiNr)
-            continue;
-          else {
-            lastMidiNr = midiNr;
-            pipeNr++;
-          }
           m_statusProgress->AppendText(filesToProcess.Item(i));
           m_statusProgress->AppendText(wxT("\n"));
           FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -857,9 +821,9 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             }
 
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch in time domain = %.2f Hz\n"), pitch));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dMIDIKeyNumber=%d"), pipeNr, midi_note));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIKeyNumber=%d"), midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPipe%03dPitchFraction="), pipeNr));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tPitchCorrection=")));
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
