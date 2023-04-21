@@ -30,6 +30,7 @@
 #include <wx/filename.h>
 #include <wx/dir.h>
 #include <wx/datetime.h>
+#include <wx/app.h>
 #include <vector>
 #include <climits>
 #include <cmath>
@@ -428,6 +429,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -453,6 +455,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -482,6 +485,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -570,6 +574,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -612,6 +617,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -652,6 +658,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -694,6 +701,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -734,6 +742,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -784,6 +793,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -830,6 +840,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -856,7 +867,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             double resultingPitch = midi_note_pitch * pow(2, (cents / 1200.0));
             double deviationToRaise = 100 - cents;
             double deviationToLower = -cents;
-           
+
             m_statusProgress->AppendText(wxString::Format(wxT("\tExisting MIDINote = %i\n"), midiNote));
             m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction (in cents) = %.2f\n"), cents));
             m_statusProgress->AppendText(wxString::Format(wxT("\tResulting Frequency = %.2f\n"), resultingPitch));
@@ -870,6 +881,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -927,9 +939,11 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
               } else {
                 m_statusProgress->AppendText(wxT("\tCouldn't determine MIDI note from name!\n"));
               }
+
             } else {
               m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
             }
+            wxSafeYield();
           }
           m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
         } else {
@@ -976,6 +990,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open source file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
@@ -1016,7 +1031,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
               int midiNoteEmbedded = (int) fh.m_loops->GetMIDIUnityNote();
               double embeddedPitch = organPitch * pow(2, ((double)(midiNoteEmbedded - 69) / 12.0)) * pow(2, (centsEmbedded / 1200.0));
               double cent_deviation = 1200 * (log10(actualPitch / embeddedPitch) / log10(2));
-              if (cent_deviation < -1200 || cent_deviation > 1200) {
+              if (cent_deviation < -1800 || cent_deviation > 1800) {
                 // Warn that this is not allowed
                 m_statusProgress->AppendText(wxString::Format(wxT("PitchTuning value for %s is outside allowed range!\n"), currentFileName));
               } else {
@@ -1030,6 +1045,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             } else {
               m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
             }
+            wxSafeYield();
           }
         }
         m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
@@ -1055,6 +1071,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
       } else {
@@ -1109,6 +1126,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             } else {
               m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
             }
+            wxSafeYield();
           }
           m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
         } else {
@@ -1212,6 +1230,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             } else {
               m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
             }
+            wxSafeYield();
           }
           m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
         } else {
@@ -1286,6 +1305,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           } else {
             m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
           }
+          wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
       } else {
