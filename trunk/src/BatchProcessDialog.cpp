@@ -645,7 +645,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             m_statusProgress->AppendText(wxString::Format(wxT("\tFFT detected pitch = %.2f Hz\n"), fftPitches[0]));
             m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIKeyNumber=%d"), midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPitchCorrection=")));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction=")));
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
@@ -727,7 +727,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             m_statusProgress->AppendText(wxString::Format(wxT("\tHPS detected pitch = %.2f Hz\n"), fftPitches[1]));
             m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIKeyNumber=%d"), midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPitchCorrection=")));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction=")));
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
@@ -823,7 +823,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             m_statusProgress->AppendText(wxString::Format(wxT("\tDetected pitch in time domain = %.2f Hz\n"), pitch));
             m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIKeyNumber=%d"), midi_note));
             m_statusProgress->AppendText(wxT("\n"));
-            m_statusProgress->AppendText(wxString::Format(wxT("\tPitchCorrection=")));
+            m_statusProgress->AppendText(wxString::Format(wxT("\tMIDIPitchFraction=")));
             m_statusProgress->AppendText(MyDoubleToString(cent_deviation, 6));
             m_statusProgress->AppendText(wxT("\n"));
 
