@@ -1285,6 +1285,7 @@ void MyFrame::OnAddLoop(wxCommandEvent& WXUNUSED(event)) {
       toolBar->EnableTool(VIEW_LOOPPOINTS, true);
       toolMenu->Enable(VIEW_LOOPPOINTS, true);
       m_panel->m_grid->SetGridCursor((m_audiofile->m_loops->GetNumberOfLoops() - 1), 4);
+      SetLoopPlayback(true);
       // notify waveform of selected loop
       m_waveform->SetLoopSelection((m_audiofile->m_loops->GetNumberOfLoops() - 1));
     }
@@ -1436,6 +1437,7 @@ void MyFrame::OnAutoLoop(wxCommandEvent& WXUNUSED(event)) {
           toolBar->EnableTool(VIEW_LOOPPOINTS, true);
           toolMenu->Enable(VIEW_LOOPPOINTS, true);
           m_panel->m_grid->SetGridCursor(0, 4);
+          SetLoopPlayback(true);
           // notify waveform drawer of selected loop
           m_waveform->SetLoopSelection(0);
         }
