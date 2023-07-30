@@ -22,6 +22,7 @@
 #define AUTOLOOPING_H
 
 #include <vector>
+#include "FileHandling.h"
 
 class AutoLooping {
 public:
@@ -39,10 +40,10 @@ public:
 
   ~AutoLooping();
 
-  // this is the function that analyse the audio data for loops and will store
+  // this is the function that analyze the audio data for loops and will store
   // the best loops found in the vector sent by reference
   bool AutoFindLoops(
-    const double data[], // an array of audio data from the strongest channel in file
+    FileHandling *audioFile, // an array of audio data from the strongest channel in file
     unsigned samplerate,
     std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
     unsigned sustainStart,

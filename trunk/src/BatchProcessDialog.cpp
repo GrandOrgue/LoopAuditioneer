@@ -67,7 +67,8 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Kill all loops"));
   m_batchProcessesAvailable.Add(wxT("Kill all cues"));
   m_batchProcessesAvailable.Add(wxT("Kill loops & cues"));
-  m_batchProcessesAvailable.Add(wxT("Search for loops"));
+  m_batchProcessesAvailable.Add(wxT("Auto search for loops"));
+  m_batchProcessesAvailable.Add(wxT("Auto add release cue"));
   m_batchProcessesAvailable.Add(wxT("Store FFT detected pitch info"));
   m_batchProcessesAvailable.Add(wxT("List detected FFT pitch"));
   m_batchProcessesAvailable.Add(wxT("Store HPS detected pitch info"));
@@ -526,25 +527,20 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
                 loopsAlreadyInFile.push_back(std::make_pair(aLoop.dwStart, aLoop.dwEnd));
               }
 
-              // now we need to search for loops and for that we need data as doubles
-              unsigned nbrOfSmpls = fh.ArrayLength / fh.m_channels;
-              double *audioData = new double[nbrOfSmpls];
-              fh.SeparateStrongestChannel(audioData);
+              // now we need to search for loops
               // retrieve the used sustainsection
               std::pair <unsigned, unsigned> sustainSection = fh.GetSustainsection();
               // vector to receive found loops
               std::vector<std::pair<std::pair<unsigned, unsigned>, double> > addLoops;
               // call to search for loops
               bool foundLoops = autoloop->AutoFindLoops(
-                audioData,
+                &fh,
                 fh.GetSampleRate(),
                 addLoops,
                 sustainSection.first,
                 sustainSection.second,
                 loopsAlreadyInFile
               );
-              // delete the now unneccessary array of double audio data
-              delete[] audioData;
 
               if (foundLoops) {
                 for (unsigned i = 0; i < addLoops.size(); i++) {
@@ -584,6 +580,31 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     break;
 
     case 5:
+      // This is for auto adding a release cue to the file
+      if (!filesToProcess.IsEmpty()) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          m_statusProgress->AppendText(filesToProcess.Item(i));
+          m_statusProgress->AppendText(wxT("\n"));
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            if (fh.AutoCreateReleaseCue()) {
+              fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+              m_statusProgress->AppendText(wxT("\tDone!\n"));
+            } else {
+              m_statusProgress->AppendText(wxT("\tCouldn't add a release cue!\n"));
+            }
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+          wxSafeYield();
+        }
+        m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+    break;
+
+    case 6:
       // This is for autosearching pitch information with FFT and store it in smpl chunk
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
@@ -626,7 +647,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 6:
+    case 7:
       // This is for detecting pitch with FFT and list it with lines to specify it in an ODF
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
@@ -667,7 +688,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 7:
+    case 8:
       // This is for autosearching pitch information with HPS and store it in smpl chunk
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
@@ -710,7 +731,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 8:
+    case 9:
       // This is for detecting pitch with HPS and list it with lines to specify it in ODF
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
@@ -751,7 +772,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 9:
+    case 10:
       // This is for autosearching pitch information in timedomain and store it in smpl chunk
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
@@ -802,7 +823,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 10:
+    case 11:
       // This is for detecting pitch in timedomain and list it for specification in an ODF
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
@@ -849,7 +870,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 11:
+    case 12:
       // This is for listing existing pitch information in file(s)
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(m_sourceField->GetValue());
@@ -890,7 +911,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 12:
+    case 13:
       // This is for setting pitch info from file name
       if (!filesToProcess.IsEmpty()) {
         // Create a dialog to select foot to use
@@ -955,7 +976,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 13:
+    case 14:
       // This is for copying pitch information from corresponding file(s)
       if (!filesToProcess.IsEmpty()) {
         m_statusProgress->AppendText(wxT("Reading source from "));
@@ -999,7 +1020,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 14:
+    case 15:
       // This is for writing out the Pipe999PitchTuning lines for GO ODFs from embedded pitch
       if (!filesToProcess.IsEmpty()) {
         // Create a dialog to select harmonic number for the rank/stop to use
@@ -1055,7 +1076,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 15:
+    case 16:
       // This is for deleting sound after last loop and before cue marker (if existing)
       if (!filesToProcess.IsEmpty()) {
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
@@ -1080,7 +1101,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 16:
+    case 17:
       // This is for cutting and fading in/out
       if (!filesToProcess.IsEmpty()) {
 
@@ -1138,7 +1159,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 17:
+    case 18:
       // This is for crossfading all existing loops
       if (!filesToProcess.IsEmpty()) {
 
@@ -1242,7 +1263,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
     
-    case 18:
+    case 19:
       // This is for setting LIST INFO strings
       if (!filesToProcess.IsEmpty()) {
 

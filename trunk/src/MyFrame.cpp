@@ -1357,11 +1357,6 @@ void MyFrame::OnAutoLoop(wxCommandEvent& WXUNUSED(event)) {
   // prepare a vector to receive the loops
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > loops;
 
-  // get the strongest channel of audio data
-  unsigned nbrOfSmpls = m_audiofile->ArrayLength / m_audiofile->m_channels;
-  double *audioData = new double[nbrOfSmpls];
-  m_audiofile->SeparateStrongestChannel(audioData);
-
   // retrieve the used sustainsection
   std::pair <unsigned, unsigned> sustainSection = m_audiofile->GetSustainsection();
   
@@ -1384,7 +1379,7 @@ void MyFrame::OnAutoLoop(wxCommandEvent& WXUNUSED(event)) {
 
       // this is the call to search for loops
       foundSomeLoops = m_autoloop->AutoFindLoops(
-        audioData,
+        m_audiofile,
         m_audiofile->GetSampleRate(),
         loops,
         sustainSection.first,
@@ -1454,7 +1449,6 @@ void MyFrame::OnAutoLoop(wxCommandEvent& WXUNUSED(event)) {
       );
       dialog->ShowModal();
     }
-  delete[] audioData;
 }
 
 void MyFrame::OnAutoLoopSettings(wxCommandEvent& WXUNUSED(event)) {
