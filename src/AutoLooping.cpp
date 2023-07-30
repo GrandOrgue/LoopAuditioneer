@@ -43,13 +43,15 @@ AutoLooping::~AutoLooping() {
 }
 
 bool AutoLooping::AutoFindLoops(
-  const double data[],
+  FileHandling *audioFile,
   unsigned samplerate,
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops, 
   unsigned sustainStart,
   unsigned sustainEnd,
   std::vector<std::pair<unsigned, unsigned> > &loopsAlreadyInFile) {
 
+  double *data = new double[audioFile->ArrayLength / audioFile->m_channels];
+  audioFile->SeparateStrongestChannel(data);
   // we find maximum derivative in audio data which is where the
   // waveform will change the most (the opposite of what we're interested in)
   double maxDerivative = 0;
@@ -80,6 +82,9 @@ bool AutoLooping::AutoFindLoops(
       everyLoopCandidates.push_back(i);
   }
 
+  // we're done with the single channel data
+  delete[] data;
+
   std::vector<unsigned> loopCandidates;
   // to ensure even distribution of the candidates over sustainsection and
   // limit the number of candidates to m_maxCandidates if more are found
@@ -104,16 +109,17 @@ bool AutoLooping::AutoFindLoops(
   // Then we cross correlate the points and if we get a good match we push the
   // sample indexes of start and end into the foundLoops vector
   // Also note that for both the loopstart and end we compare a "window" of
-  // two samples before the candidate to two after the candidate which gives
+  // four samples before the candidate plus the candidate which gives
   // five samples per channel to the window. If correlation is sufficiently
   // good then we'll add the loop but adjust the end index to one sample less
   std::vector<std::pair<std::pair<unsigned, unsigned>, double > > foundLoops;
-  if (loopCandidates.empty() == true)
+  if (loopCandidates.empty() == true) {
     return false;
+  }
   for (unsigned i = 0; i < loopCandidates.size() - 1; i++) {
     // this is for the start point
     unsigned loopStartIndex = loopCandidates[i];
-    unsigned compareStartIndex = loopStartIndex - 2;
+    unsigned compareStartIndex = loopStartIndex - 4;
 
     // if loop start point is too close to already stored loop continue
     if (!foundLoops.empty()) {
@@ -125,27 +131,30 @@ bool AutoLooping::AutoFindLoops(
       }
     }
 
-    // and now compare to end point candidates
-    for (unsigned j = i + 1; j < loopCandidates.size(); j++) {
+    // and now compare to end point candidates and we go from back to get the
+    // longest possible loops first
+    for (unsigned j = loopCandidates.size() - 1; j > i + 1; j--) {
       unsigned loopEndIndex = loopCandidates[j];
       
       // check if the endpoint is too close to startpoint
       if (loopEndIndex - loopStartIndex < samplerate * m_minLoopDuration)
         continue;
 
-      unsigned compareEndIndex = loopEndIndex - 2;
+      unsigned compareEndIndex = loopEndIndex - 4;
 
-      // now comes the actual cross correlation of the candidates
-      double sum = 0, correlationValue = 0;
-      for (int k = 0; k < 5; k++) {
-        sum += pow( (data[compareStartIndex + k] - data[compareEndIndex + k]), 2);
-  
-        correlationValue = sqrt(sum / (5.0));
+      // now comes the actual comparison of the candidates
+      double correlationValue = 0;
+      for (unsigned k = 0; k < audioFile->waveTracks.size(); k++) {
+        double difference = 0;
+        for (int l = 0; l < 5; l++) {
+          difference += fabs(audioFile->waveTracks[k].waveData[compareStartIndex + l] - audioFile->waveTracks[k].waveData[compareEndIndex + l]);
+        }
+        correlationValue += (difference / 5.0);
       }
 
-      // if the quality of the correlation is above quality threshold add the loop
+      // if the quality of the correlation is better (lower) than threshold add the loop
       // but remove one sample from end index for a better loop match
-      if (correlationValue < m_qualityFactor / 32767.0) {
+      if (correlationValue < (m_qualityFactor / 32767.0) * audioFile->m_channels) {
         // make sure the loop doesn't already exist in file, or that it's too close to an existing!
         bool loopAlreadyExist = false;
         for (unsigned k = 0; k < loopsAlreadyInFile.size(); k++) {

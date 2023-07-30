@@ -73,6 +73,7 @@ public:
   void SetSliderSustainsection(int start, int end);
   // Get strongest channel of audio data as doubles
   void SeparateStrongestChannel(double outData[]);
+  bool AutoCreateReleaseCue();
 
   short *shortAudioData;
   int *intAudioData;

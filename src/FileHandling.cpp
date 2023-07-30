@@ -44,7 +44,7 @@ m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
     m_minorFormat = sfHandle.format() & SF_FORMAT_SUBMASK;
 
     // Try to get loop info from the file
-    if (sfHandle.command(4304, &instr, sizeof(instr)) == SF_TRUE) {
+    if (sfHandle.command(SFC_GET_INSTRUMENT, &instr, sizeof(instr)) == SF_TRUE) {
       // There are loops!
 
       m_loops->SetMIDIUnityNote(instr.basenote);
@@ -66,7 +66,7 @@ m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
     }
 
     // Try to get cue info from file
-    if (sfHandle.command(4302, &cues, sizeof(cues)) == SF_TRUE) {
+    if (sfHandle.command(SFC_GET_CUE, &cues, sizeof(cues)) == SF_TRUE) {
       // There are cues!
 
       // Check if the cue is a real cue or a label, only keep real cues!
@@ -240,7 +240,7 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
     instr.loops[i].end = m_loops->loopsOut[i].dwEnd;
     instr.loops[i].count = m_loops->loopsOut[i].dwPlayCount;
   }
-  sfh.command(4305, &instr, sizeof(instr)); // this writes the loops metadata
+  sfh.command(SFC_SET_INSTRUMENT, &instr, sizeof(instr)); // this writes the loops metadata
 
   // Then take care of the cues
   m_cues->ExportCues();
@@ -257,7 +257,7 @@ void FileHandling::SaveAudioFile(wxString fileName, wxString path) {
     cues.cue_points[i].block_start =  m_cues->exportedCues[i].dwBlockStart;
     cues.cue_points[i].sample_offset =  m_cues->exportedCues[i].dwSampleOffset;
   }
-  sfh.command(4303, &cues, sizeof(cues));
+  sfh.command(SFC_SET_CUE, &cues, sizeof(cues));
   
   // Write LIST INFO strings if they are set
   if (m_info.artist != wxEmptyString)
@@ -1523,4 +1523,42 @@ void FileHandling::SetAutoSustainSearch(bool choice) {
 
 bool FileHandling::GetAutoSustainSearch() {
   return m_useAutoSustain;
+}
+
+bool FileHandling::AutoCreateReleaseCue() {
+  // from auto sustain end we back until we find a zero crossing in strongest channel
+  unsigned nbrSamples = ArrayLength / m_channels;
+  double *data = new double[nbrSamples];
+  SeparateStrongestChannel(data);
+  unsigned cueSampleOffset = m_autoSustainEnd;
+  if (cueSampleOffset < nbrSamples) {
+    if (data[cueSampleOffset] > 0) {
+      while (data[cueSampleOffset] > 0) {
+        cueSampleOffset--;
+      }
+    } else {
+      while (data[cueSampleOffset] < 0) {
+        cueSampleOffset--;
+      }
+    }
+    if (fabs(data[cueSampleOffset]) > fabs(data[cueSampleOffset + 1])) {
+      cueSampleOffset += 1;
+    }
+
+    CUEPOINT newCue;
+    newCue.dwName = m_cues->GetNumberOfCues(); // this should be the new cues index
+    newCue.dwPosition = 0;
+    newCue.fccChunk = 1635017060; // value for data chunk
+    newCue.dwChunkStart = 0;
+    newCue.dwBlockStart = 0;
+    newCue.dwSampleOffset = cueSampleOffset;
+    newCue.keepThisCue = true;
+
+    m_cues->AddCue(newCue); // add the cue to the file cue vector
+    delete[] data;
+    return true;
+  } else {
+    delete[] data;
+    return false;
+  }
 }
