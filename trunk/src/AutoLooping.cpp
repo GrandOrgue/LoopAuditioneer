@@ -50,14 +50,34 @@ bool AutoLooping::AutoFindLoops(
   unsigned sustainEnd,
   std::vector<std::pair<unsigned, unsigned> > &loopsAlreadyInFile) {
 
+  // another sustain section sanity check!
+  // a pipe would normally need around 50 - 150 ms to settle after attack
+  unsigned sustainStartIdx = sustainStart;
+  unsigned sustainEndIdx = sustainEnd;
+  unsigned hundredMsSamples = samplerate / 10;
+  if (sustainStartIdx < hundredMsSamples) {
+    sustainStartIdx = hundredMsSamples;
+    if (sustainStartIdx > sustainEndIdx) {
+      // if start index is after end index we have a problem!
+      if ((sustainEndIdx + hundredMsSamples) < (audioFile->ArrayLength / audioFile->m_channels)) {
+        sustainEndIdx += hundredMsSamples;
+      } else {
+        // when having adjusted start index to a reasonable value it's now not
+        // possible to move back the sustain end for some reason which means
+        // that something's very wrong and we should just return false and quit
+        return false;
+      }
+    }
+  }
+
   double *data = new double[audioFile->ArrayLength / audioFile->m_channels];
   audioFile->SeparateStrongestChannel(data);
   // we find maximum derivative in audio data which is where the
   // waveform will change the most (the opposite of what we're interested in)
   double maxDerivative = 0;
   for (
-    unsigned i = sustainStart; 
-    i < sustainEnd - 1; 
+    unsigned i = sustainStartIdx; 
+    i < sustainEndIdx - 1; 
     i++) {
 
     double currentDerivative = fabs( (data[i + 1] - data[i]) );
@@ -72,8 +92,8 @@ bool AutoLooping::AutoFindLoops(
   std::vector<unsigned> everyLoopCandidates;
   double derivativeThreshold = maxDerivative * m_derivativeThreshold;
   for (
-    unsigned i = sustainStart; 
-    i < sustainEnd - 1;
+    unsigned i = sustainStartIdx; 
+    i < sustainEndIdx - 1;
     i++) {
 
     double currentDerivative = fabs( (data[i + 1] - data[i]) );
