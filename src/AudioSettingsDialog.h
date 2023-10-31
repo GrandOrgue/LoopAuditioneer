@@ -73,12 +73,15 @@ public:
   bool TransferDataFromWindow();
 
 private:
+  wxChoice *m_apiChoice;
+  wxChoice *m_deviceChoice;
   wxString m_snd_api;
   unsigned int m_snd_device;
   wxArrayString m_availableApis;
   wxArrayString m_availableDevices;
   
   void UpdateAvailableDevices();
+  wxString ConvertDeviceIdToString();
   void OnApiChoice(wxCommandEvent& event);
   void OnDeviceChoice(wxCommandEvent& event);
   void CheckIfOkCanBeEnabled();

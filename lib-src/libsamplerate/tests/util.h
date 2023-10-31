@@ -3,12 +3,18 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
 
 #define	ABS(a)			(((a) < 0) ? - (a) : (a))
-#define MIN(a,b)		(((a) < (b)) ? (a) : (b))
-#define	MAX(a,b)		(((a) >= (b)) ? (a) : (b))
+
+#ifndef MAX
+#define	MAX(a,b)		(((a) > (b)) ? (a) : (b))
+#endif
+
+#ifndef MIN
+#define	MIN(a,b)		(((a) < (b)) ? (a) : (b))
+#endif
 
 #define	ARRAY_LEN(x)	((int) (sizeof (x) / sizeof ((x) [0])))
 
@@ -27,14 +33,9 @@ double calculate_snr (float *data, int len, int expected_peaks) ;
 
 const char * get_cpu_name (void) ;
 
-#if OS_IS_WIN32
-/*
-**	Extra Win32 hacks.
-**
-**	Despite Microsoft claim of windows being POSIX compatibile it has '_sleep'
-**	instead of 'sleep'.
-*/
-
-#define sleep _sleep
-#endif
+#define ASSERT(condition) \
+	if (!(condition)) \
+	{	printf ("Condition failed on Line %d : %s\n\n", __LINE__, #condition) ; \
+		exit (1) ; \
+	    } ;
 

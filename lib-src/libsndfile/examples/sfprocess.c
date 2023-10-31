@@ -98,19 +98,21 @@ main (void)
 
 	if (sfinfo.channels > MAX_CHANNELS)
 	{	printf ("Not able to process more than %d channels\n", MAX_CHANNELS) ;
+		sf_close (infile) ;
 		return 1 ;
 		} ;
 	/* Open the output file. */
 	if (! (outfile = sf_open (outfilename, SFM_WRITE, &sfinfo)))
 	{	printf ("Not able to open output file %s.\n", outfilename) ;
 		puts (sf_strerror (NULL)) ;
+		sf_close (infile) ;
 		return 1 ;
 		} ;
 
 	/* While there are.frames in the input file, read them, process
 	** them and write them to the output file.
 	*/
-	while ((readcount = sf_read_double (infile, data, BUFFER_LEN)))
+	while ((readcount = (int) sf_read_double (infile, data, BUFFER_LEN)))
 	{	process_data (data, readcount, sfinfo.channels) ;
 		sf_write_double (outfile, data, readcount) ;
 		} ;

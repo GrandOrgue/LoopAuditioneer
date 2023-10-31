@@ -3,29 +3,43 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#include <math.h>
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
 
 #include <samplerate.h>
 
-#include "config.h"
-
 #include "util.h"
-#include "float_cast.h"
 
 #define BUFFER_LEN	(1<<17)
 
 static float input [BUFFER_LEN] ;
+
+#if (defined(ENABLE_SINC_FAST_CONVERTER) || defined(ENABLE_SINC_MEDIUM_CONVERTER) || \
+	defined(ENABLE_SINC_BEST_CONVERTER))
 static float output [BUFFER_LEN] ;
 
-static long
-throughput_test (int converter, int channels, long best_throughput)
+static void
+throughput_test (int converter, int channels, long *best_throughput)
 {	SRC_DATA src_data ;
 	clock_t start_time, clock_time ;
 	double duration ;
@@ -43,7 +57,11 @@ throughput_test (int converter, int channels, long best_throughput)
 
 	src_data.src_ratio = 0.99 ;
 
+#ifdef _WIN32
+	Sleep (2000) ;
+#else
 	sleep (2) ;
+#endif
 
 	start_time = clock () ;
 
@@ -76,22 +94,25 @@ throughput_test (int converter, int channels, long best_throughput)
 
 	throughput = lrint (floor (total_frames / duration)) ;
 
-	if (best_throughput == 0)
-	{	best_throughput = MAX (throughput, best_throughput) ;
-		printf ("%5.2f      %10ld\n", duration, throughput) ;
+	if (!best_throughput)
+	{	printf ("%5.2f      %10ld\n", duration, throughput) ;
 		}
 	else
-	{	best_throughput = MAX (throughput, best_throughput) ;
-		printf ("%5.2f      %10ld       %10ld\n", duration, throughput, best_throughput) ;
+	{	*best_throughput = MAX (throughput, *best_throughput) ;
+		printf ("%5.2f      %10ld       %10ld\n", duration, throughput, *best_throughput) ;
 		}
 
-	return best_throughput ;
 } /* throughput_test */
+#endif
 
 static void
 single_run (void)
-{	const int max_channels = 10 ;
+{
+#if (defined(ENABLE_SINC_FAST_CONVERTER) || defined(ENABLE_SINC_MEDIUM_CONVERTER) || \
+	defined(ENABLE_SINC_BEST_CONVERTER))
+	const int max_channels = 10 ;
 	int k ;
+#endif
 
 	printf ("\n    CPU name : %s\n", get_cpu_name ()) ;
 
@@ -101,24 +122,31 @@ single_run (void)
 		"    ---------------------------------------------------------------------"
 		) ;
 
+#ifdef ENABLE_SINC_FAST_CONVERTER
 	for (k = 1 ; k <= max_channels / 2 ; k++)
 		throughput_test (SRC_SINC_FASTEST, k, 0) ;
 
 	puts ("") ;
+#endif
+
+#ifdef ENABLE_SINC_MEDIUM_CONVERTER
 	for (k = 1 ; k <= max_channels / 2 ; k++)
 		throughput_test (SRC_SINC_MEDIUM_QUALITY, k, 0) ;
 
 	puts ("") ;
+#endif
+
+#ifdef ENABLE_SINC_BEST_CONVERTER
 	for (k = 1 ; k <= max_channels ; k++)
 		throughput_test (SRC_SINC_BEST_QUALITY, k, 0) ;
-
 	puts ("") ;
+#endif
 	return ;
 } /* single_run */
 
 static void
 multi_run (int run_count)
-{	int k, ch ;
+{	int channels[] = {1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18};
 
 	printf ("\n    CPU name : %s\n", get_cpu_name ()) ;
 
@@ -128,29 +156,56 @@ multi_run (int run_count)
 		"    ----------------------------------------------------------------------------------------"
 		) ;
 
-	for (ch = 1 ; ch <= 5 ; ch++)
-	{	long sinc_fastest = 0, sinc_medium = 0, sinc_best = 0 ;
+	for (int i = 0 ; i < ARRAY_LEN(channels) ; i++)
+	{
+#ifdef ENABLE_SINC_FAST_CONVERTER
+		long sinc_fastest = 0 ;
+#endif
+#ifdef ENABLE_SINC_MEDIUM_CONVERTER
+		long sinc_medium = 0 ;
+#endif
+#ifdef ENABLE_SINC_BEST_CONVERTER
+		long sinc_best = 0 ;
+#endif
+		int ch = channels[i];
 
-		for (k = 0 ; k < run_count ; k++)
-		{	sinc_fastest =		throughput_test (SRC_SINC_FASTEST, ch, sinc_fastest) ;
-			sinc_medium =		throughput_test (SRC_SINC_MEDIUM_QUALITY, ch, sinc_medium) ;
-			sinc_best =			throughput_test (SRC_SINC_BEST_QUALITY, ch, sinc_best) ;
+		for (int k = 0 ; k < run_count ; k++)
+		{
+#ifdef ENABLE_SINC_FAST_CONVERTER
+			throughput_test (SRC_SINC_FASTEST, ch, &sinc_fastest) ;
+#endif
+#ifdef ENABLE_SINC_MEDIUM_CONVERTER
+			throughput_test (SRC_SINC_MEDIUM_QUALITY, ch, &sinc_medium) ;
+#endif
+#ifdef ENABLE_SINC_BEST_CONVERTER
+			throughput_test (SRC_SINC_BEST_QUALITY, ch, &sinc_best) ;
+#endif
 
 			puts ("") ;
 
 			/* Let the CPU cool down. We might be running on a laptop. */
+#ifdef _WIN32
+			Sleep (10000) ;
+#else
 			sleep (10) ;
+#endif
 			} ;
 
-		puts (
+		printf (
 			"\n"
-			"    Converter                        Best Throughput\n"
-			"    ------------------------------------------------"
+			"    Converter (channels: %d)         Best Throughput\n"
+			"    ------------------------------------------------\n",
+			ch
 			) ;
-
+#ifdef ENABLE_SINC_FAST_CONVERTER
 		printf ("    %-30s    %10ld\n", src_get_name (SRC_SINC_FASTEST), sinc_fastest) ;
+#endif
+#ifdef ENABLE_SINC_MEDIUM_CONVERTER
 		printf ("    %-30s    %10ld\n", src_get_name (SRC_SINC_MEDIUM_QUALITY), sinc_medium) ;
+#endif
+#ifdef ENABLE_SINC_BEST_CONVERTER
 		printf ("    %-30s    %10ld\n", src_get_name (SRC_SINC_BEST_QUALITY), sinc_best) ;
+#endif
 		} ;
 
 	puts ("") ;

@@ -329,12 +329,16 @@ void WaveformDrawer::SetPlayPosition(unsigned int pPos) {
   // In comes a sample value and the playPosition is calculated in pixels from (leftMargin - 4) to (trackWidth - 4)
   int nrOfSamples = m_fileReference->waveTracks[0].waveData.size();
   int samplesPerPixel;
-    
-  if (nrOfSamples % trackWidth == 0)
-    samplesPerPixel = nrOfSamples / trackWidth;
-  else
-    samplesPerPixel = (nrOfSamples / trackWidth) + 1;
-  playPosition = pPos / samplesPerPixel + (leftMargin - 4);
+
+  if (trackWidth > 0) {
+    if (nrOfSamples % trackWidth == 0)
+      samplesPerPixel = nrOfSamples / trackWidth;
+    else
+      samplesPerPixel = (nrOfSamples / trackWidth) + 1;
+    playPosition = pPos / samplesPerPixel + (leftMargin - 4);
+  } else {
+    playPosition = leftMargin - 4;
+  }
 }
 
 WaveformDrawer::~WaveformDrawer() {

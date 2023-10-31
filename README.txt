@@ -1,5 +1,5 @@
 This is LoopAuditioneer
-Copyright (C) 2011-2021 Lars Palo
+Copyright (C) 2011-2023 Lars Palo
 Released under a GNU/GPL 3 license, see LICENCE.txt
 
 LoopAuditioneer is a software for evaluating loops and cues existing in wav 
@@ -19,12 +19,12 @@ discussion on the GrandOrgue mailing list.
 
 The lib-src/ directory contains the external libraries that LoopAuditioneer is
 dependant on. Libsndfile, and Libsamplerate written by Erik de Castro Lopo and 
-avaiable at http://www.mega-nerd.com/libsndfile/, is provided here locally as
+avaiable at https://github.com/libsndfile, are provided here locally as
 especially the version of libsndfile included contains non-official 
-modifications (like the ability to handle pitch fraction) that the
+modifications (like the ability to handle pitch fraction exactly) that the
 LoopAuditioneer author has added that has not yet been officially approved of
 and included in the library. RtAudio, by Gary P. Scavone
-(http://www.music.mcgill.ca/~gary/rtaudio/) is used for audio output.
+(https://github.com/thestk/rtaudio) is used for audio output.
 
 In the resources/free-pixel-icons/ directory resides the icons used by the
 program for the toolbar. The complete set is available at 

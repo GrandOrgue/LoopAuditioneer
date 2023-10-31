@@ -37,7 +37,7 @@ endif ()
 
 # rtaudio options
 if(CMAKE_CROSSCOMPILING AND WIN32)
-  add_compile_options(-D__WINDOWS_WASAPI__ -D__WINDOWS_DS__ -static)
+  add_compile_options(-D__WINDOWS_DS__ -D__WINDOWS_WASAPI__ -static)
 else()
   if(${RTAUDIO_USE_JACK})
     add_compile_options(-D__LINUX_ALSA__ -D__LINUX_PULSE__ -D__UNIX_JACK__)
@@ -96,23 +96,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
   ${CMAKE_BINARY_DIR}/include/rtaudio
 )
 
-# set windows specific linker options
-if(CMAKE_CROSSCOMPILING AND WIN32)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-    -static
-    -ldsound
-    -lole32
-    -lwinmm
-    -lm
-    -Wl,--as-needed
-    -lssp
-    -lksuser
-    -lmfplat
-    -lmfuuid
-    -lwmcodecdspuuid
-  )
-endif()
-
 # link with wxWidgets and external libraries
 target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
   m
@@ -122,6 +105,24 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
   LA_rtaudio
   LA_samplerate
 )
+
+# set windows specific linker options
+if(CMAKE_CROSSCOMPILING AND WIN32)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
+    -static
+    -lole32
+    -lwinmm
+    -lm
+    -Wl,--as-needed
+    -lssp
+    -lksuser
+    -lmfplat
+    -lmfuuid
+    -lwmcodecdspuuid
+    -ldsound
+  )
+endif()
+
 if(UNIX AND NOT APPLE)
   if(${RTAUDIO_USE_JACK})
     target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC

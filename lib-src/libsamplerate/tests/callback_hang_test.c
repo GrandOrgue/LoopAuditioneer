@@ -3,14 +3,18 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <math.h>
 
 #if HAVE_ALARM && HAVE_SIGNAL && HAVE_SIGALRM
@@ -44,7 +48,9 @@ main (void)
 	puts ("") ;
 	callback_hang_test (SRC_ZERO_ORDER_HOLD) ;
 	callback_hang_test (SRC_LINEAR) ;
+#ifdef ENABLE_SINC_FAST_CONVERTER
 	callback_hang_test (SRC_SINC_FASTEST) ;
+#endif
 	puts ("") ;
 
 	return 0 ;

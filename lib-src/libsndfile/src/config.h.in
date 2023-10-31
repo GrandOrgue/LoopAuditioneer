@@ -1,22 +1,28 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define if building universal (internal helper macro) */
+#undef AC_APPLE_UNIVERSAL_BUILD
+
 /* Set to 1 if the compile is GNU GCC. */
 #undef COMPILER_IS_GCC
 
-/* Target processor clips on negative float to int conversion. */
+/* Host processor clips on negative float to int conversion. */
 #undef CPU_CLIPS_NEGATIVE
 
-/* Target processor clips on positive float to int conversion. */
+/* Host processor clips on positive float to int conversion. */
 #undef CPU_CLIPS_POSITIVE
 
-/* Target processor is big endian. */
+/* Host processor is big endian. */
 #undef CPU_IS_BIG_ENDIAN
 
-/* Target processor is little endian. */
+/* Host processor is little endian. */
 #undef CPU_IS_LITTLE_ENDIAN
 
 /* Set to 1 to enable experimental code. */
 #undef ENABLE_EXPERIMENTAL_CODE
+
+/* Set to 1 if you have alsa */
+#undef HAVE_ALSA
 
 /* Define to 1 if you have the <alsa/asoundlib.h> header file. */
 #undef HAVE_ALSA_ASOUNDLIB_H
@@ -30,7 +36,7 @@
 /* Define to 1 if you have the `ceil' function. */
 #undef HAVE_CEIL
 
-/* Set to 1 if S_IRGRP is defined. */
+/* Set to 0 if S_IRGRP is not defined. */
 #undef HAVE_DECL_S_IRGRP
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
@@ -39,7 +45,7 @@
 /* Define to 1 if you have the <endian.h> header file. */
 #undef HAVE_ENDIAN_H
 
-/* Will be set to 1 if flac, ogg and vorbis are available. */
+/* Will be set to 1 if flac, ogg, vorbis, and opus are available. */
 #undef HAVE_EXTERNAL_XIPH_LIBS
 
 /* Define to 1 if you have the `floor' function. */
@@ -75,11 +81,11 @@
 /* Define to 1 if you have the `gmtime_r' function. */
 #undef HAVE_GMTIME_R
 
+/* Define to 1 if you have the <immintrin.h> header file. */
+#undef HAVE_IMMINTRIN_H
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
-
-/* Define to 1 if you have the `m' library (-lm). */
-#undef HAVE_LIBM
 
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
@@ -90,14 +96,11 @@
 /* Define to 1 if you have the `localtime_r' function. */
 #undef HAVE_LOCALTIME_R
 
-/* Define if you have C99's lrint function. */
+/* Define to 1 if you have the `lrint' function. */
 #undef HAVE_LRINT
 
-/* Define if you have C99's lrintf function. */
+/* Define to 1 if you have the `lrintf' function. */
 #undef HAVE_LRINTF
-
-/* Define to 1 if you have the `lround' function. */
-#undef HAVE_LROUND
 
 /* Define to 1 if you have the `lseek' function. */
 #undef HAVE_LSEEK
@@ -108,11 +111,14 @@
 /* Define to 1 if you have the `malloc' function. */
 #undef HAVE_MALLOC
 
-/* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
+/* Define to 1 if you have the <minix/config.h> header file. */
+#undef HAVE_MINIX_CONFIG_H
 
 /* Define to 1 if you have the `mmap' function. */
 #undef HAVE_MMAP
+
+/* Will be set to 1 if lame, mpg123 mpeg support is available. */
+#undef HAVE_MPEG
 
 /* Define to 1 if you have the `open' function. */
 #undef HAVE_OPEN
@@ -138,8 +144,14 @@
 /* Set to 1 if you have libsqlite3. */
 #undef HAVE_SQLITE3
 
+/* Define to 1 if you have the <stdbool.h> header file. */
+#undef HAVE_STDBOOL_H
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
@@ -165,15 +177,14 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define to 1 or 0, depending whether the compiler supports simple visibility
-   declarations. */
-#undef HAVE_VISIBILITY
-
 /* Define to 1 if you have the `vsnprintf' function. */
 #undef HAVE_VSNPRINTF
 
 /* Define to 1 if you have the `waitpid' function. */
 #undef HAVE_WAITPID
+
+/* Define to 1 if you have the <wchar.h> header file. */
+#undef HAVE_WCHAR_H
 
 /* Define to 1 if you have the `write' function. */
 #undef HAVE_WRITE
@@ -211,9 +222,6 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* Set to maximum allowed value of sf_count_t type. */
-#undef SF_COUNT_MAX
-
 /* The size of `double', as computed by sizeof. */
 #undef SIZEOF_DOUBLE
 
@@ -235,9 +243,6 @@
 /* The size of `off_t', as computed by sizeof. */
 #undef SIZEOF_OFF_T
 
-/* Set to sizeof (long) if unknown. */
-#undef SIZEOF_SF_COUNT_T
-
 /* The size of `short', as computed by sizeof. */
 #undef SIZEOF_SHORT
 
@@ -250,31 +255,96 @@
 /* The size of `wchar_t', as computed by sizeof. */
 #undef SIZEOF_WCHAR_T
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #undef STDC_HEADERS
-
-/* Set to long if unknown. */
-#undef TYPEOF_SF_COUNT_T
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
 # undef _ALL_SOURCE
 #endif
+/* Enable general extensions on macOS.  */
+#ifndef _DARWIN_C_SOURCE
+# undef _DARWIN_C_SOURCE
+#endif
+/* Enable general extensions on Solaris.  */
+#ifndef __EXTENSIONS__
+# undef __EXTENSIONS__
+#endif
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
 # undef _GNU_SOURCE
 #endif
-/* Enable threading extensions on Solaris.  */
+/* Enable X/Open compliant socket functions that do not require linking
+   with -lxnet on HP-UX 11.11.  */
+#ifndef _HPUX_ALT_XOPEN_SOCKET_API
+# undef _HPUX_ALT_XOPEN_SOCKET_API
+#endif
+/* Identify the host operating system as Minix.
+   This macro does not affect the system headers' behavior.
+   A future release of Autoconf may stop defining this macro.  */
+#ifndef _MINIX
+# undef _MINIX
+#endif
+/* Enable general extensions on NetBSD.
+   Enable NetBSD compatibility extensions on Minix.  */
+#ifndef _NETBSD_SOURCE
+# undef _NETBSD_SOURCE
+#endif
+/* Enable OpenBSD compatibility extensions on NetBSD.
+   Oddly enough, this does nothing on OpenBSD.  */
+#ifndef _OPENBSD_SOURCE
+# undef _OPENBSD_SOURCE
+#endif
+/* Define to 1 if needed for POSIX-compatible behavior.  */
+#ifndef _POSIX_SOURCE
+# undef _POSIX_SOURCE
+#endif
+/* Define to 2 if needed for POSIX-compatible behavior.  */
+#ifndef _POSIX_1_SOURCE
+# undef _POSIX_1_SOURCE
+#endif
+/* Enable POSIX-compatible threading on Solaris.  */
 #ifndef _POSIX_PTHREAD_SEMANTICS
 # undef _POSIX_PTHREAD_SEMANTICS
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-5:2014.  */
+#ifndef __STDC_WANT_IEC_60559_ATTRIBS_EXT__
+# undef __STDC_WANT_IEC_60559_ATTRIBS_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-1:2014.  */
+#ifndef __STDC_WANT_IEC_60559_BFP_EXT__
+# undef __STDC_WANT_IEC_60559_BFP_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-2:2015.  */
+#ifndef __STDC_WANT_IEC_60559_DFP_EXT__
+# undef __STDC_WANT_IEC_60559_DFP_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-4:2015.  */
+#ifndef __STDC_WANT_IEC_60559_FUNCS_EXT__
+# undef __STDC_WANT_IEC_60559_FUNCS_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-3:2015.  */
+#ifndef __STDC_WANT_IEC_60559_TYPES_EXT__
+# undef __STDC_WANT_IEC_60559_TYPES_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TR 24731-2:2010.  */
+#ifndef __STDC_WANT_LIB_EXT2__
+# undef __STDC_WANT_LIB_EXT2__
+#endif
+/* Enable extensions specified by ISO/IEC 24747:2009.  */
+#ifndef __STDC_WANT_MATH_SPEC_FUNCS__
+# undef __STDC_WANT_MATH_SPEC_FUNCS__
 #endif
 /* Enable extensions on HP NonStop.  */
 #ifndef _TANDEM_SOURCE
 # undef _TANDEM_SOURCE
 #endif
-/* Enable general extensions on Solaris.  */
-#ifndef __EXTENSIONS__
-# undef __EXTENSIONS__
+/* Enable X/Open extensions.  Define to 500 only if necessary
+   to make mbstate_t available.  */
+#ifndef _XOPEN_SOURCE
+# undef _XOPEN_SOURCE
 #endif
 
 
@@ -287,12 +357,16 @@
 /* Set to 1 if windows DLL is being built. */
 #undef WIN32_TARGET_DLL
 
-/* Target processor is big endian. */
-#undef WORDS_BIGENDIAN
-
-/* Enable large inode numbers on Mac OS X 10.5.  */
-#ifndef _DARWIN_USE_64_BIT_INODE
-# define _DARWIN_USE_64_BIT_INODE 1
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
@@ -300,16 +374,6 @@
 
 /* Define for large files, on AIX-style hosts. */
 #undef _LARGE_FILES
-
-/* Define to 1 if on MINIX. */
-#undef _MINIX
-
-/* Define to 2 if the system does not provide POSIX.1 features except with
-   this defined. */
-#undef _POSIX_1_SOURCE
-
-/* Define to 1 if you need to in order for `stat' and other things to work. */
-#undef _POSIX_SOURCE
 
 /* Set to 1 to use C99 printf/snprintf in MinGW. */
 #undef __USE_MINGW_ANSI_STDIO

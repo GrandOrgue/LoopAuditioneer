@@ -3,10 +3,10 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
 
-typedef	struct AUDIO_OUT_s AUDIO_OUT ;
+typedef	struct AUDIO_OUT AUDIO_OUT ;
 
 typedef int (*get_audio_callback_t) (void *callback_data, float *samples, int frames) ;
 

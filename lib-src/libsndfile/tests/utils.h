@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2002-2016 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2002-2018 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -29,13 +29,15 @@
 extern "C" {
 #endif	/* __cplusplus */
 
+#include "sfconfig.h"
+
 #include <stdint.h>
 #include <stdarg.h>
 
 #define	ARRAY_LEN(x)		((int) (sizeof (x)) / (sizeof ((x) [0])))
 #define SIGNED_SIZEOF(x)	((int64_t) (sizeof (x)))
 #define	NOT(x)				(! (x))
-#define	ABS(x)				((x) >= 0 ? (x) : -(x))
+#define	ABS(x)				((x) >= 0 ? (x) : - (x))
 
 #define	PIPE_INDEX(x)	((x) + 500)
 #define	PIPE_TEST_LEN	12345
@@ -58,7 +60,7 @@ void	write_mono_file (const char * filename, int format, int srate, float * outp
 #ifdef __GNUC__
 static inline void
 exit_if_true (int test, const char *format, ...)
-#if (defined (__USE_MINGW_ANSI_STDIO) && __USE_MINGW_ANSI_STDIO)
+#if (defined (__USE_MINGW_ANSI_STDIO) && __USE_MINGW_ANSI_STDIO && !defined (__clang__))
 	__attribute__ ((format (gnu_printf, 2, 3))) ;
 #else
 	__attribute__ ((format (printf, 2, 3))) ;
@@ -94,9 +96,13 @@ int	oct_save_double	(const double *a, const double *b, int len) ;
 
 void	delete_file (int format, const char *filename) ;
 
+int		truncate_file_to_zero (const char *fname) ;
+
 void	count_open_files (void) ;
 void	increment_open_file_count (void) ;
 void	check_open_file_count_or_die (int lineno) ;
+
+void	get_unique_test_name (const char ** filename, const char * test) ;
 
 #ifdef SNDFILE_H
 

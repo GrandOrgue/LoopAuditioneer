@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2001-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2001-2017 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software ; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -47,6 +47,7 @@
 #define LOG_BUFFER_SIZE	1024
 
 static void	update_header_test (const char *filename, int typemajor) ;
+static void	update_header_before_write_test (const char *filename, int typemajor) ;
 
 static void	update_seek_short_test	(const char *filename, int filetype) ;
 static void	update_seek_int_test	(const char *filename, int filetype) ;
@@ -105,7 +106,7 @@ main (int argc, char *argv [])
 		update_seek_int_test ("header_int.aiff", SF_FORMAT_AIFF) ;
 		update_seek_float_test ("header_float.aiff", SF_FORMAT_AIFF) ;
 		update_seek_double_test ("header_double.aiff", SF_FORMAT_AIFF) ;
-		header_shrink_test ("header_shrink.wav", SF_FORMAT_AIFF) ;
+		header_shrink_test ("header_shrink.aiff", SF_FORMAT_AIFF) ;
 		extra_header_test ("extra.aiff", SF_FORMAT_AIFF) ;
 		test_count++ ;
 		} ;
@@ -226,6 +227,14 @@ main (int argc, char *argv [])
 		test_count++ ;
 		} ;
 
+	if (do_all || ! strcmp (argv [1], "flac"))
+	{	if (HAVE_EXTERNAL_XIPH_LIBS)
+			update_header_before_write_test ("header.flac", SF_FORMAT_FLAC) ;
+		else
+			puts ("    No FLAC tests because FLAC support was not compiled in.") ;
+		test_count++ ;
+		} ;
+
 	if (test_count == 0)
 	{	printf ("Mono : ************************************\n") ;
 		printf ("Mono : *  No '%s' test defined.\n", argv [1]) ;
@@ -247,10 +256,10 @@ update_header_sub (const char *filename, int typemajor, int write_mode)
 	SF_INFO		sfinfo ;
 	int			k ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate = 44100 ;
 	sfinfo.format = (typemajor | SF_FORMAT_PCM_16) ;
 	sfinfo.channels = 1 ;
-	sfinfo.frames = 0 ;
 
 	outfile = test_open_file_or_die (filename, write_mode, &sfinfo, SF_TRUE, __LINE__) ;
 
@@ -323,6 +332,36 @@ update_header_test (const char *filename, int typemajor)
 	puts ("ok") ;
 } /* update_header_test */
 
+static void
+update_header_before_write_test (const char *filename, int typemajor)
+{
+	SNDFILE		*outfile ;
+	SF_INFO		sfinfo ;
+	int			k ;
+
+	print_test_name ("update_header_before_write", filename) ;
+
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
+	sfinfo.samplerate = 44100 ;
+	sfinfo.format = (typemajor | SF_FORMAT_PCM_16) ;
+	sfinfo.channels = 1 ;
+
+	outfile = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, __LINE__) ;
+
+	/* FLAC can only write the header once; if the first call to sf_write() will
+	** also attempt to write the header, it fails. FLAC-specific regression
+	*/
+	sf_command (outfile, SFC_UPDATE_HEADER_NOW, NULL, 0) ;
+
+	for (k = 0 ; k < BUFFER_LEN ; k++)
+		data_out [k] = k + 1 ;
+	test_write_int_or_die (outfile, 0, data_out, BUFFER_LEN, __LINE__) ;
+
+	sf_close (outfile) ;
+	unlink (filename) ;
+	puts ("ok") ;
+} /* update_header_before_write_test */
+
 /*==============================================================================
 */
 
@@ -339,6 +378,7 @@ update_seek_short_test	(const char *filename, int filetype)
 	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Create sound outfile with no data. */
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.format = filetype | SF_FORMAT_PCM_16 ;
 	sfinfo.samplerate = 48000 ;
 	sfinfo.channels = 2 ;
@@ -406,6 +446,7 @@ update_seek_int_test	(const char *filename, int filetype)
 	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Create sound outfile with no data. */
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.format = filetype | SF_FORMAT_PCM_32 ;
 	sfinfo.samplerate = 48000 ;
 	sfinfo.channels = 2 ;
@@ -473,6 +514,7 @@ update_seek_float_test	(const char *filename, int filetype)
 	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Create sound outfile with no data. */
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.format = filetype | SF_FORMAT_FLOAT ;
 	sfinfo.samplerate = 48000 ;
 	sfinfo.channels = 2 ;
@@ -540,6 +582,7 @@ update_seek_double_test	(const char *filename, int filetype)
 	memset (buffer, 0, sizeof (buffer)) ;
 
 	/* Create sound outfile with no data. */
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.format = filetype | SF_FORMAT_DOUBLE ;
 	sfinfo.samplerate = 48000 ;
 	sfinfo.channels = 2 ;
@@ -649,6 +692,7 @@ extra_header_test (const char *filename, int filetype)
 
 	print_test_name ("extra_header_test", filename) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate = 44100 ;
 	sfinfo.format = (filetype | SF_FORMAT_PCM_16) ;
 	sfinfo.channels = 1 ;
@@ -659,9 +703,9 @@ extra_header_test (const char *filename, int filetype)
 	frames = ARRAY_LEN (buffer) / sfinfo.channels ;
 
 	/* Test the file with extra header data. */
-	outfile = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, 463) ;
+	outfile = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, 504) ;
 	sf_set_string (outfile, SF_STR_TITLE, filename) ;
-	test_writef_short_or_die (outfile, k, buffer, frames, 465) ;
+	test_writef_short_or_die (outfile, k, buffer, frames, 506) ;
 	sf_set_string (outfile, SF_STR_COPYRIGHT, "(c) 1980 Erik") ;
 	sf_close (outfile) ;
 
@@ -688,7 +732,7 @@ extra_header_test (const char *filename, int filetype)
 	hexdump_file (filename, 0, 100000) ;
 
 	/* Open again for read/write. */
-	outfile = test_open_file_or_die (filename, SFM_RDWR, &sfinfo, 492) ;
+	outfile = test_open_file_or_die (filename, SFM_RDWR, &sfinfo, 533) ;
 
 	/*
 	** In auto header update mode, seeking to the end of the file with
@@ -709,26 +753,26 @@ extra_header_test (const char *filename, int filetype)
 		memset (buffer, 0xA0 + k, sizeof (buffer)) ;
 
 
-		test_seek_or_die (outfile, k * frames, SEEK_SET, k * frames, sfinfo.channels, 513) ;
-		test_seek_or_die (outfile, 0, SEEK_END, k * frames, sfinfo.channels, 514) ;
+		test_seek_or_die (outfile, k * frames, SEEK_SET, k * frames, sfinfo.channels, 554) ;
+		test_seek_or_die (outfile, 0, SEEK_END, k * frames, sfinfo.channels, 555) ;
 
 		/* Open file again and make sure no errors in log buffer. */
 		if (0)
-		{	infile = test_open_file_or_die (filename, SFM_READ, &sfinfo, 518) ;
-			check_log_buffer_or_die (infile, 519) ;
+		{	infile = test_open_file_or_die (filename, SFM_READ, &sfinfo, 559) ;
+			check_log_buffer_or_die (infile, 560) ;
 			sf_close (infile) ;
 			} ;
 
 		if (sfinfo.frames != k * frames)
-		{	printf ("\n\nLine %d : Incorrect sample count (%" PRId64 " should be %" PRId64 ")\n", 524, sfinfo.frames, k + frames) ;
+		{	printf ("\n\nLine %d : Incorrect sample count (%" PRId64 " should be %" PRId64 ")\n", 565, sfinfo.frames, k + frames) ;
 			dump_log_buffer (infile) ;
 			exit (1) ;
 			} ;
 
 		if ((k & 1) == 0)
-			test_write_short_or_die (outfile, k, buffer, sfinfo.channels * frames, 530) ;
+			test_write_short_or_die (outfile, k, buffer, sfinfo.channels * frames, 571) ;
 		else
-			test_writef_short_or_die (outfile, k, buffer, frames, 532) ;
+			test_writef_short_or_die (outfile, k, buffer, frames, 573) ;
 		hexdump_file (filename, 0, 100000) ;
 		} ;
 
@@ -739,4 +783,3 @@ extra_header_test (const char *filename, int filetype)
 	return ;
 #endif
 } /* extra_header_test */
-

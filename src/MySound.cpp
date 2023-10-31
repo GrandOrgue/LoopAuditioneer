@@ -57,9 +57,10 @@ void MySound::SetApiToUse(RtAudio::Api api) {
 }
 
 void MySound::SetAudioDevice(unsigned int devID) {
-  if (m_audio->getDeviceCount() > 0) {
-    if (devID < m_audio->getDeviceCount()) {
-      // this should be a valid device
+  std::vector<unsigned> deviceIds = m_audio->getDeviceIds();
+  if (deviceIds.size() > 0) {
+    if (std::find(deviceIds.begin(), deviceIds.end(), devID) != deviceIds.end()) {
+      // this should be a valid device id
       m_deviceID = devID;
     } else {
       // just use the default device
@@ -70,25 +71,19 @@ void MySound::SetAudioDevice(unsigned int devID) {
   } else {
     // we must try using default Api and device instead
     SetApiToUse(RtAudio::UNSPECIFIED);
-    SetAudioDevice(INT_MAX);
+    SetAudioDevice(m_audio->getDefaultOutputDevice());
   }
 }
 
 void MySound::SetSampleRate(int sampleRate) {
-  if (info.probed) {
-    if (std::find(info.sampleRates.begin(), info.sampleRates.end(), sampleRate) != info.sampleRates.end()) {
-      // device supports this samplerate
-      sampleRateToUse = sampleRate;
-      m_needsResampling = false;
-    } else {
-      // device doesn't support this samplerate we need to resample
-      sampleRateToUse = info.preferredSampleRate;
-      m_needsResampling = true;
-    }
-  } else {
-    // TODO: this shouldn't happen, possibly replace with message
+  if (std::find(info.sampleRates.begin(), info.sampleRates.end(), sampleRate) != info.sampleRates.end()) {
+    // device supports this samplerate
     sampleRateToUse = sampleRate;
     m_needsResampling = false;
+  } else {
+    // device doesn't support this samplerate we need to resample
+    sampleRateToUse = info.preferredSampleRate;
+    m_needsResampling = true;
   }
 }
 
@@ -98,7 +93,7 @@ void MySound::SetAudioFormat(int audioFormat) {
 }
 
 void MySound::OpenAudioStream() {
-  try {
+  if (
     m_audio->openStream(
       &parameters,
       NULL,
@@ -108,27 +103,33 @@ void MySound::OpenAudioStream() {
       &MyFrame::AudioCallback,
       (void *)&pos,
       &options
-    );
-  } catch ( RtAudioError& e ) {
-    e.printMessage();
+    ) == RTAUDIO_NO_ERROR) {
+    // All is fine
+    m_lastError = wxEmptyString;
+  } else {
+    // Some kind of error has happened
+    m_lastError = wxString(m_audio->getErrorText());
   }
 }
 
 void MySound::StartAudioStream() {
-  try {
-    m_audio->startStream();
-  } catch ( RtAudioError& e ) {
-    e.printMessage();
+  if (m_audio->startStream() == RTAUDIO_NO_ERROR) {
+    // All is fine
+    m_lastError = wxEmptyString;
+  } else {
+    // Some kind of error has happened
+    m_lastError = wxString(m_audio->getErrorText());
   }
 }
 
 void MySound::StopAudioStream() {
   if (m_audio->isStreamRunning()) {
-    try {
-      // Stop the stream
-      m_audio->stopStream();
-    } catch (RtAudioError& e) {
-      e.printMessage();
+    if (m_audio->stopStream() == RTAUDIO_NO_ERROR) {
+      // All is fine
+      m_lastError = wxEmptyString;
+    } else {
+      // Some kind of error has happened
+      m_lastError = wxString(m_audio->getErrorText());
     }
   }
 }
@@ -150,20 +151,14 @@ void MySound::SetStartPosition(unsigned int startPos, int n_channels) {
 }
 
 void MySound::SetChannels(int channels) {
-  if (info.probed) {
-    if ((unsigned) channels <= info.outputChannels) {
-      // we can safely use this number of channels
-      parameters.nChannels = channels;
-      m_channelsUsed = channels;
-    } else {
-      // the file contain more channels than device can handle
-      parameters.nChannels = info.outputChannels;
-      m_channelsUsed = info.outputChannels;
-    }
-  } else {
-    // TODO: this shouldn't happen, possibly replace with message
+  if ((unsigned) channels <= info.outputChannels) {
+    // we can safely use this number of channels
     parameters.nChannels = channels;
     m_channelsUsed = channels;
+  } else {
+    // the file contain more channels than device can handle
+    parameters.nChannels = info.outputChannels;
+    m_channelsUsed = info.outputChannels;
   }
 }
 

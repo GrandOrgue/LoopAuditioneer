@@ -62,6 +62,7 @@ private:
   unsigned int m_channelsUsed;
   wxString m_api;
   bool m_needsResampling;
+  wxString m_lastError;
 };
 
 #endif

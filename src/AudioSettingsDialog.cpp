@@ -21,6 +21,7 @@
 #include "AudioSettingsDialog.h"
 #include <wx/statline.h>
 #include <wx/choice.h>
+#include <algorithm>
 
 IMPLEMENT_CLASS(AudioSettingsDialog, wxDialog )
 
@@ -117,15 +118,15 @@ void AudioSettingsDialog::CreateControls() {
   boxSizer->Add(apiLabel, 0, wxALL, 2);
 
   // wxChoice for audio api
-  wxChoice *apiChoice = new wxChoice(
+  m_apiChoice = new wxChoice(
     this,
     ID_SOUND_API,
     wxDefaultPosition,
     wxDefaultSize,
     m_availableApis
   );
-  boxSizer->Add(apiChoice, 0, wxEXPAND|wxALL, 5);
-  apiChoice->SetStringSelection(m_snd_api);
+  boxSizer->Add(m_apiChoice, 0, wxEXPAND|wxALL, 5);
+  m_apiChoice->SetStringSelection(m_snd_api);
 
   // Label for audio device
   wxStaticText *deviceLabel = new wxStaticText(
@@ -139,15 +140,16 @@ void AudioSettingsDialog::CreateControls() {
   boxSizer->Add(deviceLabel, 0, wxALL, 2);
 
   // wxChoice for device
-  wxChoice *deviceChoice = new wxChoice(
+  m_deviceChoice = new wxChoice(
     this,
     ID_SOUND_DEVICE,
     wxDefaultPosition,
     wxDefaultSize,
     m_availableDevices
   );
-  boxSizer->Add(deviceChoice, 0, wxEXPAND|wxALL, 5);
-  deviceChoice->SetSelection(m_snd_device);
+  boxSizer->Add(m_deviceChoice, 0, wxEXPAND|wxALL, 5);
+  if (ConvertDeviceIdToString() != wxEmptyString)
+    m_deviceChoice->SetStringSelection(ConvertDeviceIdToString());
 
   // A horizontal line before the buttons
   wxStaticLine *bottomline = new wxStaticLine(
@@ -193,22 +195,15 @@ unsigned int AudioSettingsDialog::GetSoundDeviceId() {  return m_snd_device;}
 
 // Override of transfer data to the window
 bool AudioSettingsDialog::TransferDataToWindow() {
-  wxChoice *apiChoice = (wxChoice*) FindWindow(ID_SOUND_API);
-  wxChoice *deviceChoice = (wxChoice*) FindWindow(ID_SOUND_DEVICE);
-  
-  apiChoice->SetStringSelection(m_snd_api);
-  deviceChoice->SetSelection(m_snd_device);
+  m_apiChoice->SetStringSelection(m_snd_api);
+  m_deviceChoice->SetStringSelection(ConvertDeviceIdToString());
   
   return true;
 }
 
 // Override of transfer data from the window
 bool AudioSettingsDialog::TransferDataFromWindow() {
-  wxChoice *apiChoice = (wxChoice*) FindWindow(ID_SOUND_API);
-  wxChoice *deviceChoice = (wxChoice*) FindWindow(ID_SOUND_DEVICE);
-  
-  m_snd_api = m_availableApis.Item(apiChoice->GetSelection());
-  m_snd_device = deviceChoice->GetSelection();
+  m_snd_api = m_availableApis.Item(m_apiChoice->GetSelection());
   
   return true;
 }
@@ -216,44 +211,59 @@ bool AudioSettingsDialog::TransferDataFromWindow() {
 void AudioSettingsDialog::UpdateAvailableDevices() {
   RtAudio audio(RtAudio::getCompiledApiByName(std::string(m_snd_api.mb_str())));
   RtAudio::DeviceInfo info;
-  unsigned int devices = audio.getDeviceCount();
   m_availableDevices.Empty();
+  std::vector<unsigned> ids = audio.getDeviceIds();
+  if (ids.size() == 0) {
+    return;
+  }
 
-  for (unsigned int i = 0; i < devices; i++) {
-    info = audio.getDeviceInfo(i);
+  for (unsigned i = 0; i < ids.size(); i++) {
+    info = audio.getDeviceInfo(ids[i]);
     m_availableDevices.Add(wxString(info.name));
   }
 }
 
+wxString AudioSettingsDialog::ConvertDeviceIdToString() {
+  RtAudio audio(RtAudio::getCompiledApiByName(std::string(m_snd_api.mb_str())));
+  std::vector<unsigned> ids = audio.getDeviceIds();
+
+  if (std::find(ids.begin(), ids.end(), m_snd_device) != ids.end()) {
+    RtAudio::DeviceInfo info;
+    info = audio.getDeviceInfo(m_snd_device);
+  	return wxString(info.name);
+  } else {
+    return wxEmptyString;
+  }
+}
+
 void AudioSettingsDialog::OnApiChoice(wxCommandEvent& WXUNUSED(event)) {
-  wxChoice *apiChoice = (wxChoice*) FindWindow(ID_SOUND_API);
-  wxString choiceStr = m_availableApis.Item(apiChoice->GetSelection());
+  wxString choiceStr = m_availableApis.Item(m_apiChoice->GetSelection());
   if (!choiceStr.IsSameAs(m_snd_api)) {
     m_snd_api = choiceStr;
     UpdateAvailableDevices();
     
-    wxChoice *deviceChoice = (wxChoice*) FindWindow(ID_SOUND_DEVICE);
-    deviceChoice->Set(m_availableDevices);
-    deviceChoice->SetSelection(wxNOT_FOUND);
+    m_deviceChoice->Set(m_availableDevices);
+    m_deviceChoice->SetSelection(wxNOT_FOUND);
     m_snd_device = UINT_MAX; // since no device yet is chosen for this api
   }
   CheckIfOkCanBeEnabled();
 }
 
 void AudioSettingsDialog::OnDeviceChoice(wxCommandEvent& WXUNUSED(event)) {
-  wxChoice *deviceChoice = (wxChoice*) FindWindow(ID_SOUND_DEVICE);
-  unsigned int deviceIdx = deviceChoice->GetSelection();
-  if (deviceIdx != m_snd_device) {
-    m_snd_device = deviceIdx;
-  }
+  int selectedIdx = m_deviceChoice->GetSelection();
+  RtAudio audio(RtAudio::getCompiledApiByName(std::string(m_snd_api.mb_str())));
+  std::vector<unsigned> ids = audio.getDeviceIds();
+  if (selectedIdx < 0 || ids.size() < 1 || selectedIdx > (int) (ids.size() - 1)) {
+    m_deviceChoice->SetSelection(wxNOT_FOUND);
+    m_snd_device = UINT_MAX; // since no device yet is chosen for this api
+  } else
+    m_snd_device = ids[selectedIdx];
   CheckIfOkCanBeEnabled();
 }
 
 void AudioSettingsDialog::CheckIfOkCanBeEnabled() {
-  wxChoice *apiChoice = (wxChoice*) FindWindow(ID_SOUND_API);
-  wxChoice *deviceChoice = (wxChoice*) FindWindow(ID_SOUND_DEVICE);
   wxButton *okButton = (wxButton*) FindWindow(wxID_OK);
-  if ((apiChoice->GetSelection() != wxNOT_FOUND) && (deviceChoice->GetSelection() != wxNOT_FOUND)) {
+  if ((m_apiChoice->GetSelection() != wxNOT_FOUND) && (m_deviceChoice->GetSelection() != wxNOT_FOUND)) {
     okButton->Enable(true);
   } else {
     okButton->Enable(false);
