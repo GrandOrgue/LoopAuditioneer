@@ -3,8 +3,12 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,10 +49,16 @@ static void
 float_to_short_test (void)
 {
 	static float fpos [] =
-	{	0.95, 0.99, 1.0, 1.01, 1.1, 2.0, 11.1, 111.1, 2222.2, 33333.3
+	{	0.95f, 0.99f, 1.0f, 1.01f, 1.1f, 2.0f, 11.1f, 111.1f, 2222.2f, 33333.3f,
+		// Some "almost 1" as corner cases
+		(float) (32767.0 / 32768.0), (float) ((32767.0 + 0.4) / 32768.0), (float) ((32767. + 0.5) / 32768.0),
+		(float) ((32767.0 + 0.6) / 32768.0), (float) ((32767.0 + 0.9) / 32768.0),
 		} ;
 	static float fneg [] =
-	{	-0.95, -0.99, -1.0, -1.01, -1.1, -2.0, -11.1, -111.1, -2222.2, -33333.3
+	{	-0.95f, -0.99f, -1.0f, -1.01f, -1.1f, -2.0f, -11.1f, -111.1f, -2222.2f, -33333.3f,
+		// Some "almost 1" as corner cases
+		(float) (-32767.0 / 32768.0), (float) (-(32767.0 + 0.4) / 32768.0), (float) (-(32767.0 + 0.5) / 32768.0),
+		(float) (-(32767.0 + 0.6) / 32768.0), (float) (-(32767.0 + 0.9) / 32768.0),
 		} ;
 
 	static short out [MAX (ARRAY_LEN (fpos), ARRAY_LEN (fneg))] ;
@@ -116,10 +126,10 @@ static void
 float_to_int_test (void)
 {
 	static float fpos [] =
-	{	0.95, 0.99, 1.0, 1.01, 1.1, 2.0, 11.1, 111.1, 2222.2, 33333.3
+	{	0.95f, 0.99f, 1.0f, 1.01f, 1.1f, 2.0f, 11.1f, 111.1f, 2222.2f, 33333.3f
 		} ;
 	static float fneg [] =
-	{	-0.95, -0.99, -1.0, -1.01, -1.1, -2.0, -11.1, -111.1, -2222.2, -33333.3
+	{	-0.95f, -0.99f, -1.0f, -1.01f, -1.1f, -2.0f, -11.1f, -111.1f, -2222.2f, -33333.3f
 		} ;
 
 	static int out [MAX (ARRAY_LEN (fpos), ARRAY_LEN (fneg))] ;

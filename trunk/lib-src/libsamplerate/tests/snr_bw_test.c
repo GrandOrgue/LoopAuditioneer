@@ -3,10 +3,12 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,6 +92,7 @@ main (int argc, char *argv [])
 				}
 			},
 
+#ifdef ENABLE_SINC_FAST_CONVERTER
 		{	SRC_SINC_FASTEST,
 			9,
 			BOOLEAN_TRUE,
@@ -104,7 +107,9 @@ main (int argc, char *argv [])
 				{	1,	{ 0.3511111111 },		1.33,		1,	 97.0,	1.0 }
 				}
 			},
+#endif
 
+#ifdef ENABLE_SINC_MEDIUM_CONVERTER
 		{	SRC_SINC_MEDIUM_QUALITY,
 			9,
 			BOOLEAN_TRUE,
@@ -119,7 +124,9 @@ main (int argc, char *argv [])
 				{	1,	{ 0.43111111111 },		1.33,		1,	121.0,	1.0 }
 				}
 			},
+#endif
 
+#ifdef ENABLE_SINC_BEST_CONVERTER
 		{	SRC_SINC_BEST_QUALITY,
 			9,
 			BOOLEAN_TRUE,
@@ -134,6 +141,8 @@ main (int argc, char *argv [])
 				{	1,	{ 0.43111111111 },		1.33,		1,	145.0,	1.0 }
 				}
 			},
+#endif
+
 		} ; /* snr_test_data */
 
 	double	best_snr, snr, freq3dB ;
@@ -250,7 +259,7 @@ snr_test (SINGLE_TEST *test_data, int number, int converter, int verbose)
 	if (verbose != 0)
 		printf ("\tOutput Len  :   %ld\n", src_data.output_frames_gen) ;
 
-	if (abs (src_data.output_frames_gen - output_len) > 4)
+	if (abs ((int) (src_data.output_frames_gen - output_len)) > 4)
 	{	printf ("\n\nLine %d : output data length should be %d.\n\n", __LINE__, output_len) ;
 		exit (1) ;
 		} ;

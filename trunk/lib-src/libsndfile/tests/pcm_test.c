@@ -26,6 +26,8 @@
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#else
+#include "sf_unistd.h"
 #endif
 
 #include <sndfile.h>
@@ -1486,14 +1488,7 @@ pcm_test_double (const char *filename, int	filetype, uint64_t hash, int replace_
 
 	sf_close (file) ;
 
-#if (defined (WIN32) || defined (_WIN32))
-	/* File hashing on Win32 fails due to slighty different
-	** calculated values of the sin() function.
-	*/
-	hash = hash ; /* Avoid compiler warning. */
-#else
 	check_file_hash_or_die (filename, hash, __LINE__) ;
-#endif
 
 	memset (data, 0, items * sizeof (double)) ;
 
@@ -1620,14 +1615,7 @@ pcm_test_double (const char *filename, int	filetype, uint64_t hash, int replace_
 
 	sf_close (file) ;
 
-#if (defined (WIN32) || defined (_WIN32))
-	/* File hashing on Win32 fails due to slighty different
-	** calculated values.
-	*/
-	hash = hash ; /* Avoid compiler warning. */
-#else
 	check_file_hash_or_die (filename, hash, __LINE__) ;
-#endif
 
 	memset (data, 0, items * sizeof (double)) ;
 

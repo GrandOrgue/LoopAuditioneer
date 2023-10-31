@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2002-2016 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2002-2018 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <float.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -54,7 +55,7 @@
 #define	M_PI		3.14159265358979323846264338
 #endif
 
-#define	LOG_BUFFER_SIZE		2048
+#define	LOG_BUFFER_SIZE		4096
 
 /*
 **	Neat solution to the Win32/OS2 binary file flage requirement.
@@ -64,6 +65,28 @@
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
+
+
+/*
+**      Compare for equality, with epsilon
+*/
+static inline int
+equals_short (const short a, const short b)
+{        return (a == b);
+} /* equals_short */
+static inline int
+equals_int (const int a, const int b)
+{        return (a == b);
+} /* equals_int */
+static inline int
+equals_float (const float a, const float b)
+{        return (fabsf(a - b) <= FLT_EPSILON);
+} /* equals_float */
+static inline int
+equals_double (const double a, const double b)
+{       return (fabs(a - b) <= DBL_EPSILON);
+} /* equals_double */
+
 
 
 void
@@ -109,6 +132,7 @@ create_short_sndfile (const char *filename, int format, int channels)
 	SNDFILE *file ;
 	SF_INFO sfinfo ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate = 44100 ;
 	sfinfo.channels = channels ;
 	sfinfo.format = format ;
@@ -457,7 +481,7 @@ test_sf_format_or_die (const SF_INFO *info, int line_num)
 {	int res ;
 
 	if ((res = sf_format_check (info)) != 1)
-	{	printf ("\n\nLine %d : sf_format_check returned error (%d)\n\n", line_num,res) ;
+	{	printf ("\n\nLine %d : sf_format_check returned error (%d)\n\n", line_num, res) ;
 		exit (1) ;
 		} ;
 
@@ -957,8 +981,8 @@ compare_short_or_die (const short *expected, const short *actual, unsigned count
 	unsigned k ;
 
 	for (k = 0 ; k < count ; k++)
-		if (expected [k] != actual [k])
-		{	printf ("\n\nLine %d : Error at index %d, got " "% d" ", should be " "% d" ".\n\n", line_num, k, actual [k], expected [k]) ;
+		if (!equals_short(expected [k], actual [k]))
+		{	printf ("\n\nLine %d : Error at index %d, got " "% d" ", should be " "% d" "(delta=" "% d" " ).\n\n", line_num, k, actual [k], expected [k], actual [k] - expected [k]) ;
 			exit (1) ;
 			} ;
 
@@ -970,8 +994,8 @@ compare_int_or_die (const int *expected, const int *actual, unsigned count, int 
 	unsigned k ;
 
 	for (k = 0 ; k < count ; k++)
-		if (expected [k] != actual [k])
-		{	printf ("\n\nLine %d : Error at index %d, got " "% d" ", should be " "% d" ".\n\n", line_num, k, actual [k], expected [k]) ;
+		if (!equals_int(expected [k], actual [k]))
+		{	printf ("\n\nLine %d : Error at index %d, got " "% d" ", should be " "% d" "(delta=" "% d" " ).\n\n", line_num, k, actual [k], expected [k], actual [k] - expected [k]) ;
 			exit (1) ;
 			} ;
 
@@ -983,8 +1007,8 @@ compare_float_or_die (const float *expected, const float *actual, unsigned count
 	unsigned k ;
 
 	for (k = 0 ; k < count ; k++)
-		if (expected [k] != actual [k])
-		{	printf ("\n\nLine %d : Error at index %d, got " "% g" ", should be " "% g" ".\n\n", line_num, k, actual [k], expected [k]) ;
+		if (!equals_float(expected [k], actual [k]))
+		{	printf ("\n\nLine %d : Error at index %d, got " "% g" ", should be " "% g" "(delta=" "% g" " ).\n\n", line_num, k, actual [k], expected [k], actual [k] - expected [k]) ;
 			exit (1) ;
 			} ;
 
@@ -996,8 +1020,8 @@ compare_double_or_die (const double *expected, const double *actual, unsigned co
 	unsigned k ;
 
 	for (k = 0 ; k < count ; k++)
-		if (expected [k] != actual [k])
-		{	printf ("\n\nLine %d : Error at index %d, got " "% g" ", should be " "% g" ".\n\n", line_num, k, actual [k], expected [k]) ;
+		if (!equals_double(expected [k], actual [k]))
+		{	printf ("\n\nLine %d : Error at index %d, got " "% g" ", should be " "% g" "(delta=" "% g" " ).\n\n", line_num, k, actual [k], expected [k], actual [k] - expected [k]) ;
 			exit (1) ;
 			} ;
 
@@ -1034,6 +1058,17 @@ delete_file (int format, const char *filename)
 
 	unlink (rsrc_name) ;
 } /* delete_file */
+
+int
+truncate_file_to_zero (const char * fname)
+{	FILE * file ;
+
+	if ((file = fopen (fname, "w")) == NULL)
+		return errno ;
+	fclose (file) ;
+
+	return 0 ;
+} /* truncate_file_to_zero */
 
 static int allowed_open_files = -1 ;
 
@@ -1085,6 +1120,15 @@ check_open_file_count_or_die (int lineno)
 		} ;
 #endif
 } /* check_open_file_count_or_die */
+
+void
+get_unique_test_name (const char ** filename, const char * test)
+{	static char	buffer [1024] ;
+
+	snprintf (buffer, sizeof (buffer), "%s_%s", test, *filename) ;
+
+	*filename = buffer ;
+} /* get_unique_test_name */
 
 void
 write_mono_file (const char * filename, int format, int srate, float * output, int len)

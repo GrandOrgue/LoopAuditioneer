@@ -261,6 +261,7 @@ void MyFrame::OpenAudioFile() {
       toolMenu->Enable(X_FADE, true);
       toolBar->EnableTool(VIEW_LOOPPOINTS, true);
       toolMenu->Enable(VIEW_LOOPPOINTS, true);
+      SetLoopPlayback(true);
     }
 
     if (m_sound->StreamNeedsResampling()) {
@@ -1167,7 +1168,7 @@ void MyFrame::SetLoopPlayback(bool looping) {
 }
 
 void MyFrame::UpdatePlayPosition(wxTimerEvent& WXUNUSED(event)) {
-  if (m_waveform) {
+  if (m_waveform && m_audiofile->m_channels != 0) {
     if (m_sound->StreamNeedsResampling())
       m_waveform->SetPlayPosition((m_sound->pos[0] / m_audiofile->m_channels) / m_resampler->GetRatioUsed());
     else

@@ -3,21 +3,32 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#include <math.h>
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
 
 #include <samplerate.h>
 
-#include "config.h"
-
 #include "util.h"
-#include "float_cast.h"
 
 #define BUFFER_LEN	(1<<16)
 
@@ -43,7 +54,11 @@ throughput_test (int converter, long best_throughput)
 
 	src_data.src_ratio = 0.99 ;
 
+#ifdef _WIN32
+	Sleep (2000) ;
+#else
 	sleep (2) ;
+#endif
 
 	start_time = clock () ;
 
@@ -57,7 +72,11 @@ throughput_test (int converter, long best_throughput)
 		total_frames += src_data.output_frames_gen ;
 
 		clock_time = clock () - start_time ;
+#ifdef __GNU__ /* Clock resolution is 10ms on GNU/Hurd */
+		duration = (10000.0 * clock_time) / CLOCKS_PER_SEC ;
+#else
 		duration = (1.0 * clock_time) / CLOCKS_PER_SEC ;
+#endif
 	}
 	while (duration < 3.0) ;
 
@@ -103,9 +122,15 @@ single_run (void)
 
 	throughput_test (SRC_ZERO_ORDER_HOLD, 0) ;
 	throughput_test (SRC_LINEAR, 0) ;
+#ifdef ENABLE_SINC_FAST_CONVERTER
 	throughput_test (SRC_SINC_FASTEST, 0) ;
+#endif
+#ifdef ENABLE_SINC_MEDIUM_CONVERTER
 	throughput_test (SRC_SINC_MEDIUM_QUALITY, 0) ;
+#endif
+#ifdef ENABLE_SINC_BEST_CONVERTER
 	throughput_test (SRC_SINC_BEST_QUALITY, 0) ;
+#endif
 
 	puts ("") ;
 	return ;
@@ -114,7 +139,18 @@ single_run (void)
 static void
 multi_run (int run_count)
 {	long zero_order_hold = 0, linear = 0 ;
-	long sinc_fastest = 0, sinc_medium = 0, sinc_best = 0 ;
+
+#ifdef ENABLE_SINC_FAST_CONVERTER
+	long sinc_fastest = 0 ;
+#endif
+
+#ifdef ENABLE_SINC_MEDIUM_CONVERTER
+	long sinc_medium = 0 ;
+#endif
+
+#ifdef ENABLE_SINC_BEST_CONVERTER
+	long sinc_best = 0 ;
+#endif
 	int k ;
 
 	puts (
@@ -126,14 +162,23 @@ multi_run (int run_count)
 	for (k = 0 ; k < run_count ; k++)
 	{	zero_order_hold =	throughput_test (SRC_ZERO_ORDER_HOLD, zero_order_hold) ;
 		linear =			throughput_test (SRC_LINEAR, linear) ;
+#ifdef ENABLE_SINC_FAST_CONVERTER
 		sinc_fastest =		throughput_test (SRC_SINC_FASTEST, sinc_fastest) ;
+#endif
+#ifdef ENABLE_SINC_MEDIUM_CONVERTER
 		sinc_medium =		throughput_test (SRC_SINC_MEDIUM_QUALITY, sinc_medium) ;
+#endif
+#ifdef ENABLE_SINC_BEST_CONVERTER
 		sinc_best =			throughput_test (SRC_SINC_BEST_QUALITY, sinc_best) ;
-
+#endif
 		puts ("") ;
 
 		/* Let the CPU cool down. We might be running on a laptop. */
+#ifdef _WIN32
+		Sleep (10000) ;
+#else
 		sleep (10) ;
+#endif
 		} ;
 
 	printf ("\n    CPU name : %s\n", get_cpu_name ()) ;
@@ -145,9 +190,15 @@ multi_run (int run_count)
 		) ;
 	printf ("    %-30s    %10ld\n", src_get_name (SRC_ZERO_ORDER_HOLD), zero_order_hold) ;
 	printf ("    %-30s    %10ld\n", src_get_name (SRC_LINEAR), linear) ;
+#ifdef ENABLE_SINC_FAST_CONVERTER
 	printf ("    %-30s    %10ld\n", src_get_name (SRC_SINC_FASTEST), sinc_fastest) ;
+#endif
+#ifdef ENABLE_SINC_MEDIUM_CONVERTER
 	printf ("    %-30s    %10ld\n", src_get_name (SRC_SINC_MEDIUM_QUALITY), sinc_medium) ;
+#endif
+#ifdef ENABLE_SINC_BEST_CONVERTER
 	printf ("    %-30s    %10ld\n", src_get_name (SRC_SINC_BEST_QUALITY), sinc_best) ;
+#endif
 
 	puts ("") ;
 } /* multi_run */

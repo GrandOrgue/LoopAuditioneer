@@ -3,14 +3,18 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <math.h>
 
@@ -139,7 +143,7 @@ timewarp_convert (SNDFILE *infile, SNDFILE *outfile, int converter, int channels
 
 		/* If the input buffer is empty, refill it. */
 		if (src_data.input_frames == 0)
-		{	src_data.input_frames = sf_readf_float (infile, input, INPUT_STEP_SIZE) ;
+		{	src_data.input_frames = (long) sf_readf_float (infile, input, INPUT_STEP_SIZE) ;
 			input_count += src_data.input_frames ;
 			src_data.data_in = input ;
 
@@ -217,7 +221,7 @@ main (void)
 		"\n"
 		"****************************************************************\n"
 		"  This example program was compiled without libsndfile \n"
-		"  (http://www.mega-nerd.com/libsndfile/).\n"
+		"  (https://github.com/libsndfile/libsndfile/).\n"
 		"  It is therefore completely broken and non-functional.\n"
 		"****************************************************************\n"
 		"\n"

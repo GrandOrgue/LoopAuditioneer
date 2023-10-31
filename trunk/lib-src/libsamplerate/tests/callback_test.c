@@ -3,8 +3,12 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,16 +43,19 @@ main (void)
 	for (k = 0 ; k < ARRAY_LEN (src_ratios) ; k++)
 		callback_test (SRC_LINEAR, src_ratios [k]) ;
 
+#ifdef ENABLE_SINC_FAST_CONVERTER
 	puts ("    Sinc interpolator :") ;
 	for (k = 0 ; k < ARRAY_LEN (src_ratios) ; k++)
 		callback_test (SRC_SINC_FASTEST, src_ratios [k]) ;
-
+#endif
 	puts ("") ;
 
 	puts ("    End of stream test :") ;
 	end_of_stream_test (SRC_ZERO_ORDER_HOLD) ;
 	end_of_stream_test (SRC_LINEAR) ;
+#ifdef ENABLE_SINC_FAST_CONVERTER
 	end_of_stream_test (SRC_SINC_FASTEST) ;
+#endif
 
 	puts ("") ;
 	return 0 ;
@@ -125,7 +132,7 @@ callback_test (int converter, double src_ratio)
 		exit (1) ;
 		} ;
 
-	src_state = src_delete (src_state) ;
+	src_delete (src_state) ;
 
 	if (fabs (read_total / src_ratio - ARRAY_LEN (test_callback_data.data)) > 2.0)
 	{	printf ("\n\nLine %d : input / output length mismatch.\n\n", __LINE__) ;
@@ -220,7 +227,7 @@ end_of_stream_test (int converter)
 		exit (1) ;
 		} ;
 
-	src_state = src_delete (src_state) ;
+	src_delete (src_state) ;
 
 	if (test_callback_data.end_of_data == 0)
 	{	printf ("\n\nLine %d : test_callback_data.end_of_data should not be 0."

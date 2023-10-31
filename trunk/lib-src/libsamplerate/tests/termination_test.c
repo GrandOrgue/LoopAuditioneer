@@ -3,8 +3,12 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +21,9 @@
 #define	SHORT_BUFFER_LEN	2048
 #define	LONG_BUFFER_LEN		((1 << 16) - 20)
 
+#ifdef ENABLE_SINC_FAST_CONVERTER
 static void simple_test (int converter) ;
+#endif
 static void stream_test (int converter, double ratio) ;
 static void init_term_test (int converter, double ratio) ;
 
@@ -49,6 +55,7 @@ main (void)
 		stream_test (SRC_LINEAR, src_ratios [k]) ;
 
 
+#ifdef ENABLE_SINC_FAST_CONVERTER
 	puts ("\n    Sinc interpolator:") ;
 	for (k = 0 ; k < ARRAY_LEN (src_ratios) ; k++)
 		init_term_test (SRC_SINC_FASTEST, src_ratios [k]) ;
@@ -59,14 +66,19 @@ main (void)
 	puts ("") ;
 
 	simple_test (SRC_SINC_FASTEST) ;
+#endif
 
 	return 0 ;
 } /* main */
 
+#ifdef ENABLE_SINC_FAST_CONVERTER
 static void
 simple_test (int converter)
 {
-	int ilen = 199030, olen = 1000, error ;
+	// MSVC doesn't support variable-length arrays
+	#define ilen 199030
+	#define olen 1000
+	int error ;
 
 	{
 		float in [ilen] ;
@@ -88,6 +100,7 @@ simple_test (int converter)
 
     return ;
 } /* simple_test */
+#endif
 
 static void
 init_term_test (int converter, double src_ratio)
@@ -179,7 +192,7 @@ stream_test (int converter, double src_ratio)
 	fflush (stdout) ;
 
 /* Erik */
-for (k = 0 ; k < LONG_BUFFER_LEN ; k++) input [k] = k * 1.0 ;
+for (k = 0 ; k < LONG_BUFFER_LEN ; k++) input [k] = k * 1.0f ;
 
 	/* Calculate maximun input and output lengths. */
 	if (src_ratio >= 1.0)

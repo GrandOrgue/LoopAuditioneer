@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 1999-2016 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 1999-2017 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#else
+#include "sf_unistd.h"
 #endif
 
 #include <sndfile.h>
@@ -35,17 +37,19 @@
 
 #define	SAMPLE_RATE			16000
 
+static const char FPT_TEST_PREFIX[] = "fpt" ;
+
 static void	float_scaled_test	(const char *filename, int allow_exit, int replace_float, int filetype, double target_snr) ;
 static void	double_scaled_test	(const char *filename, int allow_exit, int replace_float, int filetype, double target_snr) ;
 
-static void float_short_little_test (const char * filename) ;
-static void float_short_big_test (const char * filename) ;
-static void float_int_little_test (const char * filename) ;
-static void float_int_big_test (const char * filename) ;
-static void double_short_little_test (const char * filename) ;
-static void double_short_big_test (const char * filename) ;
-static void double_int_little_test (const char * filename) ;
-static void double_int_big_test (const char * filename) ;
+static void float_short_little_test (const char * filename, int replace_float) ;
+static void float_short_big_test (const char * filename, int replace_float) ;
+static void float_int_little_test (const char * filename, int replace_float) ;
+static void float_int_big_test (const char * filename, int replace_float) ;
+static void double_short_little_test (const char * filename, int replace_float) ;
+static void double_short_big_test (const char * filename, int replace_float) ;
+static void double_int_little_test (const char * filename, int replace_float) ;
+static void double_int_big_test (const char * filename, int replace_float) ;
 
 
 static	double	double_data [DFT_DATA_LENGTH] ;
@@ -123,6 +127,12 @@ main (int argc, char *argv [])
 	float_scaled_test	("flac_24.flac", allow_exit, SF_FALSE, SF_FORMAT_FLAC | SF_FORMAT_PCM_24, -138.0) ;
 
 	float_scaled_test	("vorbis.oga", allow_exit, SF_FALSE, SF_FORMAT_OGG | SF_FORMAT_VORBIS, -31.0) ;
+
+	float_scaled_test	("opus.opus", allow_exit, SF_FALSE, SF_FORMAT_OGG | SF_FORMAT_OPUS, -32.0) ;
+#endif
+
+#if HAVE_MPEG
+	float_scaled_test	("mpeg.mp3", allow_exit, SF_FALSE, SF_FORMAT_MPEG | SF_FORMAT_MPEG_LAYER_III, -52.0) ;
 #endif
 
 	float_scaled_test	("replace_float.raw", allow_exit, SF_TRUE, SF_ENDIAN_LITTLE | SF_FORMAT_RAW | SF_FORMAT_FLOAT, -163.0) ;
@@ -180,20 +190,41 @@ main (int argc, char *argv [])
 	double_scaled_test	("flac_24.flac", allow_exit, SF_FALSE, SF_FORMAT_FLAC | SF_FORMAT_PCM_24, -138.0) ;
 
 	double_scaled_test	("vorbis.oga", allow_exit, SF_FALSE, SF_FORMAT_OGG | SF_FORMAT_VORBIS, -29.0) ;
+	double_scaled_test	("opus.opus", allow_exit, SF_FALSE, SF_FORMAT_OGG | SF_FORMAT_OPUS, -32.0) ;
+#endif
+
+#if HAVE_MPEG
+	double_scaled_test	("mpeg.mp3", allow_exit, SF_FALSE, SF_FORMAT_MPEG | SF_FORMAT_MPEG_LAYER_III, -52.0) ;
 #endif
 
 	double_scaled_test	("replace_double.raw", allow_exit, SF_TRUE, SF_FORMAT_RAW | SF_FORMAT_DOUBLE, -201.0) ;
 
 	putchar ('\n') ;
 	/* Float int tests. */
-	float_short_little_test ("float_short_little.au") ;
-	float_short_big_test ("float_short_big.au") ;
-	float_int_little_test ("float_int_little.au") ;
-	float_int_big_test ("float_int_big.au") ;
-	double_short_little_test ("double_short_little.au") ;
-	double_short_big_test ("double_short_big.au") ;
-	double_int_little_test ("double_int_little.au") ;
-	double_int_big_test ("double_int_big.au") ;
+
+float_short_little_test ("float_short_little.au", SF_FALSE) ;
+float_short_little_test ("float_short_little_replace.au", SF_TRUE) ;
+
+float_short_big_test ("float_short_big.au", SF_FALSE) ;
+float_short_big_test ("float_short_big_replace.au", SF_TRUE) ;
+
+float_int_little_test ("float_int_little.au", SF_FALSE) ;
+float_int_little_test ("float_int_little_replace.au", SF_TRUE) ;
+
+float_int_big_test ("float_int_big.au", SF_FALSE) ;
+float_int_big_test ("float_int_big_replace.au", SF_TRUE) ;
+
+double_short_little_test ("double_short_little.au", SF_FALSE) ;
+double_short_little_test ("double_short_little_replace.au", SF_TRUE) ;
+
+double_short_big_test ("double_short_big.au", SF_FALSE) ;
+double_short_big_test ("double_short_big_replace.au", SF_TRUE) ;
+
+double_int_little_test ("double_int_little.au", SF_FALSE) ;
+double_int_little_test ("double_int_little_replace.au", SF_TRUE) ;
+
+double_int_big_test ("double_int_big.au", SF_FALSE) ;
+double_int_big_test ("double_int_big_replace.au", SF_TRUE) ;
 
 
 	return 0 ;
@@ -210,10 +241,12 @@ float_scaled_test (const char *filename, int allow_exit, int replace_float, int 
 	double		snr ;
 	int			byterate ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("float_scaled_test", filename) ;
 
 	gen_windowed_sine_float (float_data, DFT_DATA_LENGTH, 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= DFT_DATA_LENGTH ;
 	sfinfo.channels		= 1 ;
@@ -262,10 +295,12 @@ double_scaled_test (const char *filename, int allow_exit, int replace_float, int
 	double		snr ;
 	int			byterate ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("double_scaled_test", filename) ;
 
 	gen_windowed_sine_double (double_data, DFT_DATA_LENGTH, 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= DFT_DATA_LENGTH ;
 	sfinfo.channels		= 1 ;
@@ -312,26 +347,30 @@ double_scaled_test (const char *filename, int allow_exit, int replace_float, int
 
 
 static void
-float_short_little_test (const char * filename)
+float_short_little_test (const char * filename, int replace_float)
 {	SNDFILE		*file ;
 	SF_INFO		sfinfo ;
 	int			max ;
 	unsigned	k ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("float_short_little_test", filename) ;
 
 	gen_windowed_sine_float (float_data, ARRAY_LEN (float_data), 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= ARRAY_LEN (short_data) ;
 	sfinfo.channels		= 1 ;
 	sfinfo.format		= SF_ENDIAN_LITTLE | SF_FORMAT_AU | SF_FORMAT_FLOAT ;
 
 	file = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 	test_write_float_or_die (file, 0, float_data, ARRAY_LEN (float_data), __LINE__) ;
 	sf_close (file) ;
 
 	file = test_open_file_or_die (filename, SFM_READ, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 
 	if (sfinfo.frames != ARRAY_LEN (float_data))
 	{	printf ("\n\nLine %d: Incorrect number of frames in file (too short). (%" PRId64 " should be %d)\n", __LINE__, sfinfo.frames, DFT_DATA_LENGTH) ;
@@ -363,26 +402,30 @@ float_short_little_test (const char * filename)
 } /* float_short_little_test */
 
 static void
-float_short_big_test (const char * filename)
+float_short_big_test (const char * filename, int replace_float)
 {	SNDFILE		*file ;
 	SF_INFO		sfinfo ;
 	int			max ;
 	unsigned	k ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("float_short_big_test", filename) ;
 
 	gen_windowed_sine_float (float_data, ARRAY_LEN (float_data), 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= ARRAY_LEN (short_data) ;
 	sfinfo.channels		= 1 ;
 	sfinfo.format		= SF_ENDIAN_BIG | SF_FORMAT_AU | SF_FORMAT_FLOAT ;
 
 	file = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 	test_write_float_or_die (file, 0, float_data, ARRAY_LEN (float_data), __LINE__) ;
 	sf_close (file) ;
 
 	file = test_open_file_or_die (filename, SFM_READ, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 
 	if (sfinfo.frames != ARRAY_LEN (float_data))
 	{	printf ("\n\nLine %d: Incorrect number of frames in file (too short). (%" PRId64 " should be %d)\n", __LINE__, sfinfo.frames, DFT_DATA_LENGTH) ;
@@ -414,26 +457,30 @@ float_short_big_test (const char * filename)
 } /* float_short_big_test */
 
 static void
-float_int_little_test (const char * filename)
+float_int_little_test (const char * filename, int replace_float)
 {	SNDFILE		*file ;
 	SF_INFO		sfinfo ;
 	int			max ;
 	unsigned	k ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("float_int_little_test", filename) ;
 
 	gen_windowed_sine_float (float_data, ARRAY_LEN (float_data), 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= ARRAY_LEN (int_data) ;
 	sfinfo.channels		= 1 ;
 	sfinfo.format		= SF_ENDIAN_LITTLE | SF_FORMAT_AU | SF_FORMAT_FLOAT ;
 
 	file = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 	test_write_float_or_die (file, 0, float_data, ARRAY_LEN (float_data), __LINE__) ;
 	sf_close (file) ;
 
 	file = test_open_file_or_die (filename, SFM_READ, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 
 	if (sfinfo.frames != ARRAY_LEN (float_data))
 	{	printf ("\n\nLine %d: Incorrect number of frames in file (too short). (%" PRId64 " should be %d)\n", __LINE__, sfinfo.frames, DFT_DATA_LENGTH) ;
@@ -465,26 +512,30 @@ float_int_little_test (const char * filename)
 } /* float_int_little_test */
 
 static void
-float_int_big_test (const char * filename)
+float_int_big_test (const char * filename, int replace_float)
 {	SNDFILE		*file ;
 	SF_INFO		sfinfo ;
 	int			max ;
 	unsigned	k ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("float_int_big_test", filename) ;
 
 	gen_windowed_sine_float (float_data, ARRAY_LEN (float_data), 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= ARRAY_LEN (int_data) ;
 	sfinfo.channels		= 1 ;
 	sfinfo.format		= SF_ENDIAN_BIG | SF_FORMAT_AU | SF_FORMAT_FLOAT ;
 
 	file = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 	test_write_float_or_die (file, 0, float_data, ARRAY_LEN (float_data), __LINE__) ;
 	sf_close (file) ;
 
 	file = test_open_file_or_die (filename, SFM_READ, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 
 	if (sfinfo.frames != ARRAY_LEN (float_data))
 	{	printf ("\n\nLine %d: Incorrect number of frames in file (too short). (%" PRId64 " should be %d)\n", __LINE__, sfinfo.frames, DFT_DATA_LENGTH) ;
@@ -516,26 +567,30 @@ float_int_big_test (const char * filename)
 } /* float_int_big_test */
 
 static void
-double_short_little_test (const char * filename)
+double_short_little_test (const char * filename, int replace_float)
 {	SNDFILE		*file ;
 	SF_INFO		sfinfo ;
 	int			max ;
 	unsigned	k ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("double_short_little_test", filename) ;
 
 	gen_windowed_sine_double (double_data, ARRAY_LEN (double_data), 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= ARRAY_LEN (short_data) ;
 	sfinfo.channels		= 1 ;
 	sfinfo.format		= SF_ENDIAN_LITTLE | SF_FORMAT_AU | SF_FORMAT_DOUBLE ;
 
 	file = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 	test_write_double_or_die (file, 0, double_data, ARRAY_LEN (double_data), __LINE__) ;
 	sf_close (file) ;
 
 	file = test_open_file_or_die (filename, SFM_READ, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 
 	if (sfinfo.frames != ARRAY_LEN (double_data))
 	{	printf ("\n\nLine %d: Incorrect number of frames in file (too short). (%" PRId64 " should be %d)\n", __LINE__, sfinfo.frames, DFT_DATA_LENGTH) ;
@@ -567,26 +622,30 @@ double_short_little_test (const char * filename)
 } /* double_short_little_test */
 
 static void
-double_short_big_test (const char * filename)
+double_short_big_test (const char * filename, int replace_float)
 {	SNDFILE		*file ;
 	SF_INFO		sfinfo ;
 	int			max ;
 	unsigned	k ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("double_short_big_test", filename) ;
 
 	gen_windowed_sine_double (double_data, ARRAY_LEN (double_data), 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= ARRAY_LEN (short_data) ;
 	sfinfo.channels		= 1 ;
 	sfinfo.format		= SF_ENDIAN_BIG | SF_FORMAT_AU | SF_FORMAT_DOUBLE ;
 
 	file = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 	test_write_double_or_die (file, 0, double_data, ARRAY_LEN (double_data), __LINE__) ;
 	sf_close (file) ;
 
 	file = test_open_file_or_die (filename, SFM_READ, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 
 	if (sfinfo.frames != ARRAY_LEN (double_data))
 	{	printf ("\n\nLine %d: Incorrect number of frames in file (too short). (%" PRId64 " should be %d)\n", __LINE__, sfinfo.frames, DFT_DATA_LENGTH) ;
@@ -618,26 +677,30 @@ double_short_big_test (const char * filename)
 } /* double_short_big_test */
 
 static void
-double_int_little_test (const char * filename)
+double_int_little_test (const char * filename, int replace_float)
 {	SNDFILE		*file ;
 	SF_INFO		sfinfo ;
 	int			max ;
 	unsigned	k ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("double_int_little_test", filename) ;
 
 	gen_windowed_sine_double (double_data, ARRAY_LEN (double_data), 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= ARRAY_LEN (int_data) ;
 	sfinfo.channels		= 1 ;
 	sfinfo.format		= SF_ENDIAN_LITTLE | SF_FORMAT_AU | SF_FORMAT_DOUBLE ;
 
 	file = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 	test_write_double_or_die (file, 0, double_data, ARRAY_LEN (double_data), __LINE__) ;
 	sf_close (file) ;
 
 	file = test_open_file_or_die (filename, SFM_READ, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 
 	if (sfinfo.frames != ARRAY_LEN (double_data))
 	{	printf ("\n\nLine %d: Incorrect number of frames in file (too short). (%" PRId64 " should be %d)\n", __LINE__, sfinfo.frames, DFT_DATA_LENGTH) ;
@@ -669,26 +732,30 @@ double_int_little_test (const char * filename)
 } /* double_int_little_test */
 
 static void
-double_int_big_test (const char * filename)
+double_int_big_test (const char * filename, int replace_float)
 {	SNDFILE		*file ;
 	SF_INFO		sfinfo ;
 	int			max ;
 	unsigned	k ;
 
+	get_unique_test_name (&filename, FPT_TEST_PREFIX) ;
 	print_test_name ("double_int_big_test", filename) ;
 
 	gen_windowed_sine_double (double_data, ARRAY_LEN (double_data), 0.9999) ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sfinfo.samplerate	= SAMPLE_RATE ;
 	sfinfo.frames		= ARRAY_LEN (int_data) ;
 	sfinfo.channels		= 1 ;
 	sfinfo.format		= SF_ENDIAN_BIG | SF_FORMAT_AU | SF_FORMAT_DOUBLE ;
 
 	file = test_open_file_or_die (filename, SFM_WRITE, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 	test_write_double_or_die (file, 0, double_data, ARRAY_LEN (double_data), __LINE__) ;
 	sf_close (file) ;
 
 	file = test_open_file_or_die (filename, SFM_READ, &sfinfo, SF_TRUE, __LINE__) ;
+	sf_command (file, SFC_TEST_IEEE_FLOAT_REPLACE, NULL, replace_float) ;
 
 	if (sfinfo.frames != ARRAY_LEN (double_data))
 	{	printf ("\n\nLine %d: Incorrect number of frames in file (too short). (%" PRId64 " should be %d)\n", __LINE__, sfinfo.frames, DFT_DATA_LENGTH) ;

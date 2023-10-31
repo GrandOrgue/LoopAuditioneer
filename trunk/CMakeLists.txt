@@ -1,5 +1,5 @@
 # LoopAuditioneer software
-# Copyright (C) 2021 Lars Palo 
+# Copyright (C) 2023 Lars Palo 
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -99,7 +99,7 @@ set(
 )
 set(CPACK_PACKAGE_VERSION_MAJOR "${VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION ${VERSION})
+set(CPACK_PACKAGE_VERSION "${VERSION}")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "LoopAuditioneer")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
 set(CPACK_PACKAGE_CONTACT "larspalo@yahoo.se")

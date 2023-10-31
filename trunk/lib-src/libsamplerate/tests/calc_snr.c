@@ -3,14 +3,16 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include "util.h"
 
-#if (HAVE_FFTW3 == 1)
+#if (HAVE_FFTW3)
 
 #include <stdio.h>
 #include <stdlib.h>

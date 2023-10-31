@@ -3,17 +3,20 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <string.h>
-
-#include "config.h"
-
-#include <float_cast.h>
+#include <math.h>
 
 #if (HAVE_SNDFILE)
 
@@ -175,7 +178,7 @@ src_input_callback (void *cb_data, float **audio)
 	for (read_frames = 0 ; read_frames < input_frames ; )
 	{	sf_count_t position ;
 
-		read_frames += sf_readf_float (data->sndfile, data->buffer + read_frames * data->sfinfo.channels, input_frames - read_frames) ;
+		read_frames += (int) sf_readf_float (data->sndfile, data->buffer + read_frames * data->sfinfo.channels, input_frames - read_frames) ;
 
 		position = sf_seek (data->sndfile, 0, SEEK_CUR) ;
 
@@ -241,4 +244,3 @@ main (void)
 } /* main */
 
 #endif
-

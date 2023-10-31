@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 1999-2016 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 1999-2017 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -27,6 +27,8 @@
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#else
+#include "sf_unistd.h"
 #endif
 
 #include <sndfile.h>
@@ -38,6 +40,8 @@
 #define	DATA_LENGTH			(1 << 12)
 
 #define	SILLY_WRITE_COUNT	(234)
+
+static const char WRT_TEST_PREFIX[] = "wrt" ;
 
 static void	pcm_test_char (const char *str, int format, int long_file_ok) ;
 static void	pcm_test_short (const char *str, int format, int long_file_ok) ;
@@ -446,6 +450,7 @@ pcm_test_char (const char *filename, int format, int long_file_ok)
 	/* Sd2 files cannot be opened from an existing file descriptor. */
 	allow_fd = ((format & SF_FORMAT_TYPEMASK) == SF_FORMAT_SD2) ? SF_FALSE : SF_TRUE ;
 
+	get_unique_test_name (&filename, WRT_TEST_PREFIX) ;
 	print_test_name ("pcm_test_char", filename) ;
 
 	sfinfo.samplerate	= 44100 ;
@@ -861,8 +866,8 @@ mono_rdwr_char_test (const char *filename, int format, int long_file_ok, int all
 			} ;
 
 		/* Truncate the file to zero bytes. */
-		if (truncate (filename, 0) < 0)
-		{	printf ("\n\nLine %d: truncate (%s) failed", __LINE__, filename) ;
+		if (truncate_file_to_zero (filename) < 0)
+		{	printf ("\n\nLine %d: truncate_file_to_zero (%s) failed", __LINE__, filename) ;
 			perror (NULL) ;
 			exit (1) ;
 			} ;
@@ -1014,6 +1019,7 @@ pcm_test_short (const char *filename, int format, int long_file_ok)
 	/* Sd2 files cannot be opened from an existing file descriptor. */
 	allow_fd = ((format & SF_FORMAT_TYPEMASK) == SF_FORMAT_SD2) ? SF_FALSE : SF_TRUE ;
 
+	get_unique_test_name (&filename, WRT_TEST_PREFIX) ;
 	print_test_name ("pcm_test_short", filename) ;
 
 	sfinfo.samplerate	= 44100 ;
@@ -1429,8 +1435,8 @@ mono_rdwr_short_test (const char *filename, int format, int long_file_ok, int al
 			} ;
 
 		/* Truncate the file to zero bytes. */
-		if (truncate (filename, 0) < 0)
-		{	printf ("\n\nLine %d: truncate (%s) failed", __LINE__, filename) ;
+		if (truncate_file_to_zero (filename) < 0)
+		{	printf ("\n\nLine %d: truncate_file_to_zero (%s) failed", __LINE__, filename) ;
 			perror (NULL) ;
 			exit (1) ;
 			} ;
@@ -1582,6 +1588,7 @@ pcm_test_20bit (const char *filename, int format, int long_file_ok)
 	/* Sd2 files cannot be opened from an existing file descriptor. */
 	allow_fd = ((format & SF_FORMAT_TYPEMASK) == SF_FORMAT_SD2) ? SF_FALSE : SF_TRUE ;
 
+	get_unique_test_name (&filename, WRT_TEST_PREFIX) ;
 	print_test_name ("pcm_test_20bit", filename) ;
 
 	sfinfo.samplerate	= 44100 ;
@@ -1997,8 +2004,8 @@ mono_rdwr_20bit_test (const char *filename, int format, int long_file_ok, int al
 			} ;
 
 		/* Truncate the file to zero bytes. */
-		if (truncate (filename, 0) < 0)
-		{	printf ("\n\nLine %d: truncate (%s) failed", __LINE__, filename) ;
+		if (truncate_file_to_zero (filename) < 0)
+		{	printf ("\n\nLine %d: truncate_file_to_zero (%s) failed", __LINE__, filename) ;
 			perror (NULL) ;
 			exit (1) ;
 			} ;
@@ -2150,6 +2157,7 @@ pcm_test_24bit (const char *filename, int format, int long_file_ok)
 	/* Sd2 files cannot be opened from an existing file descriptor. */
 	allow_fd = ((format & SF_FORMAT_TYPEMASK) == SF_FORMAT_SD2) ? SF_FALSE : SF_TRUE ;
 
+	get_unique_test_name (&filename, WRT_TEST_PREFIX) ;
 	print_test_name ("pcm_test_24bit", filename) ;
 
 	sfinfo.samplerate	= 44100 ;
@@ -2565,8 +2573,8 @@ mono_rdwr_24bit_test (const char *filename, int format, int long_file_ok, int al
 			} ;
 
 		/* Truncate the file to zero bytes. */
-		if (truncate (filename, 0) < 0)
-		{	printf ("\n\nLine %d: truncate (%s) failed", __LINE__, filename) ;
+		if (truncate_file_to_zero (filename) < 0)
+		{	printf ("\n\nLine %d: truncate_file_to_zero (%s) failed", __LINE__, filename) ;
 			perror (NULL) ;
 			exit (1) ;
 			} ;
@@ -2718,6 +2726,7 @@ pcm_test_int (const char *filename, int format, int long_file_ok)
 	/* Sd2 files cannot be opened from an existing file descriptor. */
 	allow_fd = ((format & SF_FORMAT_TYPEMASK) == SF_FORMAT_SD2) ? SF_FALSE : SF_TRUE ;
 
+	get_unique_test_name (&filename, WRT_TEST_PREFIX) ;
 	print_test_name ("pcm_test_int", filename) ;
 
 	sfinfo.samplerate	= 44100 ;
@@ -3133,8 +3142,8 @@ mono_rdwr_int_test (const char *filename, int format, int long_file_ok, int allo
 			} ;
 
 		/* Truncate the file to zero bytes. */
-		if (truncate (filename, 0) < 0)
-		{	printf ("\n\nLine %d: truncate (%s) failed", __LINE__, filename) ;
+		if (truncate_file_to_zero (filename) < 0)
+		{	printf ("\n\nLine %d: truncate_file_to_zero (%s) failed", __LINE__, filename) ;
 			perror (NULL) ;
 			exit (1) ;
 			} ;
@@ -3286,6 +3295,7 @@ pcm_test_float (const char *filename, int format, int long_file_ok)
 	/* Sd2 files cannot be opened from an existing file descriptor. */
 	allow_fd = ((format & SF_FORMAT_TYPEMASK) == SF_FORMAT_SD2) ? SF_FALSE : SF_TRUE ;
 
+	get_unique_test_name (&filename, WRT_TEST_PREFIX) ;
 	print_test_name ("pcm_test_float", filename) ;
 
 	sfinfo.samplerate	= 44100 ;
@@ -3701,8 +3711,8 @@ mono_rdwr_float_test (const char *filename, int format, int long_file_ok, int al
 			} ;
 
 		/* Truncate the file to zero bytes. */
-		if (truncate (filename, 0) < 0)
-		{	printf ("\n\nLine %d: truncate (%s) failed", __LINE__, filename) ;
+		if (truncate_file_to_zero (filename) < 0)
+		{	printf ("\n\nLine %d: truncate_file_to_zero (%s) failed", __LINE__, filename) ;
 			perror (NULL) ;
 			exit (1) ;
 			} ;
@@ -3854,6 +3864,7 @@ pcm_test_double (const char *filename, int format, int long_file_ok)
 	/* Sd2 files cannot be opened from an existing file descriptor. */
 	allow_fd = ((format & SF_FORMAT_TYPEMASK) == SF_FORMAT_SD2) ? SF_FALSE : SF_TRUE ;
 
+	get_unique_test_name (&filename, WRT_TEST_PREFIX) ;
 	print_test_name ("pcm_test_double", filename) ;
 
 	sfinfo.samplerate	= 44100 ;
@@ -4269,8 +4280,8 @@ mono_rdwr_double_test (const char *filename, int format, int long_file_ok, int a
 			} ;
 
 		/* Truncate the file to zero bytes. */
-		if (truncate (filename, 0) < 0)
-		{	printf ("\n\nLine %d: truncate (%s) failed", __LINE__, filename) ;
+		if (truncate_file_to_zero (filename) < 0)
+		{	printf ("\n\nLine %d: truncate_file_to_zero (%s) failed", __LINE__, filename) ;
 			perror (NULL) ;
 			exit (1) ;
 			} ;
@@ -4416,6 +4427,7 @@ empty_file_test (const char *filename, int format)
 	/* Sd2 files cannot be opened from an existing file descriptor. */
 	allow_fd = ((format & SF_FORMAT_TYPEMASK) == SF_FORMAT_SD2) ? SF_FALSE : SF_TRUE ;
 
+	get_unique_test_name (&filename, WRT_TEST_PREFIX) ;
 	print_test_name ("empty_file_test", filename) ;
 
 	unlink (filename) ;

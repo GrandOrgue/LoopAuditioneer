@@ -3,16 +3,25 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <ctype.h>
 
-#include "config.h"
+#if defined(_WIN32)
+#define popen _popen
+#define pclose _pclose
+#endif
 
 #if (HAVE_FFTW3 && HAVE_SNDFILE && HAVE_SYS_TIMES_H)
 
@@ -175,7 +184,7 @@ usage_exit (const char *progname, const RESAMPLE_PROG *prog, int count)
 
 	puts ("\n"
 		" Obviously to test a given program you have to have it available on\n"
-		" your system. See http://www.mega-nerd.com/SRC/quality.html for\n"
+		" your system. See http://libsndfile.github.io/libsamplerate/quality.html for\n"
 		" the download location of these programs.\n") ;
 
 	exit (1) ;
@@ -183,7 +192,7 @@ usage_exit (const char *progname, const RESAMPLE_PROG *prog, int count)
 
 static const char*
 get_machine_details (void)
-{	static char namestr [256] ;
+{	static char namestr [262] ;
 
 	struct utsname name ;
 
@@ -236,7 +245,9 @@ get_version_string (const RESAMPLE_PROG *prog)
 		cptr ++ ;
 
 	if (cptr != version_string)
-		strncpy (version_string, cptr, sizeof (version_string)) ;
+	{	strncpy (version_string, cptr, sizeof (version_string) - 1) ;
+		version_string [sizeof (version_string) - 1] = 0 ;
+		} ;
 
 	return ;
 } /* get_version_string */

@@ -3,28 +3,33 @@
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
-** file at : https://github.com/erikd/libsamplerate/blob/master/COPYING
+** file at : https://github.com/libsndfile/libsamplerate/blob/master/COPYING
 */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
+#endif
 
-#include <config.h>
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AN_MEAN
+#define WIN32_LEAN_AN_MEAN
+#endif
+#include <windows.h>
+#include <mmsystem.h>
+#endif
 
 #include "audio_out.h"
 
-#if HAVE_ALSA_ASOUNDLIB_H
-	#define ALSA_PCM_NEW_HW_PARAMS_API
-	#define ALSA_PCM_NEW_SW_PARAMS_API
-	#include <alsa/asoundlib.h>
-	#include <sys/time.h>
-#endif
-
 #if (HAVE_SNDFILE)
 
-#include <float_cast.h>
+#include <math.h>
 
 #include <sndfile.h>
 
@@ -33,22 +38,23 @@
 #define MAKE_MAGIC(a,b,c,d,e,f,g,h)		\
 			((a) + ((b) << 1) + ((c) << 2) + ((d) << 3) + ((e) << 4) + ((f) << 5) + ((g) << 6) + ((h) << 7))
 
-typedef	struct AUDIO_OUT_s
-{	int magic ;
-} AUDIO_OUT ;
-
-
 /*------------------------------------------------------------------------------
 **	Linux (ALSA and OSS) functions for playing a sound.
 */
 
 #if defined (__linux__)
 
-#if HAVE_ALSA_ASOUNDLIB_H
+#if HAVE_ALSA
+
+#define ALSA_PCM_NEW_HW_PARAMS_API
+#define ALSA_PCM_NEW_SW_PARAMS_API
+
+#include <alsa/asoundlib.h>
+#include <sys/time.h>
 
 #define	ALSA_MAGIC		MAKE_MAGIC ('L', 'n', 'x', '-', 'A', 'L', 'S', 'A')
 
-typedef struct
+typedef struct AUDIO_OUT
 {	int magic ;
 	snd_pcm_t * dev ;
 	int channels ;
@@ -304,7 +310,7 @@ alsa_close (AUDIO_OUT *audio_out)
 	return ;
 } /* alsa_close */
 
-#endif /* HAVE_ALSA_ASOUNDLIB_H */
+#endif /* HAVE_ALSA */
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -397,7 +403,7 @@ opensoundsys_play (get_audio_callback_t callback, AUDIO_OUT *audio_out, void *ca
 	while ((read_frames = callback (callback_data, float_buffer, BUFFER_LEN / opensoundsys_out->channels)))
 	{	for (k = 0 ; k < read_frames * opensoundsys_out->channels ; k++)
 			buffer [k] = lrint (32767.0 * float_buffer [k]) ;
-		(void) write (opensoundsys_out->fd, buffer, read_frames * opensoundsys_out->channels * sizeof (short)) ;
+		if (write (opensoundsys_out->fd, buffer, read_frames * opensoundsys_out->channels * sizeof (short))) {}
 		} ;
 
 	return ;
@@ -432,7 +438,6 @@ opensoundsys_close (AUDIO_OUT *audio_out)
 
 #if (defined (__MACH__) && defined (__APPLE__)) /* MacOSX */
 
-#include <Carbon.h>
 #include <CoreAudio/AudioHardware.h>
 
 #define	MACOSX_MAGIC	MAKE_MAGIC ('M', 'a', 'c', ' ', 'O', 'S', ' ', 'X')
@@ -452,6 +457,9 @@ typedef struct
 	get_audio_callback_t	callback ;
 
 	void 	*callback_data ;
+
+	AudioDeviceIOProcID ioprocid;
+
 } MACOSX_AUDIO_OUT ;
 
 static AUDIO_OUT *macosx_open (int channels, int samplerate) ;
@@ -468,7 +476,8 @@ static AUDIO_OUT *
 macosx_open (int channels, int samplerate)
 {	MACOSX_AUDIO_OUT *macosx_out ;
 	OSStatus	err ;
-	size_t 		count ;
+	UInt32 		count ;
+	AudioObjectPropertyAddress  propertyAddress ;
 
 	if ((macosx_out = calloc (1, sizeof (MACOSX_AUDIO_OUT))) == NULL)
 	{	perror ("macosx_open : malloc ") ;
@@ -482,38 +491,45 @@ macosx_open (int channels, int samplerate)
 	macosx_out->device = kAudioDeviceUnknown ;
 
 	/*  get the default output device for the HAL */
+	propertyAddress.mSelector = kAudioHardwarePropertyDefaultOutputDevice;
+	propertyAddress.mScope = kAudioDevicePropertyScopeOutput;
+	propertyAddress.mElement = kAudioObjectPropertyElementMaster;
+
 	count = sizeof (AudioDeviceID) ;
-	if ((err = AudioHardwareGetProperty (kAudioHardwarePropertyDefaultOutputDevice,
-				&count, (void *) &(macosx_out->device))) != noErr)
-	{	printf ("AudioHardwareGetProperty failed.\n") ;
+	if ((err = AudioObjectGetPropertyData(kAudioObjectSystemObject, &propertyAddress, 0, NULL,
+			&count,  &(macosx_out->device))) != noErr)
+	{	printf ("AudioObjectGetPropertyData (kAudioHardwarePropertyDefaultOutputDevice) failed.\n") ;
 		free (macosx_out) ;
 		return NULL ;
 		} ;
 
 	/*  get the buffersize that the default device uses for IO */
 	count = sizeof (UInt32) ;
-	if ((err = AudioDeviceGetProperty (macosx_out->device, 0, false, kAudioDevicePropertyBufferSize,
+	propertyAddress.mSelector = kAudioDevicePropertyBufferSize ;
+	if ((err = AudioObjectGetPropertyData (macosx_out->device, &propertyAddress, 0, NULL,
 				&count, &(macosx_out->buffer_size))) != noErr)
-	{	printf ("AudioDeviceGetProperty (AudioDeviceGetProperty) failed.\n") ;
+	{	printf ("AudioObjectGetPropertyData (kAudioDevicePropertyBufferSize) (AudioDeviceGetProperty) failed.\n") ;
 		free (macosx_out) ;
 		return NULL ;
 		} ;
 
 	/*  get a description of the data format used by the default device */
 	count = sizeof (AudioStreamBasicDescription) ;
-	if ((err = AudioDeviceGetProperty (macosx_out->device, 0, false, kAudioDevicePropertyStreamFormat,
+	propertyAddress.mSelector = kAudioDevicePropertyStreamFormat ;
+	if ((err = AudioObjectGetPropertyData (macosx_out->device, &propertyAddress, 0, NULL,
 				&count, &(macosx_out->format))) != noErr)
-	{	printf ("AudioDeviceGetProperty (kAudioDevicePropertyStreamFormat) failed.\n") ;
+	{	printf ("AudioObjectGetPropertyData (kAudioDevicePropertyStreamFormat) failed.\n") ;
 		free (macosx_out) ;
 		return NULL ;
 		} ;
 
 	macosx_out->format.mSampleRate = samplerate ;
 	macosx_out->format.mChannelsPerFrame = channels ;
-
-	if ((err = AudioDeviceSetProperty (macosx_out->device, NULL, 0, false, kAudioDevicePropertyStreamFormat,
-				sizeof (AudioStreamBasicDescription), &(macosx_out->format))) != noErr)
-	{	printf ("AudioDeviceSetProperty (kAudioDevicePropertyStreamFormat) failed.\n") ;
+	propertyAddress.mSelector = kAudioDevicePropertyStreamFormat ;
+	count = sizeof (AudioStreamBasicDescription) ;
+	if ((err = AudioObjectGetPropertyData (macosx_out->device, &propertyAddress, 0, NULL,
+				&count, &(macosx_out->format))) != noErr)
+	{	printf ("AudioObjectGetPropertyData (kAudioDevicePropertyStreamFormat) failed.\n") ;
 		free (macosx_out) ;
 		return NULL ;
 		} ;
@@ -527,14 +543,14 @@ macosx_open (int channels, int samplerate)
 	macosx_out->done_playing = 0 ;
 
 	/* Fire off the device. */
-	if ((err = AudioDeviceAddIOProc (macosx_out->device, macosx_audio_out_callback,
-			(void *) macosx_out)) != noErr)
+	if ((err = AudioDeviceCreateIOProcID (macosx_out->device, macosx_audio_out_callback,
+			(void *) macosx_out, &macosx_out->ioprocid)) != noErr)
 	{	printf ("AudioDeviceAddIOProc failed.\n") ;
 		free (macosx_out) ;
 		return NULL ;
 		} ;
 
-	return (MACOSX_AUDIO_OUT *) macosx_out ;
+	return (AUDIO_OUT *) macosx_out ;
 } /* macosx_open */
 
 static void
@@ -587,7 +603,8 @@ macosx_close (AUDIO_OUT *audio_out)
 		return ;
 		} ;
 
-	err = AudioDeviceRemoveIOProc (macosx_out->device, macosx_audio_out_callback) ;
+	err = AudioDeviceDestroyIOProcID(macosx_out->device,
+									 macosx_out->ioprocid);
 	if (err != noErr)
 	{	printf ("AudioDeviceRemoveIOProc failed.\n") ;
 		return ;
@@ -600,8 +617,15 @@ macosx_audio_out_callback (AudioDeviceID device, const AudioTimeStamp* current_t
 	const AudioBufferList* data_in, const AudioTimeStamp* time_in,
 	AudioBufferList* data_out, const AudioTimeStamp* time_out, void* client_data)
 {	MACOSX_AUDIO_OUT	*macosx_out ;
-	int		k, size, frame_count, read_count ;
+	int		size, frame_count, read_count ;
 	float	*buffer ;
+
+	/* unused params: */
+	(void) device;
+	(void) current_time;
+	(void) data_in;
+	(void) time_in;
+	(void) time_out;
 
 	if ((macosx_out = (MACOSX_AUDIO_OUT*) client_data) == NULL)
 	{	printf ("macosx_play : AUDIO_OUT is NULL.\n") ;
@@ -641,9 +665,6 @@ macosx_audio_out_callback (AudioDeviceID device, const AudioTimeStamp* current_t
 
 #if (defined (_WIN32) || defined (WIN32))
 
-#include <windows.h>
-#include <mmsystem.h>
-
 #define	WIN32_BUFFER_LEN	(1<<15)
 #define	WIN32_MAGIC			MAKE_MAGIC ('W', 'i', 'n', '3', '2', 's', 'u', 'x')
 
@@ -672,7 +693,7 @@ static void win32_play (get_audio_callback_t callback, AUDIO_OUT *audio_out, voi
 static void win32_close (AUDIO_OUT *audio_out) ;
 
 static DWORD CALLBACK
-	win32_audio_out_callback (HWAVEOUT hwave, UINT msg, DWORD data, DWORD param1, DWORD param2) ;
+	win32_audio_out_callback (HWAVEOUT hwave, UINT msg, DWORD_PTR data, DWORD_PTR param1, DWORD_PTR param2) ;
 
 static AUDIO_OUT*
 win32_open (int channels, int samplerate)
@@ -695,15 +716,15 @@ win32_open (int channels, int samplerate)
 
 	wf.nChannels = channels ;
 	wf.nSamplesPerSec = samplerate ;
-	wf.nBlockAlign = channels * sizeof (short) ;
+	wf.nBlockAlign = (WORD) (channels * sizeof (short)) ;
 
 	wf.wFormatTag = WAVE_FORMAT_PCM ;
 	wf.cbSize = 0 ;
 	wf.wBitsPerSample = 16 ;
 	wf.nAvgBytesPerSec = wf.nBlockAlign * wf.nSamplesPerSec ;
 
-	error = waveOutOpen (&(win32_out->hwave), WAVE_MAPPER, &wf, (DWORD) win32_audio_out_callback,
-							(DWORD) win32_out, CALLBACK_FUNCTION) ;
+	error = waveOutOpen (&(win32_out->hwave), WAVE_MAPPER, &wf, (DWORD_PTR) win32_audio_out_callback,
+							(DWORD_PTR) win32_out, CALLBACK_FUNCTION) ;
 	if (error)
 	{	puts ("waveOutOpen failed.") ;
 		free (win32_out) ;
@@ -712,7 +733,7 @@ win32_open (int channels, int samplerate)
 
 	waveOutPause (win32_out->hwave) ;
 
-	return (WIN32_AUDIO_OUT *) win32_out ;
+	return (AUDIO_OUT *) win32_out ;
 } /* win32_open */
 
 static void
@@ -759,8 +780,8 @@ win32_play (get_audio_callback_t callback, AUDIO_OUT *audio_out, void *callback_
 	waveOutRestart (win32_out->hwave) ;
 
 	/* Fake 2 calls to the callback function to queue up enough audio. */
-	win32_audio_out_callback (0, MM_WOM_DONE, (DWORD) win32_out, 0, 0) ;
-	win32_audio_out_callback (0, MM_WOM_DONE, (DWORD) win32_out, 0, 0) ;
+	win32_audio_out_callback (0, MM_WOM_DONE, (DWORD_PTR) win32_out, 0, 0) ;
+	win32_audio_out_callback (0, MM_WOM_DONE, (DWORD_PTR) win32_out, 0, 0) ;
 
 	/* Wait for playback to finish. The callback notifies us when all
 	** wave data has been played.
@@ -799,8 +820,12 @@ win32_close (AUDIO_OUT *audio_out)
 } /* win32_close */
 
 static DWORD CALLBACK
-win32_audio_out_callback (HWAVEOUT hwave, UINT msg, DWORD data, DWORD param1, DWORD param2)
-{	WIN32_AUDIO_OUT	*win32_out ;
+win32_audio_out_callback (HWAVEOUT hwave, UINT msg, DWORD_PTR data, DWORD_PTR param1, DWORD_PTR param2)
+{
+	UNREFERENCED_PARAMETER (hwave) ;
+	UNREFERENCED_PARAMETER (param1) ;
+	UNREFERENCED_PARAMETER (param2) ;
+	WIN32_AUDIO_OUT	*win32_out ;
 	int		read_count, frame_count, k ;
 	short	*sptr ;
 
@@ -823,19 +848,18 @@ win32_audio_out_callback (HWAVEOUT hwave, UINT msg, DWORD data, DWORD param1, DW
 		return 0 ;
 
 	/* Do the actual audio. */
-	sample_count = win32_out->bufferlen ;
-	frame_count = sample_count / win32_out->channels ;
+	frame_count = win32_out->bufferlen / win32_out->channels ;
 
 	read_count = win32_out->callback (win32_out->callback_data, win32_out->float_buffer, frame_count) ;
 
 	sptr = (short*) win32_out->whdr [win32_out->current].lpData ;
 
 	for (k = 0 ; k < read_count ; k++)
-		sptr [k] = lrint (32767.0 * win32_out->float_buffer [k]) ;
+		sptr [k] = (short) lrint (32767.0 * win32_out->float_buffer [k]) ;
 
 	if (read_count > 0)
 	{	/* Fix buffer length is only a partial block. */
-		if (read_count * sizeof (short) < win32_out->bufferlen)
+		if (read_count * (int) sizeof (short) < win32_out->bufferlen)
 			win32_out->whdr [win32_out->current].dwBufferLength = read_count * sizeof (short) ;
 
 		/* Queue the WAVEHDR */
@@ -974,7 +998,7 @@ AUDIO_OUT *
 audio_open (int channels, int samplerate)
 {
 #if defined (__linux__)
-	#if HAVE_ALSA_ASOUNDLIB_H
+	#if HAVE_ALSA
 		if (access ("/proc/asound/cards", R_OK) == 0)
 			return alsa_open (channels, samplerate) ;
 	#endif
@@ -1016,7 +1040,7 @@ audio_play (get_audio_callback_t callback, AUDIO_OUT *audio_out, void *callback_
 		} ;
 
 #if defined (__linux__)
-	#if HAVE_ALSA_ASOUNDLIB_H
+	#if HAVE_ALSA
 		if (audio_out->magic == ALSA_MAGIC)
 			alsa_play (callback, audio_out, callback_data) ;
 	#endif
@@ -1041,7 +1065,7 @@ void
 audio_close (AUDIO_OUT *audio_out)
 {
 #if defined (__linux__)
-	#if HAVE_ALSA_ASOUNDLIB_H
+	#if HAVE_ALSA
 		if (audio_out->magic == ALSA_MAGIC)
 			alsa_close (audio_out) ;
 	#endif
