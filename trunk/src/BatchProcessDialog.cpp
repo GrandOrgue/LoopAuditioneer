@@ -1,6 +1,6 @@
 /*
  * BatchProcessDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2023 Lars Palo
+ * Copyright (C) 2011-2024 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,6 +80,7 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Copy pitch info from corresponding file(s)"));
   m_batchProcessesAvailable.Add(wxT("Write PitchTuning lines from embedded pitch"));
   m_batchProcessesAvailable.Add(wxT("Remove sound between last loop and cue"));
+  m_batchProcessesAvailable.Add(wxT("Export sound from last cue as release"));
   m_batchProcessesAvailable.Add(wxT("Cut & Fade in/out"));
   m_batchProcessesAvailable.Add(wxT("Crossfade all loops"));
   m_batchProcessesAvailable.Add(wxT("Set LIST INFO strings"));
@@ -1102,6 +1103,35 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     break;
 
     case 17:
+      // This is for export sound after last cue marker (if existing) as a separate release
+      if (!filesToProcess.IsEmpty()) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            if (fh.TrimAsRelease()) {
+              // save file
+              fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+              m_statusProgress->AppendText(wxT("\tSuccessfully exported "));
+              m_statusProgress->AppendText(filesToProcess.Item(i));
+              m_statusProgress->AppendText(wxT(" as release.\n"));
+            } else {
+              m_statusProgress->AppendText(wxT("\tNo cue marker found in "));
+              m_statusProgress->AppendText(filesToProcess.Item(i));
+              m_statusProgress->AppendText(wxT("\n"));
+            }
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+          wxSafeYield();
+        }
+        m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 18:
       // This is for cutting and fading in/out
       if (!filesToProcess.IsEmpty()) {
 
@@ -1159,7 +1189,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 18:
+    case 19:
       // This is for crossfading all existing loops
       if (!filesToProcess.IsEmpty()) {
 
@@ -1263,7 +1293,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
     
-    case 19:
+    case 20:
       // This is for setting LIST INFO strings
       if (!filesToProcess.IsEmpty()) {
 
