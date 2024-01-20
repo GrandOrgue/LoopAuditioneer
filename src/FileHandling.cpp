@@ -1,6 +1,6 @@
 /*
  * FileHandling.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2023 Lars Palo
+ * Copyright (C) 2011-2024 Lars Palo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1406,6 +1406,97 @@ bool FileHandling::TrimEnd(unsigned timeToTrim) {
   } else {
     return false;
   }
+}
+
+/*
+ * TrimAsRelease() is used in batch mode to extract the audio data from last
+ * cue marker existing in file and export it to a (new) file
+ */
+bool FileHandling::TrimAsRelease() {
+  // There must be at least one cue point existing to use this function
+  if (!m_cues->GetNumberOfCues())
+    return false;
+
+  // Get the last cue position in data
+  unsigned lastCuePos = 0;
+  for (unsigned i = 0; i < m_cues->GetNumberOfCues(); i++) {
+    CUEPOINT currentCue;
+    m_cues->GetCuePoint(i, currentCue);
+    if (currentCue.dwSampleOffset > lastCuePos) {
+      lastCuePos = currentCue.dwSampleOffset;
+    }
+  }
+
+  unsigned cuePositionInData = lastCuePos * m_channels;
+  long unsigned int newArrayLength = ArrayLength - (cuePositionInData);
+
+  if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+    double *audioData = new double[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      audioData[i] = doubleAudioData[cuePositionInData + i];
+
+    delete[] doubleAudioData;
+    doubleAudioData = new double[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      doubleAudioData[i] = audioData[i];
+
+    delete[] audioData;
+
+  } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
+    short *audioData = new short[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      audioData[i] = shortAudioData[cuePositionInData + i];
+
+    delete[] shortAudioData;
+    shortAudioData = new short[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      shortAudioData[i] = audioData[i];
+
+    delete[] audioData;
+
+  } else if ((m_minorFormat == SF_FORMAT_PCM_24) || (m_minorFormat == SF_FORMAT_PCM_32)) {
+    int *audioData = new int[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      audioData[i] = intAudioData[cuePositionInData + i];
+
+    delete[] intAudioData;
+    intAudioData = new int[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      intAudioData[i] = audioData[i];
+
+    delete[] audioData;
+  }
+
+  // also update float data as it always exist
+  float *audioData = new float[newArrayLength];
+
+  for (unsigned i = 0; i < newArrayLength; i++)
+    audioData[i] = floatAudioData[cuePositionInData + i];
+
+  delete[] floatAudioData;
+  floatAudioData = new float[newArrayLength];
+
+  for (unsigned i = 0; i < newArrayLength; i++)
+    floatAudioData[i] = audioData[i];
+
+  ArrayLength = newArrayLength;
+
+  delete[] audioData;
+
+  // if loops and/or cues exist they must now be removed!
+  for (unsigned i = 0; i < (unsigned) m_loops->GetNumberOfLoops(); i++)
+    m_loops->SetSaveOption(false, i);
+
+  for (unsigned i = 0; i < m_cues->GetNumberOfCues(); i++)
+    m_cues->SetSaveOption(false, i);
+
+  return true;
 }
 
 void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
