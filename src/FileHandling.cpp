@@ -24,6 +24,7 @@
 
 FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), floatAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_timeDomainPitch(0), m_autoSustainStart(0),
 m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
+  m_fileName = fileName;
   m_loops = new LoopMarkers();
   m_cues = new CueMarkers();
   wxString filePath;
@@ -326,6 +327,85 @@ bool FileHandling::GetFFTPitch(double pitches[]) {
     return true;
   } else
     return false;
+}
+
+/*
+ * GetSpectrum needs an array of doubles that is the size of (fftSize / 2) for the total output in dB for each bin
+ * fftSize must be a power of 2
+ * windowType must be in range 0 to 9
+ */
+bool FileHandling::GetSpectrum(double *outInDb, unsigned fftSize, int windowType) {
+  if (!waveTracks.empty()) {
+    unsigned numberOfSamples = waveTracks[0].waveData.size();
+    if (fftSize > numberOfSamples) {
+      return false;
+    }
+
+    unsigned nbrWindows = 0;
+    unsigned halfFFTsize = fftSize / 2;
+    double *input = new double[fftSize];
+    double *output = new double[fftSize];
+    double *fftData = new double[fftSize];
+    double *window = new double[fftSize];
+
+    for (unsigned i = 0; i < fftSize; i++) {
+      input[i] = 0.0f;
+      output[i] = 0.0f;
+      fftData[i] = 0.0f;
+      window[i] = 1.0f;
+    }
+
+    // Apply a window to the in data
+    if (windowType > 0)
+      WindowFunc(windowType, fftSize, input);
+
+    // Scale window so an amplitude of 1.0 equals to 0 dB
+    double winScale = 0;
+    for (unsigned i = 0; i < fftSize; i++)
+      winScale += window[i];
+    if (winScale > 0)
+      winScale = 4.0 / (winScale * winScale);
+    else
+      winScale = 1.0;
+
+    for (unsigned i = 0; i < waveTracks.size(); i++) {
+      unsigned currentStartIdx = 0;
+      while (currentStartIdx < (waveTracks[i].waveData.size() - (fftSize + halfFFTsize))) {
+        // Fill this input window with audio data from current channel
+        for (unsigned j = 0; j < fftSize; j++) {
+          input[j] = window[j] * waveTracks[i].waveData[currentStartIdx + j];
+        }
+
+        // Perform the FFT
+        PowerSpectrum(fftSize, input, output);
+
+        for (unsigned j = 0; j < halfFFTsize; j++)
+          fftData[j] += output[j];
+
+        // Overlap each window 50%
+        currentStartIdx += halfFFTsize;
+        nbrWindows++;
+      }
+    }
+
+    double scale = winScale / (double) nbrWindows;
+    // Convert to decibels and store value in the double array sent as parameter
+    for (unsigned i = 0; i < halfFFTsize; i++) {
+      double temp = 10 * log10(fftData[i] * scale);
+      if (temp > -145)
+        outInDb[i] = temp;
+      else
+        outInDb[i] = -145;
+    }
+
+    delete[] input;
+    delete[] output;
+    delete[] fftData;
+    delete[] window;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 bool FileHandling::DetectPitchByFFT() {
@@ -1653,3 +1733,8 @@ bool FileHandling::AutoCreateReleaseCue() {
     return false;
   }
 }
+
+wxString FileHandling::GetFileName() {
+  return m_fileName;
+}
+

@@ -57,6 +57,7 @@ public:
   int GetWholeFormat();
   bool FileCouldBeOpened();
   bool GetFFTPitch(double pitches[]);
+  bool GetSpectrum(double *output, unsigned fftSize, int windowType);
   double GetTDPitch();
   void PerformCrossfade(int loopNumber, double fadeLength, int fadeType);
   void TrimExcessData();
@@ -75,6 +76,7 @@ public:
   // Get strongest channel of audio data as doubles
   void SeparateStrongestChannel(double outData[]);
   bool AutoCreateReleaseCue();
+  wxString GetFileName();
 
   short *shortAudioData;
   int *intAudioData;
@@ -92,6 +94,7 @@ private:
   SF_INSTRUMENT instr;
   SF_CUES cues;
 
+  wxString m_fileName;
   int m_format;
   int m_minorFormat;
   unsigned m_samplerate;

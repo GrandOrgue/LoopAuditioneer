@@ -1,6 +1,6 @@
 /* 
  * PitchDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2023 Lars Palo 
+ * Copyright (C) 2011-2024 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -9,16 +9,18 @@
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * You can contact the author on larspalo(at)yahoo.se
  */
 
 #include "PitchDialog.h"
+#include <wx/choice.h>
+#include "SpectrumDialog.h"
 
 IMPLEMENT_CLASS(PitchDialog, wxDialog )
 
@@ -26,36 +28,15 @@ BEGIN_EVENT_TABLE(PitchDialog, wxDialog)
   EVT_RADIOBOX(ID_PITCH_METHOD, PitchDialog::OnAutoDetectionCheck)
   EVT_COMBOBOX(ID_NOTECOMBO, PitchDialog::OnNoteChange)
   EVT_SLIDER(ID_PITCHFRACTION, PitchDialog::OnFractionChange)
+  EVT_BUTTON(ID_SPECTRUM_BTN, PitchDialog::OnViewSpectrumButton)
 END_EVENT_TABLE()
 
-PitchDialog::PitchDialog(
-  double pitch,
-  int midiNote,
-  double pitchFraction,
-  double hps_pitch,
-  int hps_midiNote,
-  double hps_pitchFraction,
-  double td_pitch,
-  int td_midiNote,
-  double td_pitchFraction,
-  int fileMidiNote,
-  double filePitchFraction
-) {
-  Init(pitch, midiNote, pitchFraction, hps_pitch, hps_midiNote, hps_pitchFraction, td_pitch, td_midiNote, td_pitchFraction, fileMidiNote, filePitchFraction);
+PitchDialog::PitchDialog(FileHandling *audioFile) {
+  Init(audioFile);
 }
 
 PitchDialog::PitchDialog(
-  double pitch,
-  int midiNote,
-  double pitchFraction,
-  double hps_pitch,
-  int hps_midiNote,
-  double hps_pitchFraction,
-  double td_pitch,
-  int td_midiNote,
-  double td_pitchFraction,
-  int fileMidiNote,
-  double filePitchFraction,
+  FileHandling *audioFile,
   wxWindow* parent,
   wxWindowID id,
   const wxString& caption,
@@ -63,35 +44,64 @@ PitchDialog::PitchDialog(
   const wxSize& size,
   long style
 ) {
-  Init(pitch, midiNote, pitchFraction, hps_pitch, hps_midiNote, hps_pitchFraction, td_pitch, td_midiNote, td_pitchFraction, fileMidiNote, filePitchFraction);
+  Init(audioFile);
   Create(parent, id, caption, pos, size, style);
 }
  
-void PitchDialog::Init(
-  double pitch,
-  int midiNote,
-  double pitchFraction,
-  double hps_pitch,
-  int hps_midiNote,
-  double hps_pitchFraction,
-  double td_pitch,
-  int td_midiNote,
-  double td_pitchFraction,
-  int fileMidiNote,
-  double filePitchFraction
-) {
-  m_detectedMIDIUnityNote = midiNote;
-  m_detectedMIDIPitchFraction = pitchFraction;
-  m_hpsDetectedPitch = hps_pitch;
-  m_hpsDetectedMIDIUnityNote = hps_midiNote;
-  m_hpsDetectedMIDIPitchFraction = hps_pitchFraction;
-  m_fileMIDIUnityNote = fileMidiNote;
-  m_fileMIDIPitchFraction = filePitchFraction;
+void PitchDialog::Init(FileHandling *audioFile) {
+  m_audioFile = audioFile;
+
+  double midi_note_pitch;
+  double hps_midi_note_pitch;
+  double td_midi_note_pitch;
+
+  double fftPitches[2];
+  for (int i = 0; i < 2; i++)
+    fftPitches[i] = 0;
+  bool got_fftpitch = m_audioFile->GetFFTPitch(fftPitches);
+  m_TDdetectedPitch = m_audioFile->GetTDPitch();
+  m_fileMIDIUnityNote = (int) m_audioFile->m_loops->GetMIDIUnityNote();
+  m_fileMIDIPitchFraction = (double) m_audioFile->m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
+
+  if (got_fftpitch) {
+    // FFT detection
+    m_detectedPitch = fftPitches[0];
+    m_detectedMIDIUnityNote = (69 + 12 * (log10(fftPitches[0] / 440.0) / log10(2)));
+    midi_note_pitch = 440.0 * pow(2, ((double)(m_detectedMIDIUnityNote - 69) / 12.0));
+    m_detectedMIDIPitchFraction = 1200 * (log10(fftPitches[0] / midi_note_pitch) / log10(2));
+    m_actualMIDIPitchFraction = ((double)UINT_MAX * (m_detectedMIDIPitchFraction / 100.0));
+
+    m_hpsDetectedPitch = fftPitches[1];
+    m_hpsDetectedMIDIUnityNote = (69 + 12 * (log10(fftPitches[1] / 440.0) / log10(2)));
+    hps_midi_note_pitch = 440.0 * pow(2, ((double)(m_hpsDetectedMIDIUnityNote - 69) / 12.0));
+    m_hpsDetectedMIDIPitchFraction = 1200 * (log10(fftPitches[1] / hps_midi_note_pitch) / log10(2));
+    m_actualHpsMIDIPitchFraction = ((double)UINT_MAX * (m_hpsDetectedMIDIPitchFraction / 100.0));
+  } else {
+    m_detectedMIDIUnityNote = 0;
+    midi_note_pitch = 0;
+    m_detectedMIDIPitchFraction = 0;
+    m_actualMIDIPitchFraction = 0;
+
+    m_hpsDetectedMIDIUnityNote = 0;
+    hps_midi_note_pitch = 0;
+    m_hpsDetectedMIDIPitchFraction = 0;
+    m_actualHpsMIDIPitchFraction = 0;
+  }
+
+  if (m_TDdetectedPitch != 0) {
+    // TD detection
+    m_TDdetectedMIDIUnityNote = (69 + 12 * (log10(m_TDdetectedPitch / 440.0) / log10(2)));
+    td_midi_note_pitch = 440.0 * pow(2, ((double)(m_TDdetectedMIDIUnityNote - 69) / 12.0));
+    m_TDdetectedMIDIPitchFraction = 1200 * (log10(m_TDdetectedPitch / td_midi_note_pitch) / log10(2));
+    m_actualTdMIDIPitchFraction = ((double)UINT_MAX * (m_TDdetectedMIDIPitchFraction / 100.0));
+  } else {
+    m_TDdetectedMIDIUnityNote = 0;
+    td_midi_note_pitch = 0;
+    m_TDdetectedMIDIPitchFraction = 0;
+    m_actualTdMIDIPitchFraction = 0;
+  }
+
   CalculatingResultingPitch();
-  m_detectedPitch = pitch;
-  m_TDdetectedMIDIUnityNote = td_midiNote;
-  m_TDdetectedMIDIPitchFraction = td_pitchFraction;
-  m_TDdetectedPitch = td_pitch;
   m_useFFTDetection = true;
   m_useHpsFFTDetection = false;
   m_useTDDetection = false;
@@ -104,6 +114,25 @@ void PitchDialog::Init(
 
   for (int i = 0; i < 128; i++)
     m_notenumbers.Add(wxString::Format(wxT("%d"), i));
+
+  m_fftSizes.Add(wxT("1024")); // pow(2, 10 + choice number)
+  m_fftSizes.Add(wxT("2048"));
+  m_fftSizes.Add(wxT("4096"));
+  m_fftSizes.Add(wxT("8192"));
+  m_fftSizes.Add(wxT("16384"));
+  m_fftSizes.Add(wxT("32768"));
+  m_fftSizes.Add(wxT("65536"));
+
+  m_windowTypes.Add(wxT("Rectangular"));
+  m_windowTypes.Add(wxT("Bartlett"));
+  m_windowTypes.Add(wxT("Hamming"));
+  m_windowTypes.Add(wxT("Hanning"));
+  m_windowTypes.Add(wxT("Blackman"));
+  m_windowTypes.Add(wxT("Blackman-Harris"));
+  m_windowTypes.Add(wxT("Welch"));
+  m_windowTypes.Add(wxT("Gaussian(a=2.5)"));
+  m_windowTypes.Add(wxT("Gaussian(a=3.5)"));
+  m_windowTypes.Add(wxT("Gaussian(a=4.5)"));
 }
 
 bool PitchDialog::Create( 
@@ -281,6 +310,43 @@ void PitchDialog::CreateControls() {
   td_pitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_TDdetectedMIDIPitchFraction));
   TDPitchContainer->Add(td_pitchFractionLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
 
+  // Horizontal sizer for options to display FFT spectrum of whole file
+  wxBoxSizer* spectrumRow = new wxBoxSizer(wxHORIZONTAL);
+  boxSizer->Add(spectrumRow, 0, wxGROW|wxALL, 5);
+
+  // The View Spectrum button
+  wxButton *m_spectrumButton = new wxButton(
+    this,
+    ID_SPECTRUM_BTN,
+    wxT("View FFT spectrum"),
+    wxDefaultPosition,
+    wxDefaultSize,
+    0
+  );
+  spectrumRow->Add(m_spectrumButton, 0, wxALL, 5);
+  
+  // FFT size choice
+  wxChoice *fftsizeChoice = new wxChoice(
+    this,
+    ID_FFTSIZE_CHOICE,
+    wxDefaultPosition,
+    wxDefaultSize,
+    m_fftSizes
+  );
+  spectrumRow->Add(fftsizeChoice, 0, wxALL, 5);
+  fftsizeChoice->SetSelection(5);
+
+  // Window type choice
+  wxChoice *windowChoice = new wxChoice(
+    this,
+    ID_WINDOW_TYPE_CHOICE,
+    wxDefaultPosition,
+    wxDefaultSize,
+    m_windowTypes
+  );
+  spectrumRow->Add(windowChoice, 0, wxALL, 5);
+  windowChoice->SetSelection(9);
+
   // Horizontal sizer for selection row
   wxBoxSizer* selectionRow = new wxBoxSizer(wxHORIZONTAL);
   boxSizer->Add(selectionRow, 0, wxGROW|wxALL, 5);
@@ -445,6 +511,23 @@ bool PitchDialog::TransferDataFromWindow() {
   return true;
 }
 
+void PitchDialog::TransferSelectedPitchToFile() {
+    int selectedMethod = GetMethodUsed();
+    if (selectedMethod == 0) {
+      m_audioFile->m_loops->SetMIDIUnityNote((char) m_detectedMIDIUnityNote);
+      m_audioFile->m_loops->SetMIDIPitchFraction(m_actualMIDIPitchFraction);
+    } else if (selectedMethod == 1) {
+      m_audioFile->m_loops->SetMIDIUnityNote((char) m_hpsDetectedMIDIUnityNote);
+      m_audioFile->m_loops->SetMIDIPitchFraction(m_actualHpsMIDIPitchFraction);
+    } else if (selectedMethod == 2) {
+      m_audioFile->m_loops->SetMIDIUnityNote((char) m_TDdetectedMIDIUnityNote);
+      m_audioFile->m_loops->SetMIDIPitchFraction(m_actualTdMIDIPitchFraction);
+    } else if (selectedMethod == 3) {
+      m_audioFile->m_loops->SetMIDIUnityNote((char) GetMIDINote());
+      m_audioFile->m_loops->SetMIDIPitchFraction((unsigned)((double)UINT_MAX * (GetPitchFraction() / 100.0)));
+    }
+}
+
 int PitchDialog::GetMethodUsed() {
   if (m_useFFTDetection)
     return 0;
@@ -513,6 +596,50 @@ void PitchDialog::OnFractionChange(wxCommandEvent& WXUNUSED(event)) {
 
   CalculatingResultingPitch();
   resultingPitchLabel->SetLabel(wxString::Format(wxT("Resulting pitch: %.2f Hz"), m_resultingPitch));
+}
+
+void PitchDialog::OnViewSpectrumButton(wxCommandEvent& WXUNUSED(event)) {
+  wxChoice *fftChoice = (wxChoice*) FindWindow(ID_FFTSIZE_CHOICE);
+  wxChoice *windowChoice = (wxChoice*) FindWindow(ID_WINDOW_TYPE_CHOICE);
+
+  int fftSize = pow(2, 10 + fftChoice->GetSelection());
+  int windowType = windowChoice->GetSelection();
+  int half = fftSize / 2;
+  double *fftResult = new double[half];
+  for (int i = 0; i < half; i++)
+    fftResult[i] = 0;
+
+  if (m_audioFile->GetSpectrum(fftResult, fftSize, windowType)) {
+    // We now have the spectrum in the fftResult array in dB scaled so that 1.0 in amplitude would be 0 dB
+    SpectrumDialog spectrumDlg(fftResult, fftSize, m_audioFile->GetFileName(), (unsigned) m_audioFile->GetSampleRate(), this);
+    if (spectrumDlg.ShowModal() == wxID_OK) {
+      // There should be a pitch to use for the manual pitch
+      double pitch = spectrumDlg.GetSelectedPitch();
+      wxRadioBox *radioBox = (wxRadioBox*) FindWindow(ID_PITCH_METHOD);
+      radioBox->SetSelection(3);
+      // then we notify the box that selection has changed
+      wxCommandEvent evt(wxEVT_RADIOBOX, ID_PITCH_METHOD);
+      wxPostEvent(this, evt);
+      int midi_note = (69 + 12 * (log10(pitch / 440.0) / log10(2)));
+      double midi_note_pitch = 440.0 * pow(2, ((double)(midi_note - 69) / 12.0));
+      double cent_deviation = 1200 * (log10(pitch / midi_note_pitch) / log10(2));
+
+      wxComboBox *midinote = (wxComboBox*) FindWindow(ID_NOTECOMBO);
+      midinote->SetSelection(midi_note);
+      m_fileMIDIUnityNote = midi_note;
+      wxSlider *pitchFract = (wxSlider*) FindWindow(ID_PITCHFRACTION);
+      pitchFract->SetValue((int) (cent_deviation * 100));
+      m_fileMIDIPitchFraction = cent_deviation;
+      fractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_fileMIDIPitchFraction));
+      CalculatingResultingPitch();
+      resultingPitchLabel->SetLabel(wxString::Format(wxT("Resulting pitch: %.2f Hz"), m_resultingPitch));
+    }
+  } else {
+    // Notify that it was not possible to get spectrum
+    
+  }
+
+  delete[] fftResult;
 }
 
 int PitchDialog::GetMIDINote() {
