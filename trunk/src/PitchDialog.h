@@ -1,6 +1,6 @@
 /* 
  * PitchDialog.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2023 Lars Palo 
+ * Copyright (C) 2011-2024 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -9,11 +9,11 @@
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  *
  * You can contact the author on larspalo(at)yahoo.se
  */
@@ -22,12 +22,16 @@
 #define PITCHDIALOG_H
 
 #include <wx/wx.h>
+#include "FileHandling.h"
 
 // Identifiers
 enum {
   ID_PITCH_METHOD = wxID_HIGHEST + 400,
   ID_NOTECOMBO = wxID_HIGHEST + 401,
-  ID_PITCHFRACTION = wxID_HIGHEST + 402
+  ID_PITCHFRACTION = wxID_HIGHEST + 402,
+  ID_SPECTRUM_BTN = wxID_HIGHEST + 403,
+  ID_FFTSIZE_CHOICE = wxID_HIGHEST + 404,
+  ID_WINDOW_TYPE_CHOICE = wxID_HIGHEST + 405,
 };
 
 class PitchDialog : public wxDialog {
@@ -36,31 +40,9 @@ class PitchDialog : public wxDialog {
 
 public:
   // Constructors
+  PitchDialog(FileHandling *audioFile);
   PitchDialog(
-    double pitch,
-    int midiNote,
-    double pitchFraction,
-    double hps_pitch,
-    int hps_midiNote,
-    double hps_pitchFraction,
-    double td_pitch,
-    int td_midiNote,
-    double td_pitchFraction,
-    int fileMidiNote,
-    double filePitchFraction
-  );
-  PitchDialog(
-    double pitch, 
-    int midiNote,
-    double pitchFraction,
-    double hps_pitch,
-    int hps_midiNote,
-    double hps_pitchFraction,
-    double td_pitch,
-    int td_midiNote,
-    double td_pitchFraction,
-    int fileMidiNote,
-    double filePitchFraction,
+    FileHandling *audioFile,
     wxWindow* parent,
     wxWindowID id = wxID_ANY,
     const wxString& caption = wxT("MIDI Pitch settings"),
@@ -70,19 +52,7 @@ public:
   );
 
   // Initialize our variables
-  void Init(
-    double pitch,
-    int midiNote,
-    double pitchFraction,
-    double hps_pitch,
-    int hps_midiNote,
-    double hps_pitchFraction,
-    double td_pitch,
-    int td_midiNote,
-    double td_pitchFraction,
-    int fileMidiNote,
-    double filePitchFraction
-  );
+  void Init(FileHandling *audioFile);
 
   // Creation
   bool Create( 
@@ -105,19 +75,23 @@ public:
   // Overrides
   bool TransferDataToWindow();
   bool TransferDataFromWindow();
+  void TransferSelectedPitchToFile();
 
   // Event processing
   void OnAutoDetectionCheck(wxCommandEvent& event);
   void OnNoteChange(wxCommandEvent& event);
   void OnFractionChange(wxCommandEvent& event);
+  void OnViewSpectrumButton(wxCommandEvent& event);
 
 private:
   double m_detectedPitch;
   int m_detectedMIDIUnityNote;
   double m_detectedMIDIPitchFraction;
+  unsigned m_actualMIDIPitchFraction;
   double m_hpsDetectedPitch;
   int m_hpsDetectedMIDIUnityNote;
   double m_hpsDetectedMIDIPitchFraction;
+  unsigned m_actualHpsMIDIPitchFraction;
   int m_fileMIDIUnityNote;
   double m_fileMIDIPitchFraction;
   bool m_useFFTDetection;
@@ -127,12 +101,16 @@ private:
   double m_resultingPitch;
   int m_TDdetectedMIDIUnityNote;
   double m_TDdetectedMIDIPitchFraction;
+  unsigned m_actualTdMIDIPitchFraction;
   double m_TDdetectedPitch;
   wxArrayString pitchMethods;
+  FileHandling *m_audioFile;
 
   wxArrayString m_notenumbers;
   wxStaticText *fractionLabel;
   wxStaticText *resultingPitchLabel;
+  wxArrayString m_fftSizes;
+  wxArrayString m_windowTypes;
 
   void CalculatingResultingPitch();
 };

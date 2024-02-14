@@ -75,6 +75,8 @@ set(LA_SRC
   ListInfoDialog.cpp
   AudioSettingsDialog.cpp
   MyResampler.cpp
+  SpectrumPanel.cpp
+  SpectrumDialog.cpp
 )
 
 # add the executable
