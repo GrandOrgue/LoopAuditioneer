@@ -602,7 +602,7 @@ void PitchDialog::OnViewSpectrumButton(wxCommandEvent& WXUNUSED(event)) {
   wxChoice *fftChoice = (wxChoice*) FindWindow(ID_FFTSIZE_CHOICE);
   wxChoice *windowChoice = (wxChoice*) FindWindow(ID_WINDOW_TYPE_CHOICE);
 
-  int fftSize = pow(2, 10 + fftChoice->GetSelection());
+  int fftSize = lround(pow(2, 10 + fftChoice->GetSelection()));
   int windowType = windowChoice->GetSelection();
   int half = fftSize / 2;
   double *fftResult = new double[half];
