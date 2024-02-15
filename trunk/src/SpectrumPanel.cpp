@@ -58,7 +58,6 @@ SpectrumPanel::SpectrumPanel(
 
   SetBackgroundColour(wxColour(244,242,239));
   SetMinSize(wxSize(640, 480));
-  SetBackgroundStyle(wxBG_STYLE_PAINT);
 }
 
 SpectrumPanel::~SpectrumPanel() {
