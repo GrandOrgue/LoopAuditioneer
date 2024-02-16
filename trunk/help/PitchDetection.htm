@@ -20,16 +20,41 @@ describe the pitch from this dialog if the existing/manual radio button is selec
 <p>Also note that already existing information in the audio file will be presented in this dialog in
 the lower (initially disabled) part. The MIDI note and Pitch fraction that already exist in the file
 will also show up in the file list in the main window. A file must be saved for the information to 
-be updated.</p>
+be updated in the file list.</p>
 <p>When to use what type of detection? The time domain pitch detection is generally more accurate with
 single pipe samples of lower to medium frequencies. The FFT based detection on the other hand is better
 with multiple pipes (like a mixture) and higher frequencies (say around the 072-C of a 8' stop) and in
 some instances the HPS method will give the best average. It all depends on the sample what method
 will give the truest detection.</p>
-<p>With very difficult samples I still use another analysis software (like Praat) to detect the correct
-pitch peaks and set it with the manual method. As a side note I can mention that in Praat I use the
-function "To Spectrum" and zoom in on the correct peak with selection until it's clearly visible. Then
-I use the Ctrl + K to snap to closest peak and read the frequency value for it. After that I set it
-manually in LoopAuditioneer.</p>
+<p>With very difficult samples there is yet another option and that's using the "View FFT spectrum"
+button. The choice boxes next to it can be used to select the FFT size and window method. If you're
+not very concerned, the default values should be perfectly usable in most cases. When clicked, the
+"View FFT spectrum button will bring up another dialog that display the FFT power spectrum for the
+file."</p>
+<p><img style="width: 90%; height: auto;" src="images/PowerSpectrum1.png" alt="A screenshot of the power spectrum dialog" /></p>
+<p>In this dialog the FFT power spectrum that display the intensity of the audio data in the frequency
+domain is displayed. The buttons below the graphical display allow for zooming in on the FFT to find
+the correct peak that will represent the correct fundamental (pitch) for the sample file.</p>
+<p>Below the actual FFT display there are information bars that display the current mid point
+frequency, the currently displayed frequency range and to the left and right the outer frequency
+limits of the display is shown. Finally, in the lowest "information bar", the full frequency range of
+the audio file will be displayed.</p>
+<p>The button "Zoom all" will restore full FFT spectrum view. With "Zoom out" the zoom level will be decresed by
+a power of two until full spectrum view is realized. The "Zoom in" button increases zoom by a power
+of two for every push. There's also a "Zoom selection" button which will be activated when there is a
+selection on the FFT display above to zoom into. At the right of the buttons there is a slider that
+can be used to adjust the part of the FFT spectrum to view if the zoom level is higher than the full
+file view.</p>
+<p><img style="width: 90%; height: auto;" src="images/PowerSpectrum2.png" alt="A screenshot of choosing pitch in the power spectrum dialog" /></p>
+<p>If the graphical FFT power spectrum display is clicked with the left mouse button, the pitch of
+the closest peak will be indicated above and its dB level to the left. Whenever a pitch is displayed
+the "Transfer selected pitch" button below will activate that allow to transfer the selected pitch to
+the main pitch window as "Existing/manual pitch".<p>
+<p>It's also possible to create areas of selection that can be zoomed. Just left click and drag with
+the mouse to adjust the selected area. This can be especially useful to quickly zoom into the area
+of interest to find the fundamental pitch.</p>
+<p>The "Interpolate pitch" checkbox will apply a cubic interpolation to calculate the actual pitch
+of the selected peak taking into account its neighbour values. If it's not checked the raw FFT power
+spectrum data for the selected bin will be used "as is" for the pitch calculation.</p>
 </BODY>
 </HTML>
