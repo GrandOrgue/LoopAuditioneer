@@ -81,6 +81,7 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Write PitchTuning lines from embedded pitch"));
   m_batchProcessesAvailable.Add(wxT("Remove sound between last loop and cue"));
   m_batchProcessesAvailable.Add(wxT("Export sound from last cue as release"));
+  m_batchProcessesAvailable.Add(wxT("Export sound to after last loop as attack"));
   m_batchProcessesAvailable.Add(wxT("Cut & Fade in/out"));
   m_batchProcessesAvailable.Add(wxT("Crossfade all loops"));
   m_batchProcessesAvailable.Add(wxT("Set LIST INFO strings"));
@@ -1132,6 +1133,35 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     break;
 
     case 18:
+      // This is for export sound to after last loop (if existing) as a separate attack
+      if (!filesToProcess.IsEmpty()) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            if (fh.TrimAsAttack()) {
+              // save file
+              fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+              m_statusProgress->AppendText(wxT("\tSuccessfully exported "));
+              m_statusProgress->AppendText(filesToProcess.Item(i));
+              m_statusProgress->AppendText(wxT(" as attack.\n"));
+            } else {
+              m_statusProgress->AppendText(wxT("\tNo loop marker found in "));
+              m_statusProgress->AppendText(filesToProcess.Item(i));
+              m_statusProgress->AppendText(wxT("\n"));
+            }
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+          wxSafeYield();
+        }
+        m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 19:
       // This is for cutting and fading in/out
       if (!filesToProcess.IsEmpty()) {
 
@@ -1189,7 +1219,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 19:
+    case 20:
       // This is for crossfading all existing loops
       if (!filesToProcess.IsEmpty()) {
 
@@ -1293,7 +1323,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
     
-    case 20:
+    case 21:
       // This is for setting LIST INFO strings
       if (!filesToProcess.IsEmpty()) {
 
