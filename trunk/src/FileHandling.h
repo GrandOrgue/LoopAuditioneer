@@ -64,6 +64,7 @@ public:
   bool TrimStart(unsigned timeToTrim);
   bool TrimEnd(unsigned timeToTrim);
   bool TrimAsRelease();
+  bool TrimAsAttack();
   void PerformFade(unsigned fadeLength, int fadeType);
   // Get audio data as doubles
   bool GetDoubleAudioData(double audio[]);

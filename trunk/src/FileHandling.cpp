@@ -1579,6 +1579,93 @@ bool FileHandling::TrimAsRelease() {
   return true;
 }
 
+/*
+ * TrimAsAttack is used in batch mode to extract the audio data from start of
+ * the file to slightly after last loop and export it to a (new) file.
+ */
+bool FileHandling::TrimAsAttack() {
+  // There must be at least one loop existing to use this function
+  if (!m_loops->GetNumberOfLoops())
+    return false;
+
+  // Get last position of loop in the audio data
+  unsigned lastEndSample = 0;
+  for (int i = 0; i < m_loops->GetNumberOfLoops(); i++) {
+    LOOPDATA currentLoop;
+    m_loops->GetLoopData(i, currentLoop);
+    if (currentLoop.dwEnd > lastEndSample)
+      lastEndSample = currentLoop.dwEnd;
+  }
+
+  long unsigned newArrayLength = (lastEndSample + 3) * m_channels;
+
+  if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+    double *audioData = new double[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      audioData[i] = doubleAudioData[i];
+
+    delete[] doubleAudioData;
+    doubleAudioData = new double[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      doubleAudioData[i] = audioData[i];
+
+    delete[] audioData;
+
+  } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
+    short *audioData = new short[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      audioData[i] = shortAudioData[i];
+
+    delete[] shortAudioData;
+    shortAudioData = new short[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      shortAudioData[i] = audioData[i];
+
+    delete[] audioData;
+
+  } else if ((m_minorFormat == SF_FORMAT_PCM_24) || (m_minorFormat == SF_FORMAT_PCM_32)) {
+    int *audioData = new int[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      audioData[i] = intAudioData[i];
+
+    delete[] intAudioData;
+    intAudioData = new int[newArrayLength];
+
+    for (unsigned i = 0; i < newArrayLength; i++)
+      intAudioData[i] = audioData[i];
+
+    delete[] audioData;
+  }
+
+  // also update float data as it always exist
+  float *audioData = new float[newArrayLength];
+
+  for (unsigned i = 0; i < newArrayLength; i++)
+    audioData[i] = floatAudioData[i];
+
+  delete[] floatAudioData;
+  floatAudioData = new float[newArrayLength];
+
+  for (unsigned i = 0; i < newArrayLength; i++)
+    floatAudioData[i] = audioData[i];
+
+  ArrayLength = newArrayLength;
+
+  delete[] audioData;
+
+  // if cues exist they must now be removed!
+  for (unsigned i = 0; i < m_cues->GetNumberOfCues(); i++)
+    m_cues->SetSaveOption(false, i);
+
+  return true;
+
+}
+
 void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
   double *audioData = new double[ArrayLength];
   bool gotData = GetDoubleAudioData(audioData);
