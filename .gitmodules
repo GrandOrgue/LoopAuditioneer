@@ -4,6 +4,7 @@
 [submodule "submodules/rtaudio"]
 	path = submodules/rtaudio
 	url = https://github.com/thestk/rtaudio.git
+	ignore = dirty
 [submodule "submodules/libsndfile"]
 	path = submodules/libsndfile
 	url = https://github.com/larspalo/libsndfile.git

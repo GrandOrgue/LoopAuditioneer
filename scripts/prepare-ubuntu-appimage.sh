@@ -6,7 +6,8 @@ sudo apt update
 
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cmake g++ pkg-config \
   libasound2-dev libpulse-dev libwxgtk3.0-gtk3-dev libudev-dev patchelf \
-  libgtk-3-dev librsvg2-dev
+  libgtk-3-dev librsvg2-dev autoconf autogen automake build-essential \
+  libtool python
   
 # linuxdeploy, linuxdeploy-plugin-gtk and appimagetool must be downloaded
 sudo wget -P /usr/local/bin https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh
