@@ -34,12 +34,6 @@ and this project does NOT (yet) adhere strictly to
 
 - Re-organized some of the project files.
 
-### Removed
-
-- Unused normalize.css file.
-- Identical links assigned in each translation file.
-- Duplicate index file for the english version.
-
 ## [0.8.8] - 2021-09-26 
 
 ### Added
@@ -305,7 +299,7 @@ at medium to lower frequencies while FFT is better for multiple notes
 A second FFT based pitch detection method is added (harmonic product spectrum)
 which works slightly differently to get another option for difficult samples.
 
-Batch processing of all wav files in folder is possible through the batch
+Batch processing of all wav files in directory is possible through the batch
 process dialog available both on toolbar and in menu.
 
 All menu items now also have keyboard shortcuts.

@@ -1,15 +1,15 @@
 # LoopAuditioneer
 
 LoopAuditioneer is a software for evaluating loops and cues existing in wav 
-file metadata as well as generally being helpful in sample peparation for
-virtual pipe organs, like the
+file metadata as well as generally being helpful in sample preparation for
+usage in virtual pipe organs, like the
 [GrandOrgue software](https://github.com/GrandOrgue/grandorgue).
 
-## Things you can do with LoopAuditioneer
+## Features
 
-- Load .wav files and display existing cue and smpl metadata
+- Load .wav sample files and display existing cue and smpl metadata
 - See the waveform with loops and cues drawn upon it
-- zoom in/out on amplitude of the waveform
+- Zoom in/out on amplitude of the waveform
 - Play back the loops and cues for aural evaluation
 - Choose which loops/cues to keep when saved or saved as...
 - Enjoy bit true data handling, even if header is re-written due to changes,
@@ -18,23 +18,23 @@ virtual pipe organs, like the
 - Edit/create cue (release marker) position directly on the waveform with
   automatic adjustment to find the position with lowest RMS power closest to
   where the user clicked
-- Edit loops by right clicking on the loop table row
-- Create new loops manually if one knows the right sample numbers
+- Edit/create new loops manually
 - Autosearch for good, natural loop points with a high degree of
   configurational control over the loopsearching process
 - Perform crossfades of loops when it's difficult to find natural seamless ones
 - View the waveform at the looppoints in detail
-- Batch process all wav files in any source folder with freely selectable target
-  folder to either overwrite the existing files or create copies of them
-- Autodetect pitch of sample and store information in file and manually edit
-  dwMIDIUnityNote and dwMIDIPitchFraction
+- Batch process all .wav files in any source directory with freely selectable
+  target directory to either overwrite the existing files or create copies of
+  them
+- Autodetect pitch of sample and store information in file
+- Edit dwMIDIUnityNote and dwMIDIPitchFraction
 - View the FFT power spectrum and set pitch from chosen peak
 - Perform cut and fade in/out both in single file mode and in batch mode
 - Trim away unused wav data from looped samples in batch mode
 - Export audio data from cue marker as separate release in batch mode
 - Export audio data to after last loop as separate attack in batch mode
 
-## Dependencies on others code
+## Credit to others code
 
 The only code in the src/ directory that's not written by the author is the
 FFT.h and FFT.cpp files that are slightly modified versions of those in Audacity
@@ -42,10 +42,10 @@ source code. The pitch detection algorithm for the time domain is taken and
 adapted from a discussion on the GrandOrgue mailing list.
 
 Other external libraries that LoopAuditioneer is dependant on and use as
-submodules are [Libsndfile](https://github.com/larspalo/libsndfile),
+submodules are [Libsndfile](https://github.com/larspalo/libsndfile) and
 [Libsamplerate](https://github.com/libsndfile/libsamplerate) both originally
-written by Erik de Castro Lopo. Libsndfile, are provided from a fork of the
-official version to include changes that allow exact handling of pitch fraction
+written by Erik de Castro Lopo. Libsndfile, is provided from a fork of the
+official version to allow exact reading and writing of pitch fraction
 metadata information. [RtAudio](https://github.com/thestk/rtaudio), by Gary P.
 Scavone is used for audio output.
 
@@ -64,12 +64,12 @@ moment the program is developed and mostly tested under Linux (Ubuntu 20.04) 64
 bit. The Windows binaries are produced by cross-compilation with
 i686-w64-mingw32.
 
-LoopAuditioneer requires wxWidgets 3.0+, available at http://www.wxwidgets.org/. The
-repository unicode version of wxWidgets that Ubuntu offer should work as well.
-Other dependencies are documented in the BUILD.md file.
+LoopAuditioneer requires wxWidgets 3.0+, available at http://www.wxwidgets.org/.
+The repository unicode version of wxWidgets that Ubuntu offer should work as
+well. Other build dependencies are documented in the BUILD.md file.
 
 ## Help and documentation
 
-At https://loopauditioneer.sourceforge.io/userguide.html official documentation
-on how to use the software can be found. Inside the software the help can be
-consulted for additional insights.
+At https://loopauditioneer.sourceforge.io/userguide.html older official
+documentation on how to use the software can be found. Inside the software the
+help can be consulted for additional insights.

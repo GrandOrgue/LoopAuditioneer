@@ -12,7 +12,7 @@ The source code can be obtained (if git is available) with:
 git clone https://github.com/larspalo/loopauditioneer.git
 ```
 
-When all dependencies are satisfied the build process is simple. In the
+When all build dependencies are satisfied the build process is simple. In the
 dowloaded source code root directory issue the following commands:
 
 ```
@@ -22,13 +22,14 @@ cmake .. -DCMAKE_BUILD_TYPE=Release
 make
 ```
 
-If no errors occur, the binary will be created in the bin/ subfolder of build/
-and can be run directly from that folder.
+If no errors occur, the binary will be created in the bin/ subdirectory of
+build/ and can be run directly from that directory.
 
 Optionally, the svn revision version can be specified with -DVERSION_REVISION=
 to cmake and the build type can be set to Debug if that's desired.
 
-If a TGZ package is desired, issue the following command in the build/ folder:
+If a TGZ package is desired, issue the following command in the build/
+directory:
 
 ```
 cpack
@@ -44,7 +45,7 @@ make install
 ## AppImage
 
 For an AppImage target you have to have some additional tools installed, the
-prepare-ubuntu-appimage.sh in scripts/ folder have the details. The main 
+prepare-ubuntu-appimage.sh in scripts/ directory have the details. The main 
 difference to the normal build is that you have to drop Jack support which
 results in this set of commands:
 
@@ -63,7 +64,7 @@ Basic needs are the same as above, plus you need mingw-w64 (i686-w64-mingw32)
 and the source for wxWidgets. There's a script in the scripts/ directory named
 prepare-ubuntu-cross.sh that can install the needed tools.
 
-First cross compile wxWidgets. In the extracted wx source folder that you've
+First cross compile wxWidgets. In the extracted wx source directory that you've
 downloaded (https://www.wxwidgets.org/):
 
 ```
@@ -89,7 +90,7 @@ make
 ```
 
 If a ZIP package is desired, issue the following command in the crossbuild/
-folder:
+directory:
 
 ```
 cpack
