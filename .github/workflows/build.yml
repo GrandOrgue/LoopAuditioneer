@@ -52,7 +52,8 @@ jobs:
     - name: Create Appimage
       working-directory: ${{github.workspace}}/build
       run: |
-      export DEPLOY_GTK_VERSION=3 APPIMAGE_EXTRACT_AND_RUN=1
+      echo "DEPLOY_GTK_VERSION=3" >> $GITHUB_ENV
+      echo "APPIMAGE_EXTRACT_AND_RUN=1" >> $GITHUB_ENV
       linuxdeploy-x86_64.AppImage --appdir AppDir --plugin gtk
       appimagetool-x86_64.AppImage --no-appstream AppDir LoopAuditioneer-${{github.ref_name}}.x86_64.AppImage
 
