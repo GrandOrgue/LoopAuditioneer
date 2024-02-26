@@ -62,8 +62,11 @@ jobs:
         name: LoopAuditioneer-${{github.ref_name}}-AppImage
         path: ${{github.workspace}}/build/LoopAuditioneer*.AppImage
 
-  build-cross-windows:
+  crossbuild-windows:
     runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v4
 
     - name: Get dependencies
       run: ${{github.workspace}}/scripts/prepare-ubuntu-cross.sh
