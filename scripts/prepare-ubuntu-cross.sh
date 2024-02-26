@@ -11,3 +11,4 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cmake g++ pkg-config \
 
 export PKG_CONFIG_LIBDIR=/usr/x86_64-w64-mingw32/lib/pkgconfig
 export PKG_CONFIG_PATH=$PKG_CONFIG_LIBDIR
+pkg-config $@
