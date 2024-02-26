@@ -11,6 +11,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
     - name: Get dependencies
       run: ${{github.workspace}}/scripts/prepare-debian-ubuntu.sh
@@ -35,6 +37,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
     - name: Get dependencies
       run: ${{github.workspace}}/scripts/prepare-ubuntu-appimage.sh
@@ -67,6 +71,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
     - name: Get dependencies
       run: ${{github.workspace}}/scripts/prepare-ubuntu-cross.sh
