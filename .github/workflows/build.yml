@@ -74,30 +74,13 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Cache wxCrossbuild
-      id: cache-wxcross
-      uses: actions/cache@v4
-      with:
-        path: ${{github.workspace}}/wxCross
-        key: wxCrossbuild
-
     - name: Get dependencies
       run: ${{github.workspace}}/scripts/prepare-ubuntu-cross.sh
 
-    - name: Cross compile wxWidgets
-      if: steps.cache-wxcross.outputs.cache-hit != 'true'
+    - name: Get cross-compiled wxWidgets
       run: |
-        wget https://github.com/wxWidgets/wxWidgets/releases/download/v3.2.4/wxWidgets-3.2.4.tar.bz2
-        tar -xf wxWidgets-3.2.4.tar.bz2
-        mkdir wxCross
-        cd wxWidgets-3.2.4
-        mkdir win-ur-static
-        cd win-ur-static
-        ../configure --host=x86_64-w64-mingw32 --prefix=${{github.workspace}}/wxCross --enable-unicode --disable-shared
-        make
-        make install
-        cd ..
-        cd ..
+        wget https://github.com/larspalo/WxWidgetsCross/releases/download/3.2.3-2.go/wxwidgets3-mingw-w64-static_3.2.3-2.go_all.deb
+        sudo apt-get install -y ./wxwidgets3-mingw-w64-static_3.2.3-2.go_all.deb
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/crossbuild -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/toolchain.def
