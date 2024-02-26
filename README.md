@@ -62,7 +62,7 @@ by the author (Lars Palo).
 Basic compilation instructions are available in the BUILD.md file. At the
 moment the program is developed and mostly tested under Linux (Ubuntu 20.04) 64
 bit. The Windows binaries are produced by cross-compilation with
-i686-w64-mingw32.
+x86_64-w64-mingw32.
 
 LoopAuditioneer requires wxWidgets 3.0+, available at http://www.wxwidgets.org/.
 The repository unicode version of wxWidgets that Ubuntu offer should work as
