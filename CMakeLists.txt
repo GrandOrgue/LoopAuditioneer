@@ -16,18 +16,10 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-# Project version numbers
-set(VERSION_MAJOR 0)
-set(VERSION_MINOR 9)
-if (NOT VERSION_REVISION)
-  set(VERSION_REVISION 0)
-endif()
-set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION}")
-
 # Set the project name
 project(
   LoopAuditioneer
-  VERSION "${VERSION}"
+  VERSION 0.10.0
   DESCRIPTION "LoopAuditioneer - Software for loop and cue handling in .wav files"
   LANGUAGES CXX C
 )
@@ -107,7 +99,7 @@ else()
     execute_process(COMMAND ./autogen.sh --no-configure WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/rtaudio)
   endif()
   if(CMAKE_CROSSCOMPILING AND WIN32)
-    execute_process(COMMAND ${CMAKE_SOURCE_DIR}/submodules/rtaudio/configure --host=i686-w64-mingw32 --prefix=${CMAKE_BINARY_DIR} --enable-static --disable-shared --with-dsound --with-wasapi WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
+    execute_process(COMMAND ${CMAKE_SOURCE_DIR}/submodules/rtaudio/configure --host=x86_64-w64-mingw32 --prefix=${CMAKE_BINARY_DIR} --enable-static --disable-shared --with-dsound --with-wasapi WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
   else()
     if(${RTAUDIO_USE_JACK})
       execute_process(COMMAND ${CMAKE_SOURCE_DIR}/submodules/rtaudio/configure --prefix=${CMAKE_BINARY_DIR} --with-pulse --with-jack --with-alsa WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
@@ -117,7 +109,7 @@ else()
   endif()
   execute_process(COMMAND make WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
 #  if(CMAKE_CROSSCOMPILING AND WIN32)
-#    execute_process(COMMAND i686-w64-mingw32-ranlib .libs/librtaudio.a WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
+#    execute_process(COMMAND x86_64-w64-mingw32-ranlib .libs/librtaudio.a WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
 #  endif()
   execute_process(COMMAND make install WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
   execute_process(COMMAND rm -rf WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
@@ -135,7 +127,7 @@ if(EXISTS "${CMAKE_BINARY_DIR}/lib/libsamplerate.a")
 else()
   if(CMAKE_CROSSCOMPILING AND WIN32)
     execute_process(COMMAND autoreconf -vif WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/libsamplerate)
-    execute_process(COMMAND ${CMAKE_SOURCE_DIR}/submodules/libsamplerate/configure --host=i686-w64-mingw32 --prefix=${CMAKE_BINARY_DIR} --enable-static --disable-sndfile --disable-fftw --disable-shared WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
+    execute_process(COMMAND ${CMAKE_SOURCE_DIR}/submodules/libsamplerate/configure --host=x86_64-w64-mingw32 --prefix=${CMAKE_BINARY_DIR} --enable-static --disable-sndfile --disable-fftw --disable-shared WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
   else()
     execute_process(COMMAND autoreconf -vif WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/submodules/libsamplerate)
     execute_process(COMMAND ${CMAKE_SOURCE_DIR}/submodules/libsamplerate/configure --prefix=${CMAKE_BINARY_DIR} --enable-static WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/tmp)
@@ -158,7 +150,7 @@ message(STATUS "
 ============================================================================
 CMake Generator            : ${CMAKE_GENERATOR}
 Project name               : ${CMAKE_PROJECT_NAME}
-Project version            : ${VERSION}
+Project version            : ${PROJECT_VERSION}
 Build type                 : ${CMAKE_BUILD_TYPE}
 Install prefix             : ${CMAKE_INSTALL_PREFIX}
 Output directory           : ${CMAKE_BINARY_DIR}
@@ -181,9 +173,9 @@ set(
   CPACK_PACKAGE_DESCRIPTION
   "LoopAuditioneer"
 )
-set(CPACK_PACKAGE_VERSION_MAJOR "${VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION "${VERSION}")
+set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "LoopAuditioneer")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
 set(CPACK_PACKAGE_CONTACT "larspalo@yahoo.se")
@@ -192,7 +184,7 @@ set(CPACK_SOURCE_IGNORE_FILES "/\\\\.svn/" "/build/" "/crossbuild/")
 if(WIN32)
   set(CPACK_SYSTEM_NAME "windows")
   set(CPACK_GENERATOR ZIP)
-  set(CMAKE_SYSTEM_PROCESSOR "x86")
+  set(CMAKE_SYSTEM_PROCESSOR "x86_64")
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(CPACK_SYSTEM_NAME "linux")
   set(CPACK_GENERATOR TGZ)
@@ -202,7 +194,7 @@ include(CPack)
 
 message(STATUS "  Project                     : ${CMAKE_PROJECT_NAME}")
 message(STATUS "  Description                 : ${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
-message(STATUS "  Version                     : ${VERSION}")
+message(STATUS "  Version                     : ${PROJECT_VERSION}")
 message(STATUS "  Build type                  : ${CMAKE_BUILD_TYPE}")
 message(STATUS "============================================================================")
 message(STATUS " ")

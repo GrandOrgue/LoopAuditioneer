@@ -1,0 +1,89 @@
+name: Build
+
+on: [push]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get dependencies
+      run: ${{github.workspace}}/scripts/prepare-debian-ubuntu.sh
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Package
+      working-directory: ${{github.workspace}}/build
+      run: cpack
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-linux
+        path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
+
+  build-appimage:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get dependencies
+      run: ${{github.workspace}}/scripts/prepare-ubuntu-appimage.sh
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DRTAUDIO_USE_JACK=OFF -DCMAKE_INSTALL_PREFIX=/usr
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Install
+      working-directory: ${{github.workspace}}/build
+      run: make install DESTDIR=AppDir
+
+    - name: Create Appimage
+      working-directory: ${{github.workspace}}/build
+      run: |
+      export DEPLOY_GTK_VERSION=3 APPIMAGE_EXTRACT_AND_RUN=1
+      linuxdeploy-x86_64.AppImage --appdir AppDir --plugin gtk
+      appimagetool-x86_64.AppImage --no-appstream AppDir LoopAuditioneer-${{github.ref_name}}.x86_64.AppImage
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-AppImage
+        path: ${{github.workspace}}/build/LoopAuditioneer*.AppImage
+
+  build-cross-windows:
+    runs-on: ubuntu-20.04
+
+    - name: Get dependencies
+      run: ${{github.workspace}}/scripts/prepare-ubuntu-cross.sh
+
+    - name: Get cross-compiled wxWidgets
+      run: |
+        wget https://github.com/larspalo/WxWidgetsCross/releases/download/3.2.3-2.go/wxwidgets3-mingw-w64-static_3.2.3-2.go_all.deb
+        sudo apt-get install ./wxwidgets3-mingw-w64-static_3.2.3-2.go_all.deb
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/crossbuild -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=toolchain.def
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/crossbuild --config ${{env.BUILD_TYPE}}
+
+    - name: Package
+      working-directory: ${{github.workspace}}/crossbuild
+      run: cpack
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-windows
+        path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
+
