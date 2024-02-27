@@ -53,6 +53,6 @@ enum {
 };
 
 const wxString appName = wxT("LoopAuditioneer");
-#define MY_APP_VERSION "@VERSION@"
+#define MY_APP_VERSION "@LoopAuditioneer_VERSION@"
 
 #endif
