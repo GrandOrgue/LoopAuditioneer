@@ -5,24 +5,31 @@
 </HEAD>
 <BODY>
 <h2>Credits</h2>
-<p>LoopAuditioneer uses a custom version of <a href="http://www.mega-nerd.com/libsndfile/">libsndfile</a>
-for file I/O handling that contain a few modifications by Lars Palo mainly to allow for embedding/reading 
-correct MIDIPitchFraction numbers. The modified source is available in the lib-src folder
-on sourceforge accessible by SVN.</p>
-<p>For sound the <a href="http://www.music.mcgill.ca/~gary/rtaudio/">RtAudio</a> library is used.</p>
-<p>If samplerate conversion is necessary for audio output the <a href="http://www.mega-nerd.com/SRC/">
-libsamplerate</a> library is used. However, the main reason for this to be necessary is if you're using
-Jack on Linux as audio Api. It would most likely be better to change the samplerate that is used by Jack
-to match the one of the actually loaded sample file to be sure that optimal fidelity of audio is preserved
- - and by that giving you the best possibilities of correctly auditioneering the loops and cues in the file.</p>
-<p>The FFT routines is taken from the Audacity source and (FFT.cpp and FFT.h) has been slightly
-modified to better be integrated into LoopAuditioneer.</p>
-<p>The algorithm for pitch detection in the time domain is taken and adapted from a discussion on
-the GrandOrgue mailing list.</p>
-<p>The icons (except the application logo created by Lars Palo), is a small subset of a collection 
-available at <a href="http://www.small-icons.com/packs/24x24-free-pixel-icons.htm">
-http://www.small-icons.com/packs/24x24-free-pixel-icons.htm</a> and is distributed under 
-a Creative Commons 3.0 license. According to user agreement a link to <a href ="http://www.aha-soft.com/">
-http://www.aha-soft.com/</a> is provided here.</p>
+<p>LoopAuditioneer uses a custom version of
+<a href="https://github.com/libsndfile/libsndfile">libsndfile</a>
+for file I/O handling that contain a few modifications by Lars Palo to allow
+for embedding/reading exact MIDIPitchFraction numbers. The modified source is
+used as a submodule in the LoopAuditioneer project and can be found in the
+fork of the official project.</p>
+<p>For sound the <a href="http://www.music.mcgill.ca/~gary/rtaudio/">RtAudio</a>
+library is used.</p>
+<p>If samplerate conversion is necessary for audio output the
+<a href="http://www.mega-nerd.com/SRC/">libsamplerate</a> library is used.
+However, the main reason for this to be necessary is if you're using Jack on
+Linux as audio Api. It would most likely be better to change the samplerate
+that is used by Jack to match the one of the actually loaded sample file to be
+sure that optimal fidelity of audio is preserved - and by that giving you the
+best possibilities of correctly auditioneering the loops and cues in the file.</p>
+<p>The FFT routines is taken from the Audacity source and (FFT.cpp and FFT.h)
+has been slightly modified to better be integrated into LoopAuditioneer.</p>
+<p>The algorithm for pitch detection in the time domain is taken and adapted
+from a discussion on the GrandOrgue mailing list.</p>
+<p>The icons (except the application logo created by Lars Palo), is a small
+subset of a collection available at
+<a href="http://www.small-icons.com/packs/24x24-free-pixel-icons.htm">
+http://www.small-icons.com/packs/24x24-free-pixel-icons.htm</a> and is
+distributed under a Creative Commons 3.0 license. According to user agreement a
+link to <a href ="http://www.aha-soft.com/">http://www.aha-soft.com/</a> is
+provided here.</p>
 </BODY>
 </HTML>

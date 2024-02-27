@@ -7,26 +7,32 @@
 <h2>Features</h2>
 <p>With LoopAuditioneer you can:</p>
 <ul>
-  <li>Load .wav files and display existing cue and smpl metadata (markers and loops)
-  <li>See the waveform with loops and cues drawn upon it and zoom in/out on amplitude
-  <li>Play back the loops and cues for evaluation
+  <li>Load .wav sample files and display existing cue and smpl metadata
+  <li>See the waveform with loops and cues drawn upon it
+  <li>Zoom in/out on amplitude of the waveform
+  <li>Play back the loops and cues for aural evaluation
   <li>Choose which loops/cues to keep when saved or saved as...
-  <li>Enjoy bit true data handling, even if header is re-written due to changes, there will be no
-            degrading of the audio data as long as audio data isn't changed (ex. loop crossfaded)
-  <li>Edit/create cue (release marker) position directly on the
-            waveform with automatic adjustment to find the position with lowest RMS power closest to
-            where the user clicked
-  <li>Edit loops by right clicking on the loop table row
-  <li>Create new loops manually if one knows the right sample numbers
-  <li>Autosearch for good, natural loop points with a high degree of configurational control 
-            over the loopsearching process
-  <li>Perform crossfades of loops when it's difficult to find natural seamless ones.
-  <li>Batch process all wav files in any source folder with freely selectable target
-            folder to either overwrite the existing files or create copies of them
-  <li>Autodetect pitch of sample and store information in file and manually edit dwMIDIUnityNote
-            and dwMIDIPitchFraction.
+  <li>Enjoy bit true data handling, even if header is re-written due to changes,
+      there will be no degrading of the audio data unless actual changes are made
+      to the audio data itself
+  <li>Edit/create cue (release marker) position directly on the waveform with
+      automatic adjustment to find the position with lowest RMS power closest to
+      where the user clicked
+  <li>Edit/create new loops manually
+  <li>Autosearch for good, natural loop points with a high degree of
+      configurational control over the loopsearching process
+  <li>Perform crossfades of loops when it's difficult to find natural seamless ones
+  <li>View the waveform at the looppoints in detail
+  <li>Batch process all .wav files in any source directory with freely selectable
+      target directory to either overwrite the existing files or create copies of
+      them
+  <li>Autodetect pitch of sample and store information in file
+  <li>Edit dwMIDIUnityNote and dwMIDIPitchFraction.
+  <li>View the FFT power spectrum and set pitch from chosen peak
   <li>Perform cut and fade in/out both in single file mode and in batch mode.
-  <li>Trim away unused wav data from looped samples in batch mode.
+  <li>Trim away unused wav data from looped samples in batch mode
+  <li>Export audio data from cue marker as separate release in batch mode
+  <li>Export audio data to after last loop as separate attack in batch mode
   <li>View/set some LIST INFO strings in the wave file
 </ul>
 </BODY>

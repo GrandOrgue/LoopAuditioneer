@@ -70,6 +70,14 @@ what foot length the lowest pipe has (like 8' or 4') in a separate dialog.</p>
 <p>This batch process removes almoast all unused audio data between the last loop and the first (and
 hopefully only) cue marker. This saves some size of the sample but of course it does modify the audio
 data in the process.</p>
+<h3>Export sound from last cue as release</h3>
+<p>To use this process there must exist at least one cue marker in each file that indicate where the
+release should begin. The audio data will be exported at that point and saved in the target directory with
+the same file name to be used as a separate release. The original file is not actually cut!</p>
+<h3>Export sound to after last loop as attack</h3>
+<p>At least one loop must exist in the file to use this process. The audio data up to slightly after last
+loop will be exported to the target directory with the same name and can be used as a separate attack.
+The original file is not cut!</p>
 <h3>Cut & Fade in/out</h3>
 <p>This process performs the user selected cuts and fades on all the .wav files in the source folder. The
 cuts and fades are specified in a separate dialog just like it's done in the main window. This process
