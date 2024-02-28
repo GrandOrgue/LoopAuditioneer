@@ -92,7 +92,7 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event)) {
   info.SetVersion(wxT(MY_APP_VERSION));
   info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files as well as perform other tasks necessary for preparing samples for usage in sample players."));
   info.SetCopyright(wxT("Copyright (C) 2011-2024 Lars Palo <larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
-  info.SetWebSite(wxT("http://sourceforge.net/projects/loopauditioneer/"));
+  info.SetWebSite(wxT("https://github.com/GrandOrgue/LoopAuditioneer"));
 
   wxAboutBox(info);
 }

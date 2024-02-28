@@ -9,7 +9,7 @@ prepare-debian-ubuntu.sh that can install the needed tools.
 The source code can be obtained (if git is available) with:
 
 ```
-git clone https://github.com/larspalo/loopauditioneer.git
+git clone --recurse-submodules https://github.com/GrandOrgue/LoopAuditioneer.git
 ```
 
 When all build dependencies are satisfied the build process is simple. In the
@@ -60,7 +60,7 @@ linuxdeploy-x86_64.AppImage --appdir AppDir -e ./bin/LoopAuditioneer -d ./share/
 
 ## Cross compilation to windows from Linux
 
-Basic needs are the same as above, plus you need mingw-w64 (i686-w64-mingw32)
+Basic needs are the same as above, plus you need mingw-w64 (x86_64-w64-mingw32)
 and the source for wxWidgets. There's a script in the scripts/ directory named
 prepare-ubuntu-cross.sh that can install the needed tools.
 
@@ -70,7 +70,7 @@ downloaded (https://www.wxwidgets.org/):
 ```
 mkdir win-ur-static
 cd win-ur-static
-../configure --host=i686-w64-mingw32 --build=i686-linux --prefix=/PATH_TO_WX_SOURCE/win-ur-static/inst --enable-unicode --disable-shared
+../configure --host=x86_64-w64-mingw32 --prefix=/PATH_TO_WX_SOURCE/win-ur-static/inst --enable-unicode --disable-shared
 make
 make install
 ```
@@ -78,6 +78,9 @@ make install
 Then you modify the toolchain.def file in the root directory of LoopAuditioneer
 source code so that the CMAKE_FIND_ROOT_PATH variable points to your cross
 compiled wx installation.
+
+Another possibility is to just get a pre-(cross)compiled static .deb package from
+https://github.com/GrandOrgue/WxWidgetsCross and install that.
 
 The next steps are similar to how building is done on Linux. In the root of
 LoopAuditioneer sources:

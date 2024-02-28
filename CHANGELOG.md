@@ -3,10 +3,20 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project does NOT (yet) adhere strictly to 
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+- Possibility to inspect and adjust cue position similar to looppoint overlay.
+- Possibility to adjust cue position on sample level detail.
+
+### Changed
+
+- Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless).
+
+## [0.10.0] - 2024-02-27
 
 ### Added
 

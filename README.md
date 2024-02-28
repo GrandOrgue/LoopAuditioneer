@@ -1,3 +1,6 @@
+[![Release](https://img.shields.io/github/v/release/GrandOrgue/LoopAuditioneer)](https://github.com/GrandOrgue/LoopAuditioneer/releases)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 # LoopAuditioneer
 
 LoopAuditioneer is a software for evaluating loops and cues existing in wav 
@@ -42,7 +45,7 @@ source code. The pitch detection algorithm for the time domain is taken and
 adapted from a discussion on the GrandOrgue mailing list.
 
 Other external libraries that LoopAuditioneer is dependant on and use as
-submodules are [Libsndfile](https://github.com/larspalo/libsndfile) and
+submodules are [Libsndfile](https://github.com/GrandOrgue/libsndfile) and
 [Libsamplerate](https://github.com/libsndfile/libsamplerate) both originally
 written by Erik de Castro Lopo. Libsndfile, is provided from a fork of the
 official version to allow exact reading and writing of pitch fraction
