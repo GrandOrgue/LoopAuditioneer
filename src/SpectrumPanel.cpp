@@ -55,6 +55,12 @@ SpectrumPanel::SpectrumPanel(
   m_lastClickedFftAreaYpos = -1;
   m_usePitchInterpolation = false;
   m_hasCustomZoom = false;
+  m_selectionStartBin = 0;
+  m_selectionEndBin = 0;
+  m_startSelectionX = wxCoord(-1);
+  m_currentSelectionX = wxCoord(-1);
+  m_isSelecting = false;
+  m_selectedPitch = 0;
 
   SetBackgroundColour(wxColour(244,242,239));
   SetMinSize(wxSize(640, 480));
@@ -105,12 +111,21 @@ void SpectrumPanel::DoZoomAll() {
 
 void SpectrumPanel::DoZoomSelection() {
   if (m_hasSelection) {
-    m_currentLeftmostHz = ConvertBinIndexToHz(m_selectionStartBin);
-    if (m_currentLeftmostHz < 0)
-      m_currentLeftmostHz = 0;
-    m_currentRightmostHz = ConvertBinIndexToHz(m_selectionEndBin);
-    if (m_currentRightmostHz > m_frequencyRange)
-      m_currentRightmostHz = m_frequencyRange;
+    if (m_selectionEndBin < m_selectionStartBin) {
+      m_currentLeftmostHz = ConvertBinIndexToHz(m_selectionEndBin);
+      if (m_currentLeftmostHz < 0)
+        m_currentLeftmostHz = 0;
+      m_currentRightmostHz = ConvertBinIndexToHz(m_selectionStartBin);
+      if (m_currentRightmostHz > m_frequencyRange)
+        m_currentRightmostHz = m_frequencyRange;
+    } else {
+      m_currentLeftmostHz = ConvertBinIndexToHz(m_selectionStartBin);
+      if (m_currentLeftmostHz < 0)
+        m_currentLeftmostHz = 0;
+      m_currentRightmostHz = ConvertBinIndexToHz(m_selectionEndBin);
+      if (m_currentRightmostHz > m_frequencyRange)
+        m_currentRightmostHz = m_frequencyRange;
+    }
 
     m_visibleHzRange = m_currentRightmostHz - m_currentLeftmostHz;
     m_currentMidHz = m_currentLeftmostHz + (m_visibleHzRange / 2.0f);
@@ -179,6 +194,13 @@ void SpectrumPanel::UpdateLayout() {
   m_currentRightmostHz = m_currentMidHz + m_visibleHzRange / 2;
   if (m_currentRightmostHz > m_frequencyRange)
     m_currentRightmostHz = m_frequencyRange;
+
+  if (m_hasPitchSelected) {
+    // the currently selected pitch must be invalidated
+    m_hasPitchSelected = false;
+    m_lastClickedFftAreaXpos = -1;
+    m_lastClickedFftAreaYpos = -1;
+  }
 }
 
 unsigned SpectrumPanel::ConvertHzToClosestBinIndex(double hertz) {
@@ -361,10 +383,9 @@ void SpectrumPanel::RenderPanel(wxDC& dc) {
   }
 
   if (m_hasPitchSelected) {
-    // draw dotted crosslines to mark where the selecting click was
+    // draw dotted vertical crossline to mark where the selecting click was
     dc.SetPen(wxPen(wxColour(*wxRED), 1, wxPENSTYLE_DOT));
     dc.DrawLine(101 + m_lastClickedFftAreaXpos, startFftLinesAtY, 101 + m_lastClickedFftAreaXpos, 40);
-    dc.DrawLine(101, m_lastClickedFftAreaYpos, 101 + availableFftWidth, m_lastClickedFftAreaYpos);
 
     dc.SetFont(wxFont(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
     dc.SetBackgroundMode(wxTRANSPARENT);
@@ -374,12 +395,12 @@ void SpectrumPanel::RenderPanel(wxDC& dc) {
     if (binsPerPixel >= 1) {
       if (m_lastClickedFftAreaXpos < (int) m_lastBinEachPixel.size()) {
         // first we must convert the x coordinate to the bin range it represents
-        unsigned lastBinForPixel = m_lastBinEachPixel[m_lastClickedFftAreaXpos];
+        unsigned lastBinForPixel = firstVisibleBinIndex + m_lastBinEachPixel[m_lastClickedFftAreaXpos];
         unsigned firstBinForPixel;
         if (m_lastClickedFftAreaXpos > 0) {
-          firstBinForPixel = m_lastBinEachPixel[m_lastClickedFftAreaXpos - 1] + 1;
+          firstBinForPixel = firstVisibleBinIndex + m_lastBinEachPixel[m_lastClickedFftAreaXpos - 1] + 1;
         } else {
-          firstBinForPixel = 0;
+          firstBinForPixel = firstVisibleBinIndex;
         }
 
         // get bin and highest value for that clicked pixel bin range
@@ -410,11 +431,14 @@ void SpectrumPanel::RenderPanel(wxDC& dc) {
     wxSize pitchExtent = dc.GetTextExtent(pitchStr);
     dc.DrawText(pitchStr, 101 + m_lastClickedFftAreaXpos - (pitchExtent.x / 2), (40 - pitchExtent.y) / 2);
 
+    // draw dotted horizontal crossline where dB level actually is
+    int dBlineY = startFftLinesAtY - (int) ((120 + m_fftData[clickedBin]) * dBperFftPixelHeight) - 1;
+    dc.DrawLine(101, dBlineY, 101 + availableFftWidth, dBlineY);
     // draw the dB level to the left for the bin used for pitch detection
     double fftValue = m_fftData[clickedBin];
     wxString dbStr = wxString::Format(wxT("%.2lf dB"), fftValue);
     wxSize dbExtent = dc.GetTextExtent(dbStr);
-    dc.DrawText(dbStr, 95 - dbExtent.x, m_lastClickedFftAreaYpos - (dbExtent.y / 2));
+    dc.DrawText(dbStr, 95 - dbExtent.x, dBlineY - (dbExtent.y / 2));
 
   } else if (m_hasSelection) {
 
@@ -441,12 +465,12 @@ void SpectrumPanel::RenderPanel(wxDC& dc) {
       int start = leftX - m_fftArea.GetX();
       int end = leftX - m_fftArea.GetX() + selectionWidth;
       if (start > 0)
-        m_selectionStartBin = m_lastBinEachPixel[start - 1] + 1;
+        m_selectionStartBin = firstVisibleBinIndex + m_lastBinEachPixel[start - 1] + 1;
       else
         m_selectionStartBin = firstVisibleBinIndex;
       
       if (end < (int) m_lastBinEachPixel.size())
-        m_selectionEndBin = m_lastBinEachPixel[end];
+        m_selectionEndBin = firstVisibleBinIndex + m_lastBinEachPixel[end];
       else
         m_selectionEndBin = lastVisibleBinIndex;
 
@@ -469,6 +493,7 @@ void SpectrumPanel::OnLeftClick(wxMouseEvent& event) {
     m_hasPitchSelected = true;
     m_lastClickedFftAreaXpos = xPos - m_fftArea.GetX();
     m_lastClickedFftAreaYpos = yPos;
+    m_startSelectionX = xPos;
     Refresh();
     myParent->PitchSelectionHasChanged();
   } else if (m_hasPitchSelected) {
@@ -483,11 +508,10 @@ void SpectrumPanel::OnLeftClick(wxMouseEvent& event) {
   } else {
     event.Skip();
   }
-  m_startSelectionX = xPos;
 }
 
 void SpectrumPanel::OnMouseMotion(wxMouseEvent& event) {
-  if (m_lastClickedFftAreaXpos > -1 && event.Dragging()) {
+  if (m_lastClickedFftAreaXpos > -1 && event.Dragging() && (event.GetX() != m_startSelectionX)) {
     m_isSelecting = true;
     m_currentSelectionX = event.GetX();
     if (m_currentSelectionX < m_fftArea.GetX())
@@ -519,7 +543,7 @@ void SpectrumPanel::OnMouseMotion(wxMouseEvent& event) {
 }
 
 void SpectrumPanel::OnLeftRelease(wxMouseEvent& event) {
-  if (m_isSelecting) {
+  if (m_isSelecting && (event.GetX() != m_startSelectionX)) {
     m_isSelecting = false;
     m_currentSelectionX = event.GetX();
     if (m_currentSelectionX < m_fftArea.GetX())
@@ -533,6 +557,9 @@ void SpectrumPanel::OnLeftRelease(wxMouseEvent& event) {
     SpectrumDialog *myParent = (SpectrumDialog*) GetParent();
     myParent->PitchSelectionHasChanged();
     Refresh();
+  } else if (event.GetX() == m_startSelectionX) {
+    m_hasSelection = false;
+    m_hasPitchSelected = true;
   } else {
     event.Skip();
   }

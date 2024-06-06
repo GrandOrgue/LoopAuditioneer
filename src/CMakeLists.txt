@@ -32,7 +32,7 @@ include(${wxWidgets_USE_FILE})
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-g -Wall -Wextra -pedantic)
 else()
-  add_compile_options(-O3 -mmmx -msse -msse2 -msse3 -mssse3 -mfpmath=sse -ffast-math)
+  add_compile_options(-O3 -ffast-math)
 endif ()
 
 # rtaudio options

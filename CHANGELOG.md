@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless).
 
+## [0.10.1] - 2024-06-06
+
+### Changed
+
+- Spectrum panel zoom removes current selected pitch
+- Spectrum panel help lines for clicking pitch draw horizontal line at actual dB level.
+
+### Fixed
+
+- Spectrum panel zoom in to calculate pitch correctly with current offset taken into account.
+- Spectrum panel selection zoom to behave correctly.
+
 ## [0.10.0] - 2024-02-27
 
 ### Added

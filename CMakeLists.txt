@@ -16,6 +16,9 @@
 
 cmake_minimum_required(VERSION 3.10)
 
+# Make sure that the version file will be considered by CMake
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/version.txt")
+
 # read PROGRAM_VERSION from file
 if(EXISTS "${CMAKE_SOURCE_DIR}/version.txt")
   file(READ "${CMAKE_SOURCE_DIR}/version.txt" PROGRAM_VERSION)
