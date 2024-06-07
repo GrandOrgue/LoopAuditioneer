@@ -43,6 +43,7 @@ BEGIN_EVENT_TABLE(BatchProcessDialog, wxDialog)
   EVT_BUTTON(ID_ADD_TARGET, BatchProcessDialog::OnAddTarget)
   EVT_BUTTON(ID_RUN_BATCH, BatchProcessDialog::OnRunBatch)
   EVT_CHOICE(ID_PROCESSBOX, BatchProcessDialog::OnChoiceSelected)
+  EVT_CHECKBOX(ID_RECURSIVE_CHECK, BatchProcessDialog::OnRecursiveCheck)
 END_EVENT_TABLE()
 
 BatchProcessDialog::BatchProcessDialog(AutoLoopDialog* autoloopSettings) {
@@ -95,6 +96,7 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_infoArtist = wxEmptyString;
   m_infoCopyright = wxEmptyString;
   m_infoComment = wxEmptyString;
+  m_recursiveOption = false;
 }
 
 bool BatchProcessDialog::Create(
@@ -109,6 +111,7 @@ bool BatchProcessDialog::Create(
     return false;
 
   CreateControls();
+  DecideRecursiveOption();
 
   GetSizer()->Fit(this);
   GetSizer()->SetSizeHints(this);
@@ -199,6 +202,18 @@ void BatchProcessDialog::CreateControls() {
     0
   );
   m_targetRow->Add(m_selectTarget, 0, wxALL, 2);
+
+  // Horizontal sizer for recursive file option
+  wxBoxSizer *m_recursiveRow = new wxBoxSizer(wxHORIZONTAL);
+  boxSizer->Add(m_recursiveRow, 0, wxEXPAND|wxALL, 5);
+
+  // Recursive option checkbox
+  m_recursiveCheck = new wxCheckBox(
+    this,
+    ID_RECURSIVE_CHECK,
+    wxT("Process source files recursively (Think twice and be very careful if this is enabled! Disabled for some processes!)")
+  );
+  m_recursiveRow->Add(m_recursiveCheck, 0, wxALL, 2);
 
   // Horizontal sizer for processes
   wxBoxSizer *m_processRow = new wxBoxSizer(wxHORIZONTAL);
@@ -347,6 +362,7 @@ void BatchProcessDialog::OnAddTarget(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void BatchProcessDialog::OnChoiceSelected(wxCommandEvent& WXUNUSED(event)) {
+  DecideRecursiveOption();
   ReadyToRockAndRoll();
 }
 
@@ -370,9 +386,8 @@ void BatchProcessDialog::ReadyToRockAndRoll() {
 
 void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
   AutoLooping *autoloop = new AutoLooping();
-  // Get all wav files in the source directory
-  wxArrayString filesToProcess;
 
+  wxArrayString filesToProcess;
   wxDir dir(m_sourceField->GetValue());
 
   if (!dir.IsOpened()) {
@@ -381,29 +396,22 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     return;
   }
 
-  wxString fileName;
+  // Find all files
+  if (m_recursiveOption)
+    dir.GetAllFiles(m_sourceField->GetValue(), &filesToProcess);
+  else
+    dir.GetAllFiles(m_sourceField->GetValue(), &filesToProcess, wxEmptyString, wxDIR_FILES);
 
-  bool search = dir.GetFirst(&fileName, wxT("*.wav"), wxDIR_FILES);
-  while (search) {
-    filesToProcess.Add(fileName);
-    search = dir.GetNext(&fileName);
-  }
-
-  search = dir.GetFirst(&fileName, wxT("*.WAV"), wxDIR_FILES);
-  while (search) {
-    filesToProcess.Add(fileName);
-    search = dir.GetNext(&fileName);
-  }
-
-  // sort the files and remove doubles for windows... if there are any!
+  // Remove all files except .wav files and trim away source folder
   if (!filesToProcess.IsEmpty()) {
     filesToProcess.Sort();
     size_t lineCounter = 0;
-    while (lineCounter < filesToProcess.GetCount() - 1) {
-      if (filesToProcess[lineCounter] == filesToProcess[lineCounter + 1])
-        filesToProcess.RemoveAt(lineCounter + 1);
-      else
+    while (lineCounter < filesToProcess.GetCount()) {
+      if (filesToProcess[lineCounter].Lower().EndsWith(wxT("wav"))) {
+        filesToProcess[lineCounter].Replace(m_sourceField->GetValue() + wxFILE_SEP_PATH, wxEmptyString, false);
         lineCounter++;
+      } else
+        filesToProcess.RemoveAt(lineCounter);
     }
   }
 
@@ -1405,6 +1413,14 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     m_mustRefreshMainDir = true;
 }
 
+void BatchProcessDialog::OnRecursiveCheck(wxCommandEvent& WXUNUSED(event)) {
+  DecideRecursiveOption();
+  if (m_recursiveCheck->IsChecked())
+    m_recursiveOption = true;
+  else
+    m_recursiveOption = false;
+}
+
 wxString BatchProcessDialog::MyDoubleToString(double dbl, int precision) {
   wxString formatString;
   formatString << wxT("%.") << precision << wxT("f");
@@ -1415,6 +1431,17 @@ wxString BatchProcessDialog::MyDoubleToString(double dbl, int precision) {
   }
 
   return returnString;
+}
+
+void BatchProcessDialog::DecideRecursiveOption() {
+  int selectedProcess = m_processChoiceBox->GetSelection();
+  if (selectedProcess == wxNOT_FOUND|| selectedProcess == 0 || selectedProcess == 13 || selectedProcess == 17 || selectedProcess == 18) {
+    m_recursiveCheck->SetValue(false);
+    m_recursiveOption = false;
+    m_recursiveCheck->Disable();
+  } else {
+    m_recursiveCheck->Enable();
+  }
 }
 
 void BatchProcessDialog::ClearStatusProgress() {

@@ -22,6 +22,7 @@
 #define BATCHPROCESSDIALOG_H
 
 #include <wx/wx.h>
+#include <wx/checkbox.h>
 #include "AutoLoopDialog.h"
 
 // Identifiers
@@ -32,7 +33,8 @@ enum {
   ID_SOURCE_TEXT = wxID_HIGHEST + 203,
   ID_TARGET_TEXT = wxID_HIGHEST + 204,
   ID_STATUS_TEXT = wxID_HIGHEST + 205,
-  ID_RUN_BATCH = wxID_HIGHEST + 206
+  ID_RUN_BATCH = wxID_HIGHEST + 206,
+  ID_RECURSIVE_CHECK = wxID_HIGHEST + 207
 };
 
 class BatchProcessDialog : public wxDialog {
@@ -93,15 +95,18 @@ private:
   wxString m_infoArtist;
   wxString m_infoCopyright;
   wxString m_infoComment;
+  wxCheckBox *m_recursiveCheck;
+  bool m_recursiveOption;
 
   // Event methods
   void OnAddSource(wxCommandEvent& event);
   void OnAddTarget(wxCommandEvent& event);
   void OnChoiceSelected(wxCommandEvent& event);
   void OnRunBatch(wxCommandEvent& event);
+  void OnRecursiveCheck(wxCommandEvent& event);
 
   wxString MyDoubleToString(double dbl, int precision);
-
+  void DecideRecursiveOption();
   void ReadyToRockAndRoll();
 };
 
