@@ -15,12 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config file setting for spectrum FFT size. (TODO)
 - Config file setting for spectrum window type. (TODO)
 - Config file setting for spectrum panel interpolate pitch option. (TODO)
-- Batch process to remove all pitch information from files. (TODO)
+- Batch process to remove pitch information from files.
+- Batch process to remove loops, cues and pitch.
 - Option to make batch process files recursively.
 
 ### Changed
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
+- Batch process naming "Kill" loops/cues to "Remove" instead.
 
 ## [0.10.1] - 2024-06-06
 

@@ -7,7 +7,7 @@
 <h2>Batch processing</h2>
 <p>The different batch processes that LoopAuditioneer can do are efficient ways to work on all the
 .wav files in a folder chosen by the user. Correctly done it really can save some time, but always
-check the results to ensure good quality.</p>
+check the results manually to ensure good quality.</p>
 <p><img src="images/Batch.jpg" alt="A screenshot showing the batch process dialog" /></p>
 <p>If the batch process dialog is invoked, either by toolbar icon, from the Tools menu or keyboard
 shortcut Ctrl + B, the user has the possibility to select a source folder from which every .wav file
@@ -15,6 +15,9 @@ will be processed and saved to the target folder if so indicated by the batch pr
 destination can be the same as the source (effectively overwriting the file on disc !!!) or any other
 folder. The user even has the option to create a new folder for the target (for natural reasons the
 source folder must already exist!).</p>
+<p>The checkbox for processing source files recursively further increase the efficiency for some batch
+operations. However, do think twice about what will happen before enabling the recursive processing!
+For some batch processes this option will be disabled.</p>
 <p>The different batch processes that can be chosen at the moment are explained below. Just remember
 that when batch searching for loop points the same settings will be used for the whole batch and the
 settings must be set from the main window if they should be changed.</p>
@@ -22,12 +25,14 @@ settings must be set from the main window if they should be changed.</p>
 limitation of maximum 16 loops still apply. This makes it possible to run the same batch with
 different settings to get different results that later should be evaluated.</p>
 <p>The available batch processes are:</p>
-<h3>Kill all loops</h3>
+<h3>Remove all loops</h3>
 <p>This batch process removes all loops existing in the file. It just modify the metadata of the file.</p>
-<h3>Kill all cues</h3>
+<h3>Remove all cues</h3>
 <p>Use this to remove all cues existing in file. It just modify the metadata of the file.</p>
-<h3>Kill loops & cues</h3>
-<p>This batch process removes all loops and cues in file. It just modify the metadata of the file.</p>
+<h3>Remove pitch information</h3>
+<p>Use this to remove existing pitch information (MIDIUnityNote and MIDIPitchFraction) in file. It just modify the metadata of the file.</p>
+<h3>Remove loops, cues and pitch</h3>
+<p>This batch process removes all loops and cues in file as well as the pitch information. It just modify the metadata of the file.</p>
 <h3>Auto search for loops</h3>
 <p>This batch process runs the autoloop search on all files with the current settings. It just modify the metadata of the file.</p>
 <h3>Auto add release cue</h3>
@@ -73,11 +78,13 @@ data in the process.</p>
 <h3>Export sound from last cue as release</h3>
 <p>To use this process there must exist at least one cue marker in each file that indicate where the
 release should begin. The audio data will be exported at that point and saved in the target directory with
-the same file name to be used as a separate release. The original file is not actually cut!</p>
+the same file name to be used as a separate release. The original file is not actually cut if target is
+different from source - which it most likely should be for this process!</p>
 <h3>Export sound to after last loop as attack</h3>
 <p>At least one loop must exist in the file to use this process. The audio data up to slightly after last
 loop will be exported to the target directory with the same name and can be used as a separate attack.
-The original file is not cut!</p>
+The original file is not cut if target is different from source - which it most likely should be for this
+process!</p>
 <h3>Cut & Fade in/out</h3>
 <p>This process performs the user selected cuts and fades on all the .wav files in the source folder. The
 cuts and fades are specified in a separate dialog just like it's done in the main window. This process
