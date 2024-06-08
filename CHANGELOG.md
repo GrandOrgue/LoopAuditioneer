@@ -11,10 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Possibility to inspect and adjust cue position similar to looppoint overlay. (TODO)
 - Possibility to adjust cue position on sample level detail. (TODO)
-- Config file setting for preferred pitch method. (TODO)
-- Config file setting for spectrum FFT size. (TODO)
-- Config file setting for spectrum window type. (TODO)
-- Config file setting for spectrum panel interpolate pitch option. (TODO)
+- Config file setting for preferred pitch method.
+- Config file setting for spectrum FFT size.
+- Config file setting for spectrum window type.
+- Config file setting for spectrum panel interpolate pitch option.
 - Batch process to remove pitch information from files.
 - Batch process to remove loops, cues and pitch.
 - Option to make batch process files recursively.

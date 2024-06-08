@@ -71,6 +71,9 @@ public:
   int GetMethodUsed();
   int GetMIDINote();
   double GetPitchFraction();
+  int GetFftSize();
+  int GetWindowType();
+  bool GetInterpolatePitch();
 
   // Overrides
   bool TransferDataToWindow();
@@ -82,6 +85,12 @@ public:
   void OnNoteChange(wxCommandEvent& event);
   void OnFractionChange(wxCommandEvent& event);
   void OnViewSpectrumButton(wxCommandEvent& event);
+
+  // Setter functions
+  void SetPreferredPitchMethod(int method);
+  void SetPreferredFftSize(int size);
+  void SetPreferredWindow(int window);
+  void SetPreferredInterpolatePitch(bool interpolate);
 
 private:
   double m_detectedPitch;
@@ -111,6 +120,7 @@ private:
   wxStaticText *resultingPitchLabel;
   wxArrayString m_fftSizes;
   wxArrayString m_windowTypes;
+  bool m_useInterpolatePitch;
 
   void CalculatingResultingPitch();
 };

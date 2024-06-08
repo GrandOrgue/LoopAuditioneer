@@ -96,6 +96,10 @@ public:
                     double streamTime, RtAudioStreamStatus status, void *userData );
 
   static void SetLoopPlayback(bool looping);
+  void SetPitchMethod(int method);
+  void SetSpectrumFftSize(int size);
+  void SetSpectrumWindow(int type);
+  void SetSpectrumInterpolatePitch(bool interpolate);
 
 private:
   // This class handles events
@@ -135,6 +139,10 @@ private:
   int m_frameHeight;
   bool m_frameMaximized;
   MyResampler *m_resampler;
+  int m_pitchMethod;
+  int m_spectrumFftSize;
+  int m_spectrumWindow;
+  bool m_spectrumInterpolatePitch;
 
   void PopulateListOfFileNames();
   void PopulateListCtrl();

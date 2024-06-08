@@ -74,6 +74,7 @@ public:
 
   double GetSelectedPitch();
   void PitchSelectionHasChanged();
+  void SetInterpolatePitchOption(bool interpolate);
 
 private:
   double *m_fftData; // the array containing the FFT as power spectrum in dB
