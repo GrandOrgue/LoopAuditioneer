@@ -33,10 +33,10 @@ Compile and prepare _libsndfile_:
 ```
 cd submodules/libsndfile
 autoreconf -vif
-./configure --enable-static --disable-external-libs --disable-full-suite
+./configure --enable-static --disable-shared --disable-external-libs --disable-full-suite
 make
 cd ..
-ln -sf libsndfile/src/libsndfile.la .
+ln -sf libsndfile/src/.libs/libsndfile.a .
 ```
 
 Compile and prepare _rtaudio_:
@@ -58,7 +58,7 @@ autoreconf -vif
 ./configure --enable-static --disable-sndfile --disable-fftw --disable-shared
 make
 cd ..
-ln -sf libsamplerate/src/libsamplerate.la .
+ln -sf libsamplerate/src/.libs/libsamplerate.a .
 ```
 
 ## The next steps are not working yet!
@@ -69,7 +69,7 @@ Go back out to the source directory and compile the program:
 
 ```
 cd ../src
-g++ -D__MACOSX_CORE__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp MyResampler.cpp ListInfoDialog.cpp -I../submodules/libsndfile/include -I../submodules/rtaudio -I../submodules/libsamplerate/include -I../build/src/FreePixelIcons -I../resources/icons ../submodules/libsndfile.la ../submodules/librtaudio.a ../submodules/libsamplerate.la -framework CoreAudio -framework AudioToolbox -lpthread -lm `wx-config --cxxflags --unicode=yes --libs` --std=c++11
+g++ -D__MACOSX_CORE__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp MyResampler.cpp ListInfoDialog.cpp -I../submodules/libsndfile/include -I../submodules/rtaudio -I../submodules/libsamplerate/include -I../build/src/FreePixelIcons -I../resources/icons ../submodules/libsndfile.a ../submodules/librtaudio.a ../submodules/libsamplerate.a -framework CoreAudio -framework AudioToolbox -lpthread -lm `wx-config --cxxflags --unicode=yes --libs` --std=c++11
 ```
 
 Once this completes, you can run this on the command line like this:
