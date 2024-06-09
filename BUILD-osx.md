@@ -28,44 +28,35 @@ Create a local copy of the **LoopAudtioneer** source code in a folder of your ch
 git clone --recurse-submodules https://github.com/vpoguru/LoopAuditioneer.git
 ```
 
-Compile and prepare _libsndfile_:
+Go to the folder _submodules/libsndfile_ and compile libsndfile.a:
 
 ```
-cd submodules/libsndfile
 autoreconf -vif
 ./configure --enable-static --disable-shared --disable-external-libs --disable-full-suite
 make
-cd ..
-ln -sf libsndfile/src/.libs/libsndfile.a .
 ```
 
-Compile and prepare _rtaudio_:
+Go to the folder _submodules/rtaudio_ and compile librtaudio.a:
 
 ```
-cd rtaudio
 autoreconf -vif
-./configure --with-core --enable-static --disable-shared
+./configure --enable-static --disable-shared --with-core
 make
-cd ..
-ln -sf rtaudio/.libs/librtaudio.a .
 ```
 
-Compile and prepare _libsamplerate_:
+Go to the folder _submodules/libsamplerate_ and compile libsamplerate.a:
 
 ```
-cd libsamplerate
 autoreconf -vif
 ./configure --enable-static --disable-sndfile --disable-fftw --disable-shared
 make
-cd ..
-ln -sf libsamplerate/src/.libs/libsamplerate.a .
 ```
 
 Go back out to the source directory and compile the program:
 
 ```
 cd ../src
-g++ -D__MACOSX_CORE__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp MyResampler.cpp ListInfoDialog.cpp SpectrumDialog.cpp SpectrumPanel.cpp AudioSettingsDialog.cpp -I../submodules/libsndfile/include -I../submodules/rtaudio -I../submodules/libsamplerate/include -I../FreePixelIcons -I../resources/icons ../submodules/libsndfile.a ../submodules/librtaudio.a ../submodules/libsamplerate.a -framework CoreAudio -framework AudioToolbox -lpthread -lm `wx-config --cxxflags --unicode=yes --libs` --std=c++11
+g++ -D__MACOSX_CORE__ -o LoopAuditioneer LoopAuditioneer.cpp MyFrame.cpp MyPanel.cpp CueMarkers.cpp LoopMarkers.cpp FileHandling.cpp MySound.cpp WaveformDrawer.cpp LoopParametersDialog.cpp BatchProcessDialog.cpp AutoLoopDialog.cpp AutoLooping.cpp PitchDialog.cpp CrossfadeDialog.cpp LoopOverlay.cpp FFT.cpp StopHarmonicDialog.cpp CutNFadeDialog.cpp MyListCtrl.cpp MyResampler.cpp ListInfoDialog.cpp SpectrumDialog.cpp SpectrumPanel.cpp AudioSettingsDialog.cpp -I../submodules/libsndfile/include -I../submodules/rtaudio -I../submodules/libsamplerate/include -I../../FreePixelIcons -I../resources/icons ../submodules/libsndfile/src/.libs/libsndfile.a ../submodules/rtaudio/.libs/librtaudio.a ../submodules/libsamplerate/src/.libs/libsamplerate.a -framework CoreAudio -framework AudioToolbox -lpthread -lm `wx-config --cxxflags --unicode=yes --libs` --std=c++11
 ```
 
 Once this is complete, you can start LoopAuditioneer from the command line as follows:
