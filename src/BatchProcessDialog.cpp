@@ -267,7 +267,7 @@ void BatchProcessDialog::CreateControls() {
     wxSize(-1,150),
     wxTE_READONLY|wxTE_MULTILINE
   );
-  staticStatusBox->Add(m_statusProgress, 1, wxEXPAND|wxALIGN_CENTER|wxALL, 5);
+  staticStatusBox->Add(m_statusProgress, 1, wxEXPAND|wxALL, 5);
 
   // Horizontal sizer for buttons
   wxBoxSizer* m_buttonRow = new wxBoxSizer(wxHORIZONTAL);

@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
 - Batch process naming "Kill" loops/cues to "Remove" instead.
 
+### Fixed
+
+- Sizer flag warnings for wxWidgets 3.2+ builds.
+
 ## [0.10.1] - 2024-06-06
 
 ### Changed
