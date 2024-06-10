@@ -197,7 +197,7 @@ void PitchDialog::CreateControls() {
     0
   );
   pitchLabel->SetLabel(wxString::Format(wxT("FFT pitch: %.2f Hz"), m_detectedPitch));
-  autoPitchContainer->Add(pitchLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+  autoPitchContainer->Add(pitchLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Label for the calculated MIDIUnityNote
   wxStaticText *midiNoteLabel = new wxStaticText ( 
@@ -209,7 +209,7 @@ void PitchDialog::CreateControls() {
     0
   );
   midiNoteLabel->SetLabel(wxString::Format(wxT("MIDIUnityNote: %d"), m_detectedMIDIUnityNote));
-  autoPitchContainer->Add(midiNoteLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+  autoPitchContainer->Add(midiNoteLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Label for the calculated MIDIPitchFraction
   wxStaticText *pitchFractionLabel = new wxStaticText ( 
@@ -221,7 +221,7 @@ void PitchDialog::CreateControls() {
     0
   );
   pitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_detectedMIDIPitchFraction));
-  autoPitchContainer->Add(pitchFractionLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+  autoPitchContainer->Add(pitchFractionLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Vertical sizer for second fft pitch subsections
   wxBoxSizer *hpsPitchContainer = new wxBoxSizer(wxVERTICAL);
@@ -237,7 +237,7 @@ void PitchDialog::CreateControls() {
     0
   );
   hpsPitchLabel->SetLabel(wxString::Format(wxT("HPS pitch: %.2f Hz"), m_hpsDetectedPitch));
-  hpsPitchContainer->Add(hpsPitchLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+  hpsPitchContainer->Add(hpsPitchLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Label for the calculated MIDIUnityNote
   wxStaticText *hpsMidiNoteLabel = new wxStaticText ( 
@@ -249,7 +249,7 @@ void PitchDialog::CreateControls() {
     0
   );
   hpsMidiNoteLabel->SetLabel(wxString::Format(wxT("MIDIUnityNote: %d"), m_hpsDetectedMIDIUnityNote));
-  hpsPitchContainer->Add(hpsMidiNoteLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+  hpsPitchContainer->Add(hpsMidiNoteLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Label for the calculated MIDIPitchFraction
   wxStaticText *hpsPitchFractionLabel = new wxStaticText ( 
@@ -261,20 +261,24 @@ void PitchDialog::CreateControls() {
     0
   );
   hpsPitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_hpsDetectedMIDIPitchFraction));
-  hpsPitchContainer->Add(hpsPitchFractionLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+  hpsPitchContainer->Add(hpsPitchFractionLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Grouping of TimeDomain pitch detection information
   wxStaticBox *TDPitchBox = new wxStaticBox(
-    this, 
+    this,
     wxID_STATIC,
-    wxT("Timedomain-based pitch detection "), 
-    wxDefaultPosition, 
+    wxT("Timedomain-based pitch detection "),
+    wxDefaultPosition,
     wxDefaultSize
   );
 
   // Vertical sizer for auto pitch subsections
   wxStaticBoxSizer *TDPitchContainer = new wxStaticBoxSizer(TDPitchBox, wxVERTICAL);
   firstRow->Add(TDPitchContainer, 1, wxGROW|wxALL, 5);
+
+  // Inner vertical sizer for time domain pitch
+  wxBoxSizer *innerTime = new wxBoxSizer(wxVERTICAL);
+  TDPitchContainer->Add(innerTime, 1, wxGROW|wxALL, 5);
 
   // Label for the autodetected pitch frequency
   wxStaticText *td_pitchLabel = new wxStaticText ( 
@@ -286,7 +290,7 @@ void PitchDialog::CreateControls() {
     0
   );
   td_pitchLabel->SetLabel(wxString::Format(wxT("Detected pitch: %.2f Hz"), m_TDdetectedPitch));
-  TDPitchContainer->Add(td_pitchLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+  innerTime->Add(td_pitchLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Label for the calculated MIDIUnityNote
   wxStaticText *td_midiNoteLabel = new wxStaticText ( 
@@ -298,7 +302,7 @@ void PitchDialog::CreateControls() {
     0
   );
   td_midiNoteLabel->SetLabel(wxString::Format(wxT("MIDIUnityNote: %d"), m_TDdetectedMIDIUnityNote));
-  TDPitchContainer->Add(td_midiNoteLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+  innerTime->Add(td_midiNoteLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Label for the calculated MIDIPitchFraction
   wxStaticText *td_pitchFractionLabel = new wxStaticText ( 
@@ -310,7 +314,7 @@ void PitchDialog::CreateControls() {
     0
   );
   td_pitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_TDdetectedMIDIPitchFraction));
-  TDPitchContainer->Add(td_pitchFractionLabel, 1, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 2);
+  innerTime->Add(td_pitchFractionLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Horizontal sizer for options to display FFT spectrum of whole file
   wxBoxSizer* spectrumRow = new wxBoxSizer(wxHORIZONTAL);

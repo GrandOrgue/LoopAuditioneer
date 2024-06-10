@@ -1,5 +1,5 @@
 /* 
- * LoopPointOverlay.h displays the waveforms overlayed at looppoints
+ * LoopOverlay.h displays the waveforms overlayed at looppoints
  * Copyright (C) 2012-2024 Lars Palo 
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,14 +25,7 @@
 #include <vector>
 #include <wx/spinctrl.h>
 #include "FileHandling.h"
-
-typedef struct {
-  std::vector<double> startData;
-} STARTAUDIO;
-
-typedef struct {
-  std::vector<double> endData;
-} ENDAUDIO;
+#include "LoopOverlayPanel.h"
 
 // Identifiers
 enum {
@@ -54,24 +47,14 @@ public:
     const wxString& title = wxT("Waveform overlay at looppoints"),
     const wxPoint& pos = wxDefaultPosition,
     const wxSize& size = wxDefaultSize,
-    long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER|wxCLIP_CHILDREN|wxFULL_REPAINT_ON_RESIZE
+    long style = wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER
   );
   ~LoopOverlay();
 
   bool GetHasChanged();
 
 private:
-  std::vector<STARTAUDIO> m_startTracks;
-  std::vector<ENDAUDIO> m_endTracks;
-  double m_maxValue;
-  double m_minValue;
-  double m_valueRange;
-  int currentLoopstart;
-  int currentLoopend;
-  int m_numberOfSamples;
-  int m_trackWidth;
-  int m_maxSamplesSpinner;
-  wxPanel *m_drawingPanel;
+  LoopOverlayPanel *m_drawingPanel;
   wxButton *m_prevLoop;
   wxButton *m_nextLoop;
   wxButton *m_storeChanges;
@@ -80,14 +63,8 @@ private:
   wxSpinCtrl* loopEndSpin;
   wxSpinCtrl* m_waveLength;
   FileHandling *m_fileReference;
-  double *audioData;
-  int m_selectedLoop;
   bool m_hasChanged;
 
-  void OnPaintEvent(wxPaintEvent& event);
-  void OnPaint(wxDC& dc);
-  void OnSize(wxSizeEvent& event);
-  void UpdateAudioTracks();
   void SetLoopString();
   void DecideButtonState();
   void OnPrevButton(wxCommandEvent& event);
@@ -95,12 +72,10 @@ private:
   void UpdateSpinners();
   void OnLoopStartChange(wxSpinEvent& event);
   void OnLoopEndChange(wxSpinEvent& event);
-  void ReadLoopData();
   void SetSampleSpinnerValues();
   void OnWaveLengthChange(wxSpinEvent& event);
   void OnStoreChanges(wxCommandEvent& event);
   void SetSaveButtonState();
-  void PaintNow();
 
   // handle events
   DECLARE_EVENT_TABLE()
