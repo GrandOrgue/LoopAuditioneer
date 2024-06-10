@@ -38,6 +38,8 @@ endif ()
 # rtaudio options
 if(CMAKE_CROSSCOMPILING AND WIN32)
   add_compile_options(-D__WINDOWS_DS__ -D__WINDOWS_WASAPI__ -static)
+elseif(APPLE)
+  add_compile_options(-D__MACOSX_CORE__ --std=c++11)
 else()
   if(${RTAUDIO_USE_JACK})
     add_compile_options(-D__LINUX_ALSA__ -D__LINUX_PULSE__ -D__UNIX_JACK__)
@@ -139,6 +141,13 @@ if(UNIX AND NOT APPLE)
       PkgConfig::PA_SIMPLE
     )
   endif()
+endif()
+
+if(APPLE)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC
+    -framework CoreAudio
+    -framework AudioToolbox
+  )
 endif()
 
 # Strip binary for release builds
