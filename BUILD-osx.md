@@ -11,13 +11,13 @@ You'll need standard development tools for C++ and wxWidgets 3.0.
 - Install various packages with Homebrew:
 
 ```
-brew install git cmake wxwidgets libsndfile rtaudio libsamplerate pkgconfig autoconf
+brew install wxwidgets pkg-config autoconf autoconf-archive autogen automake libtool
 ```
 
 Create a local copy of the **LoopAudtioneer** source code in a folder of your choice:
 
 ```
-git clone --recurse-submodules https://github.com/vpoguru/LoopAuditioneer.git
+git clone --recurse-submodules https://github.com/vpoguru/LoopAuditioneer-MacPort.git
 ```
 
 Go to the folder _submodules/libsndfile_ and compile libsndfile.a:
