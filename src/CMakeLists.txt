@@ -68,6 +68,7 @@ set(LA_SRC
   PitchDialog.cpp
   CrossfadeDialog.cpp
   LoopOverlay.cpp
+  LoopOverlayPanel.cpp
   FFT.cpp
   StopHarmonicDialog.cpp
   CutNFadeDialog.cpp
