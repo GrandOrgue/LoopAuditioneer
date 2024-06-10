@@ -123,7 +123,7 @@ void CutNFadeDialog::CreateControls() {
     2000, 
     m_cutStart 
   );
-  firstRow->Add(cutStartSpin, 0, wxALIGN_CENTER_VERTICAL|wxEXPAND|wxALL, 5);
+  firstRow->Add(cutStartSpin, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   // Second row
   wxBoxSizer* secondRow = new wxBoxSizer(wxHORIZONTAL);
@@ -152,7 +152,7 @@ void CutNFadeDialog::CreateControls() {
     2000, 
     m_fadeStart 
   );
-  secondRow->Add(fadeStartSpin, 0, wxALIGN_CENTER_VERTICAL|wxEXPAND|wxALL, 5);
+  secondRow->Add(fadeStartSpin, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   // Third row
   wxBoxSizer* thirdRow = new wxBoxSizer(wxHORIZONTAL);
@@ -181,7 +181,7 @@ void CutNFadeDialog::CreateControls() {
     2000, 
     m_cutEnd 
   );
-  thirdRow->Add(cutEndSpin, 0, wxALIGN_CENTER_VERTICAL|wxEXPAND|wxALL, 5);
+  thirdRow->Add(cutEndSpin, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   // Fourth row
   wxBoxSizer* fourthRow = new wxBoxSizer(wxHORIZONTAL);
@@ -210,7 +210,7 @@ void CutNFadeDialog::CreateControls() {
     2000, 
     m_fadeEnd 
   );
-  fourthRow->Add(fadeEndSpin, 0, wxALIGN_CENTER_VERTICAL|wxEXPAND|wxALL, 5);
+  fourthRow->Add(fadeEndSpin, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
   // A horizontal line before the OK and Cancel buttons
   wxStaticLine *line = new wxStaticLine(

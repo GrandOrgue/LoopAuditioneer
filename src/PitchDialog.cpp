@@ -133,6 +133,8 @@ void PitchDialog::Init(FileHandling *audioFile) {
   m_windowTypes.Add(wxT("Gaussian(a=2.5)"));
   m_windowTypes.Add(wxT("Gaussian(a=3.5)"));
   m_windowTypes.Add(wxT("Gaussian(a=4.5)"));
+
+  m_useInterpolatePitch = false;
 }
 
 bool PitchDialog::Create( 
@@ -612,6 +614,7 @@ void PitchDialog::OnViewSpectrumButton(wxCommandEvent& WXUNUSED(event)) {
   if (m_audioFile->GetSpectrum(fftResult, fftSize, windowType)) {
     // We now have the spectrum in the fftResult array in dB scaled so that 1.0 in amplitude would be 0 dB
     SpectrumDialog spectrumDlg(fftResult, fftSize, m_audioFile->GetFileName(), (unsigned) m_audioFile->GetSampleRate(), this);
+    spectrumDlg.SetInterpolatePitchOption(m_useInterpolatePitch);
     if (spectrumDlg.ShowModal() == wxID_OK) {
       // There should be a pitch to use for the manual pitch
       double pitch = spectrumDlg.GetSelectedPitch();
@@ -642,12 +645,87 @@ void PitchDialog::OnViewSpectrumButton(wxCommandEvent& WXUNUSED(event)) {
   delete[] fftResult;
 }
 
+void PitchDialog::SetPreferredPitchMethod(int method) {
+  wxRadioBox *radioBox = (wxRadioBox*) FindWindow(ID_PITCH_METHOD);
+  wxComboBox *midinote = (wxComboBox*) FindWindow(ID_NOTECOMBO);
+  wxSlider *pitchFract = (wxSlider*) FindWindow(ID_PITCHFRACTION);
+  switch (method) {
+    case 0:
+    default:
+      radioBox->SetSelection(0);
+      m_useFFTDetection = true;
+      m_useHpsFFTDetection = false;
+      m_useTDDetection = false;
+      m_useManual = false;
+      midinote->Enable(false);
+      pitchFract->Enable(false);
+      break;
+    case 1:
+      radioBox->SetSelection(1);
+      m_useFFTDetection = false;
+      m_useHpsFFTDetection = true;
+      m_useTDDetection = false;
+      m_useManual = false;
+      midinote->Enable(false);
+      pitchFract->Enable(false);
+      break;
+    case 2:
+      radioBox->SetSelection(2);
+      m_useFFTDetection = false;
+      m_useHpsFFTDetection = false;
+      m_useTDDetection = true;
+      m_useManual = false;
+      midinote->Enable(false);
+      pitchFract->Enable(false);
+      break;
+    case 3:
+      radioBox->SetSelection(3);
+      m_useFFTDetection = false;
+      m_useHpsFFTDetection = false;
+      m_useTDDetection = false;
+      m_useManual = true;
+      midinote->Enable(true);
+      pitchFract->Enable(true);
+      break;
+  }
+}
+
+void PitchDialog::SetPreferredFftSize(int size) {
+  wxChoice *fftChoice = (wxChoice*) FindWindow(ID_FFTSIZE_CHOICE);
+  if (size >= 0 && size < 7)
+    fftChoice->SetSelection(size);
+}
+
+void PitchDialog::SetPreferredWindow(int window) {
+  wxChoice *windowChoice = (wxChoice*) FindWindow(ID_WINDOW_TYPE_CHOICE);
+  if (window >= 0 && window < 10)
+    windowChoice->SetSelection(window);
+}
+
+void PitchDialog::SetPreferredInterpolatePitch(bool interpolate) {
+  m_useInterpolatePitch = interpolate;
+}
+
 int PitchDialog::GetMIDINote() {
   return m_fileMIDIUnityNote;
 }
 
 double PitchDialog::GetPitchFraction() {
   return m_fileMIDIPitchFraction;
+}
+
+int PitchDialog::GetFftSize() {
+  wxChoice *fftChoice = (wxChoice*) FindWindow(ID_FFTSIZE_CHOICE);
+  return fftChoice->GetSelection();
+}
+
+int PitchDialog::GetWindowType() {
+  wxChoice *windowChoice = (wxChoice*) FindWindow(ID_WINDOW_TYPE_CHOICE);
+  return windowChoice->GetSelection();
+}
+
+bool PitchDialog::GetInterpolatePitch() {
+	return m_useInterpolatePitch;
 }
 
 void PitchDialog::CalculatingResultingPitch() {

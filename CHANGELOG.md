@@ -11,16 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Possibility to inspect and adjust cue position similar to looppoint overlay. (TODO)
 - Possibility to adjust cue position on sample level detail. (TODO)
-- Config file setting for preferred pitch method. (TODO)
-- Config file setting for spectrum FFT size. (TODO)
-- Config file setting for spectrum window type. (TODO)
-- Config file setting for spectrum panel interpolate pitch option. (TODO)
-- Batch process to remove all pitch information from files. (TODO)
+- Config file setting for preferred pitch method.
+- Config file setting for spectrum FFT size.
+- Config file setting for spectrum window type.
+- Config file setting for spectrum panel interpolate pitch option.
+- Batch process to remove pitch information from files.
+- Batch process to remove loops, cues and pitch.
 - Option to make batch process files recursively.
 
 ### Changed
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
+- Batch process naming "Kill" loops/cues to "Remove" instead.
+
+### Fixed
+
+- Sizer flag warnings for wxWidgets 3.2+ builds.
 
 ## [0.10.1] - 2024-06-06
 

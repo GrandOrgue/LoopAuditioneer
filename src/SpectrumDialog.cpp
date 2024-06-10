@@ -20,6 +20,7 @@
 
 #include "SpectrumDialog.h"
 #include <wx/statline.h>
+#include "PitchDialog.h"
 
 IMPLEMENT_CLASS(SpectrumDialog, wxDialog)
 
@@ -198,6 +199,11 @@ void SpectrumDialog::PitchSelectionHasChanged() {
   DecideOkButtonState();
 }
 
+void SpectrumDialog::SetInterpolatePitchOption(bool interpolate) {
+  m_interpolatePitchCheck->SetValue(interpolate);
+  m_drawingPanel->SetPitchInterpolation(m_interpolatePitchCheck->GetValue());
+}
+
 void SpectrumDialog::DecideOkButtonState() {
   wxButton *theOkBtn = (wxButton*) FindWindow(wxID_OK);
   if (m_drawingPanel->HasPitchSelection()) {
@@ -269,5 +275,7 @@ void SpectrumDialog::OnZoomSlider(wxCommandEvent& WXUNUSED(event)) {
 
 void SpectrumDialog::OnPitchInterpolationCheck(wxCommandEvent& WXUNUSED(event)) {
   m_drawingPanel->SetPitchInterpolation(m_interpolatePitchCheck->GetValue());
+  PitchDialog *myParent = (PitchDialog*) GetParent();
+  myParent->SetPreferredInterpolatePitch(m_interpolatePitchCheck->GetValue());
 }
 

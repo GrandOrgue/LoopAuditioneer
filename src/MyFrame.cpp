@@ -145,6 +145,10 @@ void MyFrame::OnClose(wxCloseEvent& WXUNUSED(event)) {
   config->Write(wxT("LoopSettings/LoopPoolMultiple"), m_autoloopSettings->GetMultiple());
   config->Write(wxT("Audio/Api"), m_sound->GetApi());
   config->Write(wxT("Audio/Device"), m_sound->GetDevice());
+  config->Write(wxT("Pitch/PitchMethod"), m_pitchMethod);
+  config->Write(wxT("Pitch/SpectrumFftSize"), m_spectrumFftSize);
+  config->Write(wxT("Pitch/SpectrumWindow"), m_spectrumWindow);
+  config->Write(wxT("Pitch/SpectrumInterpolatePitch"), m_spectrumInterpolatePitch);
   
   config->Flush();
 
@@ -995,6 +999,30 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
     m_autoloop->SetMultiple(readInt);
   }
 
+  if (config->Read(wxT("Pitch/PitchMethod"), &readInt)) {
+    SetPitchMethod(readInt);
+  } else {
+    SetPitchMethod(0);
+  }
+
+  if (config->Read(wxT("Pitch/SpectrumFftSize"), &readInt)) {
+    SetSpectrumFftSize(readInt);
+  } else {
+    SetSpectrumFftSize(5);
+  }
+
+  if (config->Read(wxT("Pitch/SpectrumWindow"), &readInt)) {
+    SetSpectrumWindow(readInt);
+  } else {
+    SetSpectrumWindow(9);
+  }
+
+  if (config->Read(wxT("Pitch/SpectrumInterpolatePitch"), &b)) {
+    SetSpectrumInterpolatePitch(b);
+  } else {
+    SetSpectrumInterpolatePitch(false);
+  }
+
   if (m_frameMaximized)
     Maximize();
   else if (m_xPosition != 0 && m_yPosition != 0)
@@ -1166,6 +1194,32 @@ void MyFrame::SetLoopPlayback(bool looping) {
   else
     loopPlay = false;
 }
+
+void MyFrame::SetPitchMethod(int method) {
+  if (method >= 0 && method < 4)
+    m_pitchMethod = method;
+  else
+    m_pitchMethod = 0;
+}
+
+void MyFrame::SetSpectrumFftSize(int size) {
+  if (size >= 0 && size < 7)
+    m_spectrumFftSize = size;
+  else
+    m_spectrumFftSize = 5;
+}
+
+void MyFrame::SetSpectrumWindow(int type) {
+  if (type >= 0 && type < 10)
+    m_spectrumWindow = type;
+  else
+    m_spectrumWindow = 9;
+}
+
+void MyFrame::SetSpectrumInterpolatePitch(bool interpolate) {
+  m_spectrumInterpolatePitch = interpolate;
+}
+
 
 void MyFrame::UpdatePlayPosition(wxTimerEvent& WXUNUSED(event)) {
   if (m_waveform && m_audiofile->m_channels != 0) {
@@ -1508,6 +1562,10 @@ void MyFrame::OnPitchSettings(wxCommandEvent& WXUNUSED(event)) {
     return;
 
   PitchDialog dialog(m_audiofile, this);
+  dialog.SetPreferredPitchMethod(m_pitchMethod);
+  dialog.SetPreferredFftSize(m_spectrumFftSize);
+  dialog.SetPreferredWindow(m_spectrumWindow);
+  dialog.SetPreferredInterpolatePitch(m_spectrumInterpolatePitch);
 
   if (dialog.ShowModal() == wxID_OK) {
     dialog.TransferSelectedPitchToFile();
@@ -1516,6 +1574,10 @@ void MyFrame::OnPitchSettings(wxCommandEvent& WXUNUSED(event)) {
     fileMenu->Enable(wxID_SAVE, true);
     fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
   }
+  m_pitchMethod = dialog.GetMethodUsed();
+  m_spectrumFftSize = dialog.GetFftSize();
+  m_spectrumWindow = dialog.GetWindowType();
+  m_spectrumInterpolatePitch = dialog.GetInterpolatePitch();
 }
 
 void MyFrame::OnZoomInAmplitude(wxCommandEvent& WXUNUSED(event)) {
