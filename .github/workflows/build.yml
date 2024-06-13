@@ -108,6 +108,66 @@ jobs:
         name: LoopAuditioneer-${{github.ref_name}}-windows
         path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
 
+  # Since the workflow for me is identical to creating the Linux application,
+  # I have copied the Linux commands.
+  build-osx_x86:
+    runs-on: macos-12
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    # This calles the macOS script
+    - name: Get dependencies
+      run: ${{github.workspace}}/scripts/prepare-osx.sh
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    # I assume that this is something we have to adapt
+    - name: Package
+      working-directory: ${{github.workspace}}/build
+      run: cpack
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-osx_x86
+        # This is also something we have to adapt
+        path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
+
+  build-osx_arm:
+    runs-on: macos-14
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    # This calles the macOS script
+    - name: Get dependencies
+      run: ${{github.workspace}}/scripts/prepare-osx.sh
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    # I assume that this is something we have to adapt
+    - name: Package
+      working-directory: ${{github.workspace}}/build
+      run: cpack
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-osx_x86
+        # This is also something we have to adapt
+        path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
+
   release:
     if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
     needs: [ build-linux, build-appimage, crossbuild-windows ]
@@ -128,6 +188,14 @@ jobs:
       with:
         name: LoopAuditioneer-${{github.ref_name}}-windows
 
+    - uses: actions/download-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-osx_x86
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-osx_arm
+
     - name: Remove Starting v From Tag
       id: remove_v
       run: |
@@ -140,8 +208,11 @@ jobs:
         draft: false
         prerelease: false
         body: Release files created from GitHub action runners.
+        # I added the last 2 lines
         files: |
           LoopAuditioneer-${{env.release_version}}-linux.x86_64.tar.gz
           LoopAuditioneer-${{env.release_version}}.x86_64.AppImage
           LoopAuditioneer-${{env.release_version}}-windows.x86_64.zip
+          LoopAuditioneer-${{env.release_version}}-macos.x86_64.dmg
+          LoopAuditioneer-${{env.release_version}}-macos.arm_64.dmg
 

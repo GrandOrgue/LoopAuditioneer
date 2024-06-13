@@ -1,4 +1,4 @@
 #!/bin/bash
 
 set -e
-brew install wxwidgets pkg-config autoconf autogen automake libtool autoconf-archive
+brew install autoconf autoconf-archive autogen automake libtool pkg-config wxwidgets
