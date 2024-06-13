@@ -125,23 +125,22 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Zip help directory
-        run: zip -r ${{github.workspace}}/build/help.zip ${{github.workspace}}/help
-
       - name: Create macOS application folder
         run: |
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources
+          mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/icons
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/LoopAuditioneer/share/help/
           cp ${{github.workspace}}/build/bin/LoopAuditioneer ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS/
           cp ${{github.workspace}}/resources/Info.plist ${{github.workspace}}/build/LoopAuditioneer.app/Contents/
           cp ${{github.workspace}}/resources/LoopAuditioneer.icns ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources/
-          cp ${{github.workspace}}/build/help.zip ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/LoopAuditioneer/share/help/
+          cp ${{github.workspace}}/resources/share/icons ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources/icons
+          cp ${{github.workspace}}/build/share/LoopAuditioneer/help/help.zip ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/LoopAuditioneer/share/help/
 
-      - name: Create .dmg file
-        run: |
-          mkdir -p ${{github.workspace}}/build/dmg
-          hdiutil create ${{github.workspace}}/build/dmLoopAuditioneer-macOS-ARM.dmg -volnam "LoopAuditioneer" -srcfolder ${{github.workspace}}/builLoopAuditioneer.app -ov -format UDZO
+    # Temporarily disabled the creation of the .dmg file
+    #  - name: Create .dmg file
+    #    run: |
+    #      hdiutil create ${{github.workspace}}/build/dmLoopAuditioneer-macOS-ARM.dmg -volnam "LoopAuditioneer" -srcfolder ${{github.workspace}}/builLoopAuditioneer.app -ov -format UDZO
 
       - uses: actions/upload-artifact@v4
         with:
