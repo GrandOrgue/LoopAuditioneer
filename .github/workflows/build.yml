@@ -118,7 +118,7 @@ jobs:
       with:
         submodules: recursive
 
-    # This calles the macOS script
+    # This calls the macOS script to install dependencies
     - name: Get dependencies
       run: ${{github.workspace}}/scripts/prepare-osx.sh
 
@@ -147,7 +147,7 @@ jobs:
       with:
         submodules: recursive
 
-    # This calles the macOS script
+    # This calls the macOS script to install dependencies
     - name: Get dependencies
       run: ${{github.workspace}}/scripts/prepare-osx.sh
 
