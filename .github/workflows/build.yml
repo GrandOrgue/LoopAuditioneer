@@ -108,9 +108,7 @@ jobs:
         name: LoopAuditioneer-${{github.ref_name}}-windows
         path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
 
-  # Since the workflow for me is identical to creating the Linux application,
-  # I have copied the Linux commands.
-  build-osx_x86:
+  build-macOS-X86:
     runs-on: macos-12
 
     steps:
@@ -118,7 +116,6 @@ jobs:
       with:
         submodules: recursive
 
-    # This calls the macOS script to install dependencies
     - name: Get dependencies
       run: ${{github.workspace}}/scripts/prepare-osx.sh
 
@@ -128,45 +125,64 @@ jobs:
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-    # I assume that this is something we have to adapt
-    - name: Package
-      working-directory: ${{github.workspace}}/build_x86
-      run: cpack
+    - name: Zip help directory
+      run: zip -r ${{github.workspace}}/build/help.zip ${{github.workspace}}/help
+
+    - name: Create macOS application folder
+      run: |
+        mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS
+        cp ${{github.workspace}}/build/LoopAuditioneer ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS/
+        cp ${{github.workspace}}/resources/Info.plist ${{github.workspace}}/build/LoopAuditioneer.app/Contents/
+        cp ${{github.workspace}}/resources/LoopAuditioneer.icns ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources/
+        cp ${{github.workspace}}//build/help.zip ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources/LoopAuditioneer/share/help/
+
+    - name: Create .dmg file
+      run: |
+        mkdir -p ${{github.workspace}}/build/dmg
+        hdiutil create ${{github.workspace}}/build/dmLoopAuditioneer-${{github.ref_name}}-macOS.dmg -volnam"LoopAuditioneer" -srcfolder ${{github.workspace}}/builLoopAuditioneer.app -ov -format UDZO
 
     - uses: actions/upload-artifact@v4
       with:
-        name: LoopAuditioneer-${{github.ref_name}}-osx_x86
-        # This is also something we have to adapt
-        path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
+        name: LoopAuditioneer-${{github.ref_name}}-macOS
+        path: ${{github.workspace}}/build/dmg/LoopAuditioneer-macOS-X86.dmg
 
-  build-osx_arm:
+  build-macOS-ARM:
     runs-on: macos-14
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    # This calls the macOS script to install dependencies
-    - name: Get dependencies
-      run: ${{github.workspace}}/scripts/prepare-osx.sh
+      - name: Get dependencies
+        run: ${{github.workspace}}/scripts/prepare-osx.sh
 
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-    # I assume that this is something we have to adapt
-    - name: Package
-      working-directory: ${{github.workspace}}/build-osx_arm
-      run: cpack
+      - name: Zip help directory
+        run: zip -r ${{github.workspace}}/build/help.zip ${{github.workspace}}/help
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: LoopAuditioneer-${{github.ref_name}}-osx_arm
-        # This is also something we have to adapt
-        path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
+      - name: Create macOS application folder
+        run: |
+          mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS
+          cp ${{github.workspace}}/build/LoopAuditioneer ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS/
+          cp ${{github.workspace}}/resources/Info.plist ${{github.workspace}}/build/LoopAuditioneer.app/Contents/
+          cp ${{github.workspace}}/resources/LoopAuditioneer.icns ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources/
+          cp ${{github.workspace}}//build/help.zip ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources/LoopAuditioneer/share/help/
+
+      - name: Create .dmg file
+        run: |
+          mkdir -p ${{github.workspace}}/build/dmg
+          hdiutil create ${{github.workspace}}/build/dmLoopAuditioneer-macOS-ARM.dmg -volnam"LoopAuditioneer" -srcfolder ${{github.workspace}}/builLoopAuditioneer.app -ov -format UDZO
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LoopAuditioneer-${{github.ref_name}}-macOS
+          path: ${{github.workspace}}/build/dmg/LoopAuditioneer-${{github.ref_name}}-macOS.dmg
 
   release:
     if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
