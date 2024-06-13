@@ -137,6 +137,10 @@ jobs:
           cp -r ${{github.workspace}}/build/share/icons ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources
           cp ${{github.workspace}}/build/share/LoopAuditioneer/help/help.zip ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/LoopAuditioneer/share/help/
 
+      - name: Create zip archive
+        run: |
+           zip -r ${{github.workspace}}/build/LoopAuditioneer.zip ${{github.workspace}}/build/LoopAuditioneer.app
+
     # Temporarily disabled the creation of the .dmg file
     #  - name: Create .dmg file
     #    run: |
