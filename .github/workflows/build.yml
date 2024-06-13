@@ -130,7 +130,7 @@ jobs:
 
     # I assume that this is something we have to adapt
     - name: Package
-      working-directory: ${{github.workspace}}/build
+      working-directory: ${{github.workspace}}/build_x86
       run: cpack
 
     - uses: actions/upload-artifact@v4
@@ -159,12 +159,12 @@ jobs:
 
     # I assume that this is something we have to adapt
     - name: Package
-      working-directory: ${{github.workspace}}/build
+      working-directory: ${{github.workspace}}/build-osx_arm
       run: cpack
 
     - uses: actions/upload-artifact@v4
       with:
-        name: LoopAuditioneer-${{github.ref_name}}-osx_x86
+        name: LoopAuditioneer-${{github.ref_name}}-osx_arm
         # This is also something we have to adapt
         path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
 
