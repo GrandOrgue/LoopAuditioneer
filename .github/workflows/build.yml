@@ -145,7 +145,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: LoopAuditioneer-${{github.ref_name}}-macOS
-          path: ${{github.workspace}}/build/LoopAuditioneer.app
+          path: ${{github.workspace}}/build/LoopAuditioneer.zip
 
   release:
     if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
