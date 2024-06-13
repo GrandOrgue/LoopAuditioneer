@@ -139,7 +139,8 @@ jobs:
 
       - name: Create zip archive
         run: |
-           zip -r ${{github.workspace}}/build/LoopAuditioneer.zip ${{github.workspace}}/build/LoopAuditioneer.app
+          cd ${{github.workspace}}/build
+          zip -r LoopAuditioneer.zip LoopAuditioneer.app
 
     # Temporarily disabled the creation of the .dmg file
     #  - name: Create .dmg file
