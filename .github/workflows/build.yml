@@ -130,7 +130,7 @@ jobs:
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/icons
-          mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/LoopAuditioneer/share/help/
+          mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/LoopAuditioneer/help/
           cp ${{github.workspace}}/build/bin/LoopAuditioneer ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS/
           cp ${{github.workspace}}/resources/Info.plist ${{github.workspace}}/build/LoopAuditioneer.app/Contents/
           cp ${{github.workspace}}/resources/LoopAuditioneer.icns ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources/
