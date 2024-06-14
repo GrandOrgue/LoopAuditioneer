@@ -108,6 +108,33 @@ jobs:
         name: LoopAuditioneer-${{github.ref_name}}-windows
         path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
 
+  build-macOS-x86:
+    runs-on: macos-12
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Get dependencies
+        run: ${{github.workspace}}/scripts/prepare-osx.sh
+
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+      - name: Create zip archive
+        run: |
+          cd ${{ github.workspace }}/build
+          zip -r LoopAuditioneer.zip LoopAuditioneer.app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LoopAuditioneer-macOS-ARM
+          path: ${{ github.workspace }}/build/LoopAuditioneer.zip
+
   build-macOS-ARM:
     runs-on: macos-14
 

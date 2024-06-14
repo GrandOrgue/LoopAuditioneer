@@ -1,5 +1,5 @@
 # LoopAuditioneer software
-# Copyright (C) 2021-2024 Lars Palo
+# Copyright (C) 2021-2024 Lars Palo 
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -154,8 +154,10 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
   if(CMAKE_CROSSCOMPILING AND WIN32)
     add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD COMMAND strip --strip-all LoopAuditioneer.exe WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-  else()
+  elseif(APPLE)
     add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD COMMAND strip ${CMAKE_PROJECT_NAME} WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+  else()
+    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD COMMAND strip --strip-all ${CMAKE_PROJECT_NAME} WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
   endif()
 endif()
 
