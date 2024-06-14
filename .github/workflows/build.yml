@@ -127,8 +127,8 @@ jobs:
 
       - name: Create macOS application folder
         run: |
+          mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/_CodeSignature
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS
-          mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS/_CodeSignature
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/icons
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/LoopAuditioneer/help/
