@@ -202,4 +202,5 @@ jobs:
           LoopAuditioneer-${{env.release_version}}-linux.x86_64.tar.gz
           LoopAuditioneer-${{env.release_version}}.x86_64.AppImage
           LoopAuditioneer-${{env.release_version}}-windows.x86_64.zip
+          LoopAuditioneer-${{env.release_version}}-osx.x86_x64.zip
           LoopAuditioneer-${{env.release_version}}-osx.arm_x64.zip
