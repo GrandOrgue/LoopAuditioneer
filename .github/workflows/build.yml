@@ -125,15 +125,8 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Create macOS application folder
+      - name: Create zip archive
         run: |
-          APP_DIR=${{ github.workspace }}/build/LoopAuditioneer.app
-          mkdir -p $APP_DIR/Contents/{_CodeSignature,MacOS,Resources,share/icons,share/LoopAuditioneer/help/}
-          cp ${{ github.workspace }}/build/bin/LoopAuditioneer $APP_DIR/Contents/MacOS/
-          cp ${{ github.workspace }}/resources/Info.plist $APP_DIR/Contents/
-          cp ${{ github.workspace }}/resources/LoopAuditioneer.icns $APP_DIR/Contents/Resources/
-          cp -r ${{ github.workspace }}/build/share/icons $APP_DIR/Contents/share/
-          cp ${{ github.workspace }}/build/share/LoopAuditioneer/help/help.zip $APP_DIR/Contents/share/LoopAuditioneer/help/
           cd ${{ github.workspace }}/build
           zip -r LoopAuditioneer.zip LoopAuditioneer.app
 

@@ -209,10 +209,7 @@ wxWidgets configuration    : ${wxWidgets_CONFIGURATION}
 set(CPACK_PACKAGE_NAME "LoopAuditioneer")
 set(CPACK_PACKAGE_VENDOR "LoopAuditioneer")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LoopAuditioneer - Software for loop and cue handling in .wav files")
-set(
-  CPACK_PACKAGE_DESCRIPTION
-  "LoopAuditioneer"
-)
+set(CPACK_PACKAGE_DESCRIPTION "LoopAuditioneer")
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
@@ -233,20 +230,28 @@ if (APPLE)
 
   # Configure Info.plist
   configure_file(${CMAKE_SOURCE_DIR}/resources/Info.plist.in ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Info.plist)
+
+  # Install the Info.plist file
   INSTALL(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Info.plist DESTINATION "${PROJECT_NAME}.app/Contents/")
 
   # Create the macOS application bundle
   add_custom_target(
     macOSApplication
     ALL
-    DEPENDS LoopAuditioneer resources # run after building these targets
-    COMMAND "${CMAKE_COMMAND}" -DAPP_DIR="${CMAKE_BINARY_DIR}" -P "${CMAKE_SOURCE_DIR}/scripts/SignMacOSApp.cmake"
+    DEPENDS ${CMAKE_PROJECT_NAME} resources # run after building these targets
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/MacOS"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Resources"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/share"
+    COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_BINARY_DIR}/bin/${CMAKE_PROJECT_NAME}" "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/MacOS/${CMAKE_PROJECT_NAME}"
+    COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.icns" "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Resources/LoopAuditioneer.icns"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_BINARY_DIR}/share" "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/share"
+    COMMAND "${CMAKE_COMMAND}" -DAPP_DIR="${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app" -P "${CMAKE_SOURCE_DIR}/scripts/SignMacOSApp.cmake"
   )
 
   # CPACK configuration
   set(CPACK_SYSTEM_NAME "macOS")
   set(CPACK_GENERATOR DragNDrop)
-  set(CPACK_PRE_BUILD_SCRIPTS "${CMAKE_SOURCE_DIR}/scripts/SignMacOSApp.cmake")
+  set(CPACK_POST_BUILD_SCRIPTS "${CMAKE_SOURCE_DIR}/scripts/SignMacOSApp.cmake")
 
 elseif(WIN32)
   set(CPACK_SYSTEM_NAME "windows")
