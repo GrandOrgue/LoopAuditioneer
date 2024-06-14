@@ -186,6 +186,10 @@ jobs:
       with:
         name: LoopAuditioneer-${{github.ref_name}}-osx_arm
 
+    - uses: actions/download-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-osx_x86
+
     - name: Remove Starting v From Tag
       id: remove_v
       run: |
