@@ -164,7 +164,7 @@ jobs:
 
   release:
     if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
-    needs: [ build-linux, build-appimage, crossbuild-windows, build-macOS-ARM ]
+    needs: [ build-linux, build-appimage, crossbuild-windows, build-macOS-x86, build-macOS-ARM ]
     name: Create GitHub Release
     runs-on: ubuntu-latest
     steps:
