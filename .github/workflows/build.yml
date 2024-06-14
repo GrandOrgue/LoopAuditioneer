@@ -133,7 +133,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: LoopAuditioneer-macOS-x86
-          path: ${{ github.workspace }}/build/LoopAuditioneer.zip
+          path: ${{ github.workspace }}/build/LoopAuditioneer*.zip
 
   build-macOS-ARM:
     runs-on: macos-14
@@ -160,7 +160,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: LoopAuditioneer-macOS-ARM
-          path: ${{ github.workspace }}/build/LoopAuditioneer.zip
+          path: ${{ github.workspace }}/build/LoopAuditioneer*.zip
 
   release:
     if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
