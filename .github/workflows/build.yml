@@ -9,104 +9,104 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-20.04
+#  build-linux:
+#    runs-on: ubuntu-20.04
+#
+#    steps:
+#    - uses: actions/checkout@v4
+#      with:
+#        submodules: recursive
+#
+#    - name: Get dependencies
+#      run: ${{github.workspace}}/scripts/prepare-debian-ubuntu.sh
+#
+#    - name: Configure CMake
+#      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+#
+#    - name: Build
+#      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+#
+#    - name: Package
+#      working-directory: ${{github.workspace}}/build
+#      run: cpack
+#
+#    - uses: actions/upload-artifact@v4
+#      with:
+#        name: LoopAuditioneer-${{github.ref_name}}-linux
+#        path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
 
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+#  build-appimage:
+#    runs-on: ubuntu-20.04
+#
+#    steps:
+#    - uses: actions/checkout@v4
+#      with:
+#        submodules: recursive
+#
+#    - name: Get dependencies
+#      run: ${{github.workspace}}/scripts/prepare-ubuntu-appimage.sh
+#
+#    - name: Read version file
+#      shell: bash
+#      working-directory: ${{github.workspace}}
+#      id: read_version
+#      run: |
+#        VERSION_TXT=$(< version.txt)
+#        echo "app_version=${VERSION_TXT}" >> $GITHUB_ENV
+#
+#    - name: Configure CMake
+#      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DRTAUDIO_USE_JACK=OFF -DCMAKE_INSTALL_PREFIX=/usr
+#
+#    - name: Build
+#      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+#
+#    - name: Install
+#      working-directory: ${{github.workspace}}/build
+#      run: make install DESTDIR=AppDir
+#
+#    - name: Create Appimage
+#      working-directory: ${{github.workspace}}/build
+#      run: |
+#        echo "DEPLOY_GTK_VERSION=3" >> $GITHUB_ENV
+#        echo "APPIMAGE_EXTRACT_AND_RUN=1" >> $GITHUB_ENV
+#        linuxdeploy-x86_64.AppImage --appdir AppDir -e ./bin/LoopAuditioneer -d ./share/LoopAuditioneer/applications/LoopAuditioneer.#desktop -i ./share/icons/hicolor/256x256/apps/LoopAuditioneer.png --plugin gtk
+#        appimagetool-x86_64.AppImage --no-appstream AppDir LoopAuditioneer-${{env.app_version}}.x86_64.AppImage
+#
+#    - uses: actions/upload-artifact@v4
+#      with:
+#        name: LoopAuditioneer-${{github.ref_name}}-AppImage
+#        path: ${{github.workspace}}/build/LoopAuditioneer*.AppImage
 
-    - name: Get dependencies
-      run: ${{github.workspace}}/scripts/prepare-debian-ubuntu.sh
-
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-    - name: Package
-      working-directory: ${{github.workspace}}/build
-      run: cpack
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: LoopAuditioneer-${{github.ref_name}}-linux
-        path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
-
-  build-appimage:
-    runs-on: ubuntu-20.04
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Get dependencies
-      run: ${{github.workspace}}/scripts/prepare-ubuntu-appimage.sh
-
-    - name: Read version file
-      shell: bash
-      working-directory: ${{github.workspace}}
-      id: read_version
-      run: |
-        VERSION_TXT=$(< version.txt)
-        echo "app_version=${VERSION_TXT}" >> $GITHUB_ENV
-
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DRTAUDIO_USE_JACK=OFF -DCMAKE_INSTALL_PREFIX=/usr
-
-    - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-    - name: Install
-      working-directory: ${{github.workspace}}/build
-      run: make install DESTDIR=AppDir
-
-    - name: Create Appimage
-      working-directory: ${{github.workspace}}/build
-      run: |
-        echo "DEPLOY_GTK_VERSION=3" >> $GITHUB_ENV
-        echo "APPIMAGE_EXTRACT_AND_RUN=1" >> $GITHUB_ENV
-        linuxdeploy-x86_64.AppImage --appdir AppDir -e ./bin/LoopAuditioneer -d ./share/LoopAuditioneer/applications/LoopAuditioneer.desktop -i ./share/icons/hicolor/256x256/apps/LoopAuditioneer.png --plugin gtk
-        appimagetool-x86_64.AppImage --no-appstream AppDir LoopAuditioneer-${{env.app_version}}.x86_64.AppImage
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: LoopAuditioneer-${{github.ref_name}}-AppImage
-        path: ${{github.workspace}}/build/LoopAuditioneer*.AppImage
-
-  crossbuild-windows:
-    runs-on: ubuntu-20.04
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Get dependencies
-      run: ${{github.workspace}}/scripts/prepare-ubuntu-cross.sh
-
-    - name: Get cross-compiled wxWidgets
-      run: |
-        wget https://github.com/larspalo/WxWidgetsCross/releases/download/3.2.3-2.go/wxwidgets3-mingw-w64-static_3.2.3-2.go_all.deb
-        sudo apt-get install -y ./wxwidgets3-mingw-w64-static_3.2.3-2.go_all.deb
-
-    - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/crossbuild -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/toolchain.def
-
-    - name: Build
-      run: cmake --build ${{github.workspace}}/crossbuild --config ${{env.BUILD_TYPE}}
-
-    - name: Package
-      working-directory: ${{github.workspace}}/crossbuild
-      run: cpack
-
-    - uses: actions/upload-artifact@v4
-      with:
-        name: LoopAuditioneer-${{github.ref_name}}-windows
-        path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
+#  crossbuild-windows:
+#    runs-on: ubuntu-20.04
+#
+#    steps:
+#    - uses: actions/checkout@v4
+#      with:
+#        submodules: recursive
+#
+#    - name: Get dependencies
+#      run: ${{github.workspace}}/scripts/prepare-ubuntu-cross.sh
+#
+#    - name: Get cross-compiled wxWidgets
+#      run: |
+#        wget https://github.com/larspalo/WxWidgetsCross/releases/download/3.2.3-2.go/wxwidgets3-mingw-w64-static_3.2.3-2.go_all.deb
+#        sudo apt-get install -y ./wxwidgets3-mingw-w64-static_3.2.3-2.go_all.deb
+#
+#    - name: Configure CMake
+#      run: cmake -B ${{github.workspace}}/crossbuild -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/toolchain.def
+#
+#    - name: Build
+#      run: cmake --build ${{github.workspace}}/crossbuild --config ${{env.BUILD_TYPE}}
+#
+#    - name: Package
+#      working-directory: ${{github.workspace}}/crossbuild
+#      run: cpack
+#
+#    - uses: actions/upload-artifact@v4
+#      with:
+#        name: LoopAuditioneer-${{github.ref_name}}-windows
+#        path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
 
   build-macOS-ARM:
     runs-on: macos-14
@@ -128,6 +128,7 @@ jobs:
       - name: Create macOS application folder
         run: |
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS
+          mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/MacOS/_CodeSignature
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/Resources
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/icons
           mkdir -p ${{github.workspace}}/build/LoopAuditioneer.app/Contents/share/LoopAuditioneer/help/
@@ -142,61 +143,50 @@ jobs:
           cd ${{github.workspace}}/build
           zip -r LoopAuditioneer.zip LoopAuditioneer.app
 
-    # Temporarily disabled the creation of the .dmg file
-    #  - name: Create .dmg file
-    #    run: |
-    #      hdiutil create ${{github.workspace}}/build/dmLoopAuditioneer-macOS-ARM.dmg -volname "LoopAuditioneer" -srcfolder ${{github.workspace}}/builLoopAuditioneer.app -ov -format UDZO
-
       - uses: actions/upload-artifact@v4
         with:
           name: LoopAuditioneer-macOS-ARM
           path: ${{github.workspace}}/build/LoopAuditioneer.zip
 
-  release:
-    if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
-    needs: [ build-linux, build-appimage, crossbuild-windows ]
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - uses: actions/download-artifact@v4
-      with:
-        name: LoopAuditioneer-${{github.ref_name}}-linux
-
-    - uses: actions/download-artifact@v4
-      with:
-        name: LoopAuditioneer-${{github.ref_name}}-AppImage
-
-    - uses: actions/download-artifact@v4
-      with:
-        name: LoopAuditioneer-${{github.ref_name}}-windows
-
-    - uses: actions/download-artifact@v4
-      with:
-        name: LoopAuditioneer-${{github.ref_name}}-osx_x86
-
-    - uses: actions/download-artifact@v4
-      with:
-        name: LoopAuditioneer-${{github.ref_name}}-osx_arm
-
-    - name: Remove Starting v From Tag
-      id: remove_v
-      run: |
-        TAG=${{github.ref_name}}
-        echo "release_version=${TAG#v}" >> $GITHUB_ENV
-
-    - name: Populate Release
-      uses: softprops/action-gh-release@v2
-      with:
-        draft: false
-        prerelease: false
-        body: Release files created from GitHub action runners.
-        # I added the last 2 lines
-        files: |
-          LoopAuditioneer-${{env.release_version}}-linux.x86_64.tar.gz
-          LoopAuditioneer-${{env.release_version}}.x86_64.AppImage
-          LoopAuditioneer-${{env.release_version}}-windows.x86_64.zip
-          LoopAuditioneer-${{env.release_version}}-macos.x86_64.dmg
-          LoopAuditioneer-${{env.release_version}}-macos.arm_64.dmg
+#  release:
+#    if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
+#    needs: [ build-linux, build-appimage, crossbuild-windows, build-macOS-ARM ]
+#    name: Create GitHub Release
+#    runs-on: ubuntu-latest
+#    steps:
+#    - uses: actions/checkout@v4
+#
+#    - uses: actions/download-artifact@v4
+#      with:
+#        name: LoopAuditioneer-${{github.ref_name}}-linux
+#
+#    - uses: actions/download-artifact@v4
+#      with:
+#        name: LoopAuditioneer-${{github.ref_name}}-AppImage
+#
+#    - uses: actions/download-artifact@v4
+#      with:
+#        name: LoopAuditioneer-${{github.ref_name}}-windows
+#
+#    - uses: actions/download-artifact@v4
+#      with:
+#        name: LoopAuditioneer-${{github.ref_name}}-osx_arm
+#
+#    - name: Remove Starting v From Tag
+#      id: remove_v
+#      run: |
+#        TAG=${{github.ref_name}}
+#        echo "release_version=${TAG#v}" >> $GITHUB_ENV
+#
+#    - name: Populate Release
+#      uses: softprops/action-gh-release@v2
+#      with:
+#        draft: false
+#        prerelease: false
+#        body: Release files created from GitHub action runners.
+#        files: |
+#          LoopAuditioneer-${{env.release_version}}-linux.x86_64.tar.gz
+#          LoopAuditioneer-${{env.release_version}}.x86_64.AppImage
+#          LoopAuditioneer-${{env.release_version}}-windows.x86_64.zip
+#          LoopAuditioneer-${{env.release_version}}-osx.arm_x64.zip
 
