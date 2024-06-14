@@ -119,14 +119,13 @@ jobs:
       - name: Get dependencies
         run: ${{github.workspace}}/scripts/prepare-osx.sh
 
-      - name: Build the application
-        run: |
-          mkdir -p build
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release
-          make
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
-      - name: Package the application
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+      - name: Create macOS application folder
         run: |
           APP_DIR=${{ github.workspace }}/build/LoopAuditioneer.app
           mkdir -p $APP_DIR/Contents/{_CodeSignature,MacOS,Resources,share/icons,share/LoopAuditioneer/help/}
@@ -135,22 +134,13 @@ jobs:
           cp ${{ github.workspace }}/resources/LoopAuditioneer.icns $APP_DIR/Contents/Resources/
           cp -r ${{ github.workspace }}/build/share/icons $APP_DIR/Contents/share/
           cp ${{ github.workspace }}/build/share/LoopAuditioneer/help/help.zip $APP_DIR/Contents/share/LoopAuditioneer/help/
-#          cd ${{ github.workspace }}/build
-#          zip -r LoopAuditioneer.zip LoopAuditioneer.app
-#
-#      - uses: actions/upload-artifact@v4
-#        with:
-#          name: LoopAuditioneer-macOS-ARM
-#          path: ${{ github.workspace }}/build/LoopAuditioneer.zip
+          cd ${{ github.workspace }}/build
+          zip -r LoopAuditioneer.zip LoopAuditioneer.app
 
-      - name: Code sign the application
-        run: |
-          codesign --deep --force --verify --verbose --sign - $APP_DI
-
-      - name: Create the DMG package
-        run: |
-          cd build
-          cpack -G DragNDrop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LoopAuditioneer-macOS-ARM
+          path: ${{ github.workspace }}/build/LoopAuditioneer.zip
 
 #  release:
 #    if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
