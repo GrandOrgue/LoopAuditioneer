@@ -220,11 +220,6 @@ set(CPACK_PACKAGE_EXECUTABLES "LoopAuditioneeer" "LoopAuditioneeer")
 set(CPACK_SOURCE_IGNORE_FILES "/\\\\.svn/" "/build/" "/crossbuild/")
 
 if (APPLE)
-  # See the following URL for information about these variables
-  # https://developer.apple.com/library/mac/#documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-  set(BUNDLE_CFBundleShortVersionString ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_STAGE})
-  set(BUNDLE_CFBundleVersion ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_STAGE})
-
   # Set the package icon
   set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.icns")
 

@@ -7,11 +7,11 @@
   <key>CFBundleName</key>
   <string>LoopAuditioneer</string>
   <key>CFBundleDisplayName</key>
-  <string>LoopAuditioneer @VERSION@</string>
+  <string>LoopAuditioneer @PROGRAM_VERSION@</string>
   <key>CFBundleVersion</key>
-  <string>@NUM_VERSION@</string>
+  <string>@PROGRAM_VERSION@</string>
   <key>CFBundleShortVersionString</key>
-  <string>@NUM_VERSION@</string>
+  <string>@PROGRAM_VERSION@</string>
   <key>CFBundleExecutable</key>
   <string>LoopAuditioneer</string>
   <key>CFBundleIconFile</key>
