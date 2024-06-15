@@ -130,9 +130,8 @@ jobs:
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
       - name: Create zip archive
-        run: |
-          cd ${{ github.workspace }}/build
-          zip -r LoopAuditioneer.zip LoopAuditioneer.app
+        working-directory: ${{github.workspace}}/build
+        run: cpack
 
       - uses: actions/upload-artifact@v4
         with:
