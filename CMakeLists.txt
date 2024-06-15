@@ -220,13 +220,8 @@ set(CPACK_PACKAGE_EXECUTABLES "LoopAuditioneeer" "LoopAuditioneeer")
 set(CPACK_SOURCE_IGNORE_FILES "/\\\\.svn/" "/build/" "/crossbuild/")
 
 if (APPLE)
-  # Set the package icon
-  set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.icns")
-
-  # Configure Info.plist
+  # Configure and install Info.plist
   configure_file(${CMAKE_SOURCE_DIR}/resources/Info.plist.in ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Info.plist)
-
-  # Install the Info.plist file
   INSTALL(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Info.plist DESTINATION "${PROJECT_NAME}.app/Contents/")
 
   # Create the macOS application bundle
@@ -245,8 +240,7 @@ if (APPLE)
 
   # CPACK configuration
   set(CPACK_SYSTEM_NAME "macOS")
-  set(CPACK_GENERATOR DragNDrop)
-  set(CPACK_POST_BUILD_SCRIPTS "${CMAKE_SOURCE_DIR}/scripts/SignMacOSApp.cmake")
+  set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.icns")
 
 elseif(WIN32)
   set(CPACK_SYSTEM_NAME "windows")
