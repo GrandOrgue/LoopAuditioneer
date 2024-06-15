@@ -240,6 +240,7 @@ if (APPLE)
 
   # CPACK configuration
   set(CPACK_SYSTEM_NAME "macOS")
+  set(CPACK_GENERATOR DragNDrop)
   set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.icns")
 
 elseif(WIN32)
