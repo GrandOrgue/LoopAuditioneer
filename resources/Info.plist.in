@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleIdentifier</key>
-  <string>se.familjenpalo.LoopAuditioneer</string>
+  <string>com.github.GrandOrgue.LoopAuditioneer</string>
   <key>CFBundleName</key>
   <string>LoopAuditioneer</string>
   <key>CFBundleDisplayName</key>
-  <string>LoopAuditioneer @PROGRAM_VERSION@</string>
+  <string>LoopAuditioneer v@PROGRAM_VERSION@</string>
   <key>CFBundleVersion</key>
   <string>@PROGRAM_VERSION@</string>
   <key>CFBundleShortVersionString</key>
