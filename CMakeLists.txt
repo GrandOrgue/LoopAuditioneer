@@ -232,8 +232,10 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/MacOS"
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Resources"
     COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/share"
-    COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_BINARY_DIR}/bin/${CMAKE_PROJECT_NAME}" "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/MacOS/${CMAKE_PROJECT_NAME}"
-    COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.icns" "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Resources/LoopAuditioneer.icns"
+    COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_BINARY_DIR}/bin/${CMAKE_PROJECT_NAME}"
+      "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/MacOS/${CMAKE_PROJECT_NAME}"
+    COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.icns"
+      "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Resources/LoopAuditioneer.icns"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_BINARY_DIR}/share" "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/share"
     COMMAND "${CMAKE_COMMAND}" -DAPP_DIR="${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app" -P "${CMAKE_SOURCE_DIR}/scripts/SignMacOSApp.cmake"
   )
@@ -241,6 +243,8 @@ if (APPLE)
   # CPACK configuration
   set(CPACK_SYSTEM_NAME "macOS")
   set(CPACK_GENERATOR DragNDrop)
+  set(CPACK_DMG_FORMAT "UDZO")
+  set(CPACK_DMG_VOLUME_NAME "LoopAuditioneer")
   set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/LoopAuditioneer.icns")
 
 elseif(WIN32)

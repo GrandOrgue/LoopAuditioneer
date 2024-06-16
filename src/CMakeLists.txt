@@ -1,5 +1,5 @@
 # LoopAuditioneer software
-# Copyright (C) 2021-2024 Lars Palo 
+# Copyright (C) 2021-2024 Lars Palo
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -178,10 +178,18 @@ if(UNIX AND NOT APPLE)
   configure_file(${CMAKE_SOURCE_DIR}/resources/${CMAKE_PROJECT_NAME}.desktop.in ${CMAKE_BINARY_DIR}/share/${CMAKE_PROJECT_NAME}/applications/${CMAKE_PROJECT_NAME}.desktop COPYONLY)
 endif()
 
-# installation rules
-install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION bin)
-install(DIRECTORY ${CMAKE_BINARY_DIR}/share/icons/ DESTINATION share/icons FILES_MATCHING PATTERN "*.png")
-install(FILES ${CMAKE_BINARY_DIR}/share/${CMAKE_PROJECT_NAME}/help/help.zip DESTINATION share/${CMAKE_PROJECT_NAME}/help)
+# Installation rules
+if (APPLE)
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.app DESTINATION .)
+  # Explicitly set the executable permission using install
+  install(PROGRAMS "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/MacOS/${CMAKE_PROJECT_NAME}"
+    DESTINATION "${PROJECT_NAME}.app/Contents/MacOS"
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+else()
+  install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION bin)
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/share/icons/ DESTINATION share/icons FILES_MATCHING PATTERN "*.png")
+  install(FILES ${CMAKE_BINARY_DIR}/share/${CMAKE_PROJECT_NAME}/help/help.zip DESTINATION share/${CMAKE_PROJECT_NAME}/help)
+endif()
 if(UNIX AND NOT APPLE)
   install(FILES ${CMAKE_BINARY_DIR}/share/${CMAKE_PROJECT_NAME}/applications/${CMAKE_PROJECT_NAME}.desktop DESTINATION share/${CMAKE_PROJECT_NAME}/applications)
 endif()

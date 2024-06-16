@@ -126,7 +126,7 @@ jobs:
       - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
-      - name: Build
+      - name: Build with CMake
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
       - name: Create zip archive
@@ -152,18 +152,17 @@ jobs:
       - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
-      - name: Build
+      - name: Build with CMake
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Create zip archive
-        run: |
-          cd ${{ github.workspace }}/build
-          zip -r LoopAuditioneer.zip LoopAuditioneer.app
+      - name: Package with CPack
+        working-directory: ${{github.workspace}}/build
+        run: cpack
 
       - uses: actions/upload-artifact@v4
         with:
           name: LoopAuditioneer-macos-arm
-          path: ${{ github.workspace }}/build/LoopAuditioneer*.zip
+          path: ${{ github.workspace }}/build/LoopAuditioneer*.dmg
 
   release:
     if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
@@ -210,4 +209,4 @@ jobs:
           LoopAuditioneer-${{env.release_version}}.x86_64.AppImage
           LoopAuditioneer-${{env.release_version}}-windows.x86_64.zip
           LoopAuditioneer-${{env.release_version}}-macos.x86_x64.zip
-          LoopAuditioneer-${{env.release_version}}-macos.arm_x64.zip
+          LoopAuditioneer-${{env.release_version}}-macos.arm_x64.dmg
