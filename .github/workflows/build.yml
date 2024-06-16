@@ -11,7 +11,6 @@ env:
 jobs:
   build-linux:
     runs-on: ubuntu-20.04
-    if: false
 
     steps:
     - uses: actions/checkout@v4
@@ -38,7 +37,6 @@ jobs:
 
   build-appimage:
     runs-on: ubuntu-20.04
-    if: false
 
     steps:
     - uses: actions/checkout@v4
@@ -81,7 +79,6 @@ jobs:
 
   crossbuild-windows:
     runs-on: ubuntu-20.04
-    if: false
 
     steps:
     - uses: actions/checkout@v4
@@ -113,7 +110,6 @@ jobs:
 
   build-macos-x86:
     runs-on: macos-13
-    if: false
 
     steps:
       - uses: actions/checkout@v4
@@ -129,14 +125,14 @@ jobs:
       - name: Build with CMake
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Create zip archive
+      - name: Package with CPack
         working-directory: ${{github.workspace}}/build
         run: cpack
 
       - uses: actions/upload-artifact@v4
         with:
           name: LoopAuditioneer-macos-x86
-          path: ${{ github.workspace }}/build/LoopAuditioneer*.zip
+          path: ${{ github.workspace }}/build/LoopAuditioneer*.dmg
 
   build-macos-arm:
     runs-on: macos-14
@@ -208,5 +204,5 @@ jobs:
           LoopAuditioneer-${{env.release_version}}-linux.x86_64.tar.gz
           LoopAuditioneer-${{env.release_version}}.x86_64.AppImage
           LoopAuditioneer-${{env.release_version}}-windows.x86_64.zip
-          LoopAuditioneer-${{env.release_version}}-macos.x86_x64.zip
+          LoopAuditioneer-${{env.release_version}}-macos.x86_x64.dmg
           LoopAuditioneer-${{env.release_version}}-macos.arm_x64.dmg

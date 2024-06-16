@@ -181,7 +181,7 @@ endif()
 # Installation rules
 if (APPLE)
   install(DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.app DESTINATION .)
-  # Explicitly set the executable permission using install
+  # Explicitly set the executable permission
   install(PROGRAMS "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/MacOS/${CMAKE_PROJECT_NAME}"
     DESTINATION "${PROJECT_NAME}.app/Contents/MacOS"
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
