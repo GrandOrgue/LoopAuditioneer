@@ -131,7 +131,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: LoopAuditioneer-macos-x86
+          name: LoopAuditioneer-${{github.ref_name}}-macos-x86
           path: ${{ github.workspace }}/build/LoopAuditioneer*.dmg
 
   build-macos-arm:
@@ -157,7 +157,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: LoopAuditioneer-macos-arm
+          name: LoopAuditioneer-${{github.ref_name}}-macos-arm
           path: ${{ github.workspace }}/build/LoopAuditioneer*.dmg
 
   release:
@@ -182,11 +182,11 @@ jobs:
 
     - uses: actions/download-artifact@v4
       with:
-        name: LoopAuditioneer-${{github.ref_name}}-osx_x86
+        name: LoopAuditioneer-${{github.ref_name}}-macos_x86
 
     - uses: actions/download-artifact@v4
       with:
-        name: LoopAuditioneer-${{github.ref_name}}-osx_arm
+        name: LoopAuditioneer-${{github.ref_name}}-macos_arm
 
     - name: Remove Starting v From Tag
       id: remove_v
