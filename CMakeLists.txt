@@ -238,6 +238,7 @@ if (APPLE)
       "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/Resources/LoopAuditioneer.icns"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_BINARY_DIR}/share" "${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app/Contents/share"
     COMMAND "${CMAKE_COMMAND}" -DAPP_DIR="${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app" -P "${CMAKE_SOURCE_DIR}/scripts/SignMacOSApp.cmake"
+    COMMAND "${CMAKE_COMMAND}" -DAPP_DIR="${CMAKE_BINARY_DIR}/${PROJECT_NAME}.app" -P "${CMAKE_SOURCE_DIR}/scripts/BundleWxWidgetLibraries.cmake"
   )
 
   # CPACK configuration
