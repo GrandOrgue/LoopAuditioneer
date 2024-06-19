@@ -108,9 +108,61 @@ jobs:
         name: LoopAuditioneer-${{github.ref_name}}-windows
         path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
 
+  build-macos-x86:
+    runs-on: macos-13
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Get dependencies
+        run: ${{github.workspace}}/scripts/prepare-osx.sh
+
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+      - name: Build with CMake
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+      - name: Package with CPack
+        working-directory: ${{github.workspace}}/build
+        run: cpack
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LoopAuditioneer-${{github.ref_name}}-macos-x86
+          path: ${{ github.workspace }}/build/LoopAuditioneer*.dmg
+
+  build-macos-arm:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Get dependencies
+        run: ${{github.workspace}}/scripts/prepare-osx.sh
+
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+      - name: Build with CMake
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+      - name: Package with CPack
+        working-directory: ${{github.workspace}}/build
+        run: cpack
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LoopAuditioneer-${{github.ref_name}}-macos-arm
+          path: ${{ github.workspace }}/build/LoopAuditioneer*.dmg
+
   release:
     if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
-    needs: [ build-linux, build-appimage, crossbuild-windows ]
+    needs: [ build-linux, build-appimage, crossbuild-windows, build-macos-x86, build-macos-arm ]
     name: Create GitHub Release
     runs-on: ubuntu-latest
     steps:
@@ -128,6 +180,14 @@ jobs:
       with:
         name: LoopAuditioneer-${{github.ref_name}}-windows
 
+    - uses: actions/download-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-macos-x86
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-macos-arm
+
     - name: Remove Starting v From Tag
       id: remove_v
       run: |
@@ -144,4 +204,5 @@ jobs:
           LoopAuditioneer-${{env.release_version}}-linux.x86_64.tar.gz
           LoopAuditioneer-${{env.release_version}}.x86_64.AppImage
           LoopAuditioneer-${{env.release_version}}-windows.x86_64.zip
-
+          LoopAuditioneer-${{env.release_version}}-macOS.x86_64.dmg
+          LoopAuditioneer-${{env.release_version}}-macOS.arm64.dmg

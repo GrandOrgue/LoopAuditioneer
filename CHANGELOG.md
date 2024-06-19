@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Possibility to inspect and adjust cue position similar to looppoint overlay. (TODO)
 - Possibility to adjust cue position on sample level detail. (TODO)
-- Builds for macOs. (TODO)
+- Builds for macOS.
 - Config file setting for preferred pitch method.
 - Config file setting for spectrum FFT size.
 - Config file setting for spectrum window type.

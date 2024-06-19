@@ -45,7 +45,7 @@ make install
 ## AppImage
 
 For an AppImage target you have to have some additional tools installed, the
-prepare-ubuntu-appimage.sh in scripts/ directory have the details. The main 
+prepare-ubuntu-appimage.sh in scripts/ directory have the details. The main
 difference to the normal build is that you have to drop Jack support which
 results in this set of commands:
 
@@ -98,3 +98,24 @@ directory:
 ```
 cpack
 ```
+
+## Compiling LoopAuditioneer for macOS
+
+Install [XCode](https://developer.apple.com/xcode) and the [XCode Command Line Tools](https://developer.apple.com/xcode/resources).
+
+Install the required packages with [Homebrew](https://brew.sh):
+
+```
+brew install autoconf autoconf-archive autogen automake libtool pkg-config wxwidgets
+```
+
+Once all build dependencies are fulfilled, the build process is simple. Enter the following commands in the downloaded source code root directory:
+
+```
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make
+```
+
+If no errors occur, the binary will be created in the bin/ subdirectory of build/ and can be run directly from that directory.
