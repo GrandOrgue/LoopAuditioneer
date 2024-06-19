@@ -129,6 +129,7 @@ void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bo
   m_grid->SetReadOnly(index, 2);
   m_grid->SetCellValue(index , 3, dur);
   m_grid->SetReadOnly(index, 3);
+  m_grid->SetCellAlignment(index, 4, wxALIGN_CENTRE, wxALIGN_CENTRE);
   m_grid->SetCellValue(index, 4, boolValue);
 
   m_grid->AutoSizeColumns(false);
@@ -156,7 +157,7 @@ void MyPanel::FillRowWithCueData(unsigned int id, unsigned int position, bool sa
   m_cueGrid->SetReadOnly(index, 0);
   m_cueGrid->SetCellValue(index , 1, pos);
   m_cueGrid->SetReadOnly(index, 1);
- 
+  m_cueGrid->SetCellAlignment(index, 2, wxALIGN_CENTRE, wxALIGN_CENTRE);
   m_cueGrid->SetCellValue(index, 2, boolValue);
 
   m_cueGrid->AutoSizeColumns(false);
