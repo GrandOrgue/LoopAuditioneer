@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Possibility to inspect and adjust cue position similar to looppoint overlay. (TODO)
 - Possibility to adjust cue position on sample level detail. (TODO)
+
+### Changed
+
+- Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
+
+## [0.11.0] - 2024-06-19
+
+### Added
+
 - Builds for macOS.
 - Config file setting for preferred pitch method.
 - Config file setting for spectrum FFT size.
@@ -22,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
 - Batch process naming "Kill" loops/cues to "Remove" instead.
 - Loop overlay drawing on separate wxPanel.
 

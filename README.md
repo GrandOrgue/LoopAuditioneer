@@ -58,18 +58,23 @@ In the resources/free-pixel-icons/ directory resides the icons used by the
 program for the toolbar. The complete set is available at 
 http://www.small-icons.com/packs/24x24-free-pixel-icons.htm and distributed
 under a Creative Commons 3.0 license. The icons in resources/icons are created
-by the author (Lars Palo).
+by the author (Lars Palo) except for the macOS adaptation which was done by
+[vpoguru](https://github.com/vpoguru).
 
 ## Building
 
 Basic compilation instructions are available in the BUILD.md file. At the
 moment the program is developed and mostly tested under Linux (Ubuntu 20.04) 64
 bit. The Windows binaries are produced by cross-compilation with
-x86_64-w64-mingw32.
+x86_64-w64-mingw32. Since june 2024 builds for macOS, both Intel and arm64 are
+also available. All releases of this software here on Github are created on
+action runners on Github.
 
 LoopAuditioneer requires wxWidgets 3.0+, available at http://www.wxwidgets.org/.
 The repository unicode version of wxWidgets that Ubuntu offer should work as
-well. Other build dependencies are documented in the BUILD.md file.
+well. Other build dependencies are documented in the BUILD.md file. Both macOS
+and Windows builds have wxWidgets included in them which means that they need
+nothing extra installed in order to run.
 
 ## Help and documentation
 

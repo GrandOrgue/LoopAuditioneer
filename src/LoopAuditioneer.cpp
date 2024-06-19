@@ -1,7 +1,7 @@
 /* 
  * LoopAuditioneer is a tool for evaluating loops (and cues) in wav files
  * especially useful for samples intended for organ samplesets
- * Copyright (C) 2011-2024 Lars Palo 
+ * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file) 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
