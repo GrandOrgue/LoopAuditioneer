@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
 
+### Fixed
+
+- Bug that could cause a crash when trying to auto detect sustain section.
+
 ## [0.11.0] - 2024-06-19
 
 ### Added

@@ -1089,19 +1089,23 @@ void FileHandling::CalculateSustainStartAndEnd() {
     // max values get no larger than one half of maxvalue in both directions
     // we start searching backwards from max index
     double lastValue = maxValue;
-    double middleValue = fabs(ch_data[indexWithMaxValue + 1]);
+    double middleValue = lastValue;
+    if (indexWithMaxValue < numberOfSamples - 2)
+      middleValue = fabs(ch_data[indexWithMaxValue + 1]);
     std::vector<std::pair<unsigned, double> > absolutePeaks;
-    for (unsigned i = indexWithMaxValue + 2; i < numberOfSamples; i++) {
-      double currentValue = fabs(ch_data[i]);
-      if (middleValue > currentValue && middleValue > lastValue) {
-        // we have a peak
-        absolutePeaks.push_back(std::make_pair(i - 1, middleValue));
+    if (indexWithMaxValue < numberOfSamples - 3) {
+      for (unsigned i = indexWithMaxValue + 2; i < numberOfSamples; i++) {
+        double currentValue = fabs(ch_data[i]);
+        if (middleValue > currentValue && middleValue > lastValue) {
+          // we have a peak
+          absolutePeaks.push_back(std::make_pair(i - 1, middleValue));
 
-        lastValue = middleValue;
-        middleValue = currentValue;
-      } else {
-        lastValue = middleValue;
-        middleValue = currentValue;
+          lastValue = middleValue;
+          middleValue = currentValue;
+        } else {
+          lastValue = middleValue;
+          middleValue = currentValue;
+        }
       }
     }
 
@@ -1120,19 +1124,22 @@ void FileHandling::CalculateSustainStartAndEnd() {
 
     // now we search forwards from max index
     lastValue = maxValue;
-    middleValue = fabs(ch_data[indexWithMaxValue - 1]);
+    if (indexWithMaxValue > 0)
+      middleValue = fabs(ch_data[indexWithMaxValue - 1]);
     absolutePeaks.clear();
-    for (unsigned i = indexWithMaxValue - 2; i > 0; i--) {
-      double currentValue = fabs(ch_data[i]);
-      if (middleValue > currentValue && middleValue > lastValue) {
-        // we have a peak
-        absolutePeaks.push_back(std::make_pair(i + 1, middleValue));
+    if (indexWithMaxValue > 2) {
+      for (unsigned i = indexWithMaxValue - 2; i > 0; i--) {
+        double currentValue = fabs(ch_data[i]);
+        if (middleValue > currentValue && middleValue > lastValue) {
+          // we have a peak
+          absolutePeaks.push_back(std::make_pair(i + 1, middleValue));
 
-        lastValue = middleValue;
-        middleValue = currentValue;
-      } else {
-        lastValue = middleValue;
-        middleValue = currentValue;
+          lastValue = middleValue;
+          middleValue = currentValue;
+        } else {
+          lastValue = middleValue;
+          middleValue = currentValue;
+        }
       }
     }
 
