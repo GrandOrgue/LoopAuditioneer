@@ -35,6 +35,36 @@ jobs:
         name: LoopAuditioneer-${{github.ref_name}}-linux
         path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
 
+  build-linux-wx32:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Get dependencies
+      run: ${{github.workspace}}/scripts/prepare-debian-ubuntu-wx32.sh
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Package
+      working-directory: ${{github.workspace}}/build
+      run: cpack
+
+    - name: Rename
+      working-directory: ${{github.workspace}}/build
+      run: for file in LoopAuditioneer*.tar.gz ; do mv $file ${file//LoopAuditioneer/LoopAuditioneer-wx32} ; done
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-linux-wx32
+        path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
+
   build-appimage:
     runs-on: ubuntu-20.04
 
@@ -174,6 +204,10 @@ jobs:
 
     - uses: actions/download-artifact@v4
       with:
+        name: LoopAuditioneer-${{github.ref_name}}-linux-wx32
+
+    - uses: actions/download-artifact@v4
+      with:
         name: LoopAuditioneer-${{github.ref_name}}-AppImage
 
     - uses: actions/download-artifact@v4
@@ -202,6 +236,7 @@ jobs:
         body: Release files created from GitHub action runners.
         files: |
           LoopAuditioneer-${{env.release_version}}-linux.x86_64.tar.gz
+          LoopAuditioneer-wx32-${{env.release_version}}-linux.x86_64.tar.gz
           LoopAuditioneer-${{env.release_version}}.x86_64.AppImage
           LoopAuditioneer-${{env.release_version}}-windows.x86_64.zip
           LoopAuditioneer-${{env.release_version}}-macOS.x86_64.dmg
