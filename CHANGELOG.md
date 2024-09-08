@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Bug that could cause a crash when trying to auto detect sustain section.
+- Regression in LoopOverlay dialog that didn't take size changes into account for adjusting max number of samples to display.
 
 ## [0.11.0] - 2024-06-19
 

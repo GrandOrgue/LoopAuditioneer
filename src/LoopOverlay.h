@@ -52,6 +52,7 @@ public:
   ~LoopOverlay();
 
   bool GetHasChanged();
+  void SetSampleSpinnerValues();
 
 private:
   LoopOverlayPanel *m_drawingPanel;
@@ -72,7 +73,6 @@ private:
   void UpdateSpinners();
   void OnLoopStartChange(wxSpinEvent& event);
   void OnLoopEndChange(wxSpinEvent& event);
-  void SetSampleSpinnerValues();
   void OnWaveLengthChange(wxSpinEvent& event);
   void OnStoreChanges(wxCommandEvent& event);
   void SetSaveButtonState();

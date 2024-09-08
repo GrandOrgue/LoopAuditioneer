@@ -19,6 +19,7 @@
  */
 
 #include "LoopOverlayPanel.h"
+#include "LoopOverlay.h"
 
 BEGIN_EVENT_TABLE(LoopOverlayPanel, wxPanel)
   EVT_SIZE(LoopOverlayPanel::OnSize)
@@ -280,4 +281,7 @@ void LoopOverlayPanel::PaintNow() {
 
 void LoopOverlayPanel::OnSize(wxSizeEvent& WXUNUSED(event)) {
   Refresh();
+  LoopOverlay *my_parent = wxDynamicCast(this->GetParent(), LoopOverlay);
+  if (my_parent)
+    my_parent->SetSampleSpinnerValues();
 }
