@@ -712,18 +712,26 @@ void WaveformDrawer::OnMouseMotion(wxMouseEvent& WXUNUSED(event)) {
             m_sustainsection_rect.xExtent += (m_prev_x - mouseX);
             m_sustainsection_rect.xPosLeft -= (m_prev_x - mouseX);
             outlineHasChanged = true;
-          } else if (mouseX > m_prev_x && m_sustainsection_rect.xPosLeft < (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - 5)) {
-            m_sustainsection_rect.xExtent -= (mouseX - m_prev_x);
-            m_sustainsection_rect.xPosLeft += (mouseX - m_prev_x);
-            outlineHasChanged = true;
+          } else if (mouseX > m_prev_x && ((double) m_sustainsection_rect.xExtent / trackWidth * 100 + 0.5 > 1.0f)) {
+            if ((m_sustainsection_rect.xExtent - (mouseX - m_prev_x)) / (double) trackWidth * 100 + 0.5 > 1.0f) {
+              m_sustainsection_rect.xExtent -= (mouseX - m_prev_x);
+              m_sustainsection_rect.xPosLeft += (mouseX - m_prev_x);
+              outlineHasChanged = true;
+            } else {
+              outlineHasChanged = false;
+            }
           } else {
             outlineHasChanged = false;
           }
           m_prev_x = mouseX;
         } else if (withinRightChangeBorder) {
-          if (mouseX < m_prev_x && (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) > (m_sustainsection_rect.xPosLeft + 4)) {
-            m_sustainsection_rect.xExtent -= (m_prev_x - mouseX);
-            outlineHasChanged = true;
+          if (mouseX < m_prev_x && (m_sustainsection_rect.xExtent / (double) trackWidth * 100 > 1.0f)) {
+            if ((m_sustainsection_rect.xExtent - (m_prev_x - mouseX)) / (double) trackWidth * 100 > 1.0f) {
+              m_sustainsection_rect.xExtent -= (m_prev_x - mouseX);
+              outlineHasChanged = true;
+            } else {
+              outlineHasChanged = false;
+            }
           } else if (mouseX > m_prev_x && (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent) < (leftMargin + trackWidth)) {
             m_sustainsection_rect.xExtent += (mouseX - m_prev_x);
             outlineHasChanged = true;
