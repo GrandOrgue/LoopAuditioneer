@@ -585,54 +585,68 @@ void MyFrame::OnSaveFileAs(wxCommandEvent& WXUNUSED(event)) {
 
 void MyFrame::OnStartPlay(wxCommandEvent& WXUNUSED(event)) {
   m_sound->OpenAudioStream();
-  m_timer.Start(50);
-  // if it's a loop make sure start position is set to start of data
-  // or to within the loop if that option is ticked
-  if (m_panel->m_grid->IsSelection()) {
-    // set the currently selected loops positions and prepare for playback
-    LOOPDATA currentLoop;
-    wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
-    int firstSelected = selectedRows[0];
-    m_audiofile->m_loops->GetLoopData(firstSelected, currentLoop);
-    m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
-    if (!m_loopOnly) {
-      m_sound->SetStartPosition(0, m_audiofile->m_channels);
-      m_waveform->SetPlayPosition(0);
-    } else {
-      if (((double) (currentLoop.dwEnd - currentLoop.dwStart)) / (double) m_audiofile->GetSampleRate() > 0.5) {
-        unsigned pos = currentLoop.dwEnd - (m_audiofile->GetSampleRate() / 2);
-        if (m_sound->StreamNeedsResampling())
-          m_sound->SetStartPosition(pos * m_resampler->GetRatioUsed(), m_audiofile->m_channels);
-        else
-          m_sound->SetStartPosition(pos, m_audiofile->m_channels);
-        m_waveform->SetPlayPosition(pos);
+  if (m_sound->IsStreamAvailable()) {
+    m_timer.Start(50);
+    // if it's a loop make sure start position is set to start of data
+    // or to within the loop if that option is ticked
+    if (m_panel->m_grid->IsSelection()) {
+      // set the currently selected loops positions and prepare for playback
+      LOOPDATA currentLoop;
+      wxArrayInt selectedRows = m_panel->m_grid->GetSelectedRows();
+      int firstSelected = selectedRows[0];
+      m_audiofile->m_loops->GetLoopData(firstSelected, currentLoop);
+      m_sound->SetLoopPosition(0, currentLoop.dwStart, currentLoop.dwEnd, m_audiofile->m_channels);
+      if (!m_loopOnly) {
+        m_sound->SetStartPosition(0, m_audiofile->m_channels);
+        m_waveform->SetPlayPosition(0);
       } else {
-        if (m_sound->StreamNeedsResampling())
-          m_sound->SetStartPosition(currentLoop.dwStart * m_resampler->GetRatioUsed(), m_audiofile->m_channels);
-        else
-          m_sound->SetStartPosition(currentLoop.dwStart, m_audiofile->m_channels);
-        m_waveform->SetPlayPosition(currentLoop.dwStart);
+        if (((double) (currentLoop.dwEnd - currentLoop.dwStart)) / (double) m_audiofile->GetSampleRate() > 0.5) {
+          unsigned pos = currentLoop.dwEnd - (m_audiofile->GetSampleRate() / 2);
+          if (m_sound->StreamNeedsResampling())
+            m_sound->SetStartPosition(pos * m_resampler->GetRatioUsed(), m_audiofile->m_channels);
+          else
+            m_sound->SetStartPosition(pos, m_audiofile->m_channels);
+          m_waveform->SetPlayPosition(pos);
+        } else {
+          if (m_sound->StreamNeedsResampling())
+            m_sound->SetStartPosition(currentLoop.dwStart * m_resampler->GetRatioUsed(), m_audiofile->m_channels);
+          else
+            m_sound->SetStartPosition(currentLoop.dwStart, m_audiofile->m_channels);
+          m_waveform->SetPlayPosition(currentLoop.dwStart);
+        }
       }
     }
-  }
 
-  // if it's a cue make sure start position is set to the selected cue's dwPosition
-  if (m_panel->m_cueGrid->IsSelection()) {
-    CUEPOINT currentCue;
-    m_audiofile->m_cues->GetCuePoint(m_panel->m_cueGrid->GetGridCursorRow(), currentCue);
-    if (m_sound->StreamNeedsResampling()) {
-      m_sound->SetStartPosition(currentCue.dwSampleOffset * m_resampler->GetRatioUsed(), m_audiofile->m_channels);
-    } else {
-      m_sound->SetStartPosition(currentCue.dwSampleOffset, m_audiofile->m_channels);
+    // if it's a cue make sure start position is set to the selected cue's dwPosition
+    if (m_panel->m_cueGrid->IsSelection()) {
+      CUEPOINT currentCue;
+      m_audiofile->m_cues->GetCuePoint(m_panel->m_cueGrid->GetGridCursorRow(), currentCue);
+      if (m_sound->StreamNeedsResampling()) {
+        m_sound->SetStartPosition(currentCue.dwSampleOffset * m_resampler->GetRatioUsed(), m_audiofile->m_channels);
+      } else {
+        m_sound->SetStartPosition(currentCue.dwSampleOffset, m_audiofile->m_channels);
+      }
+      m_waveform->SetPlayPosition(currentCue.dwSampleOffset);
     }
-    m_waveform->SetPlayPosition(currentCue.dwSampleOffset);
-  }
 
-  toolBar->EnableTool(START_PLAYBACK, false);
-  toolBar->EnableTool(wxID_STOP, true);
-  transportMenu->Enable(START_PLAYBACK, false);
-  transportMenu->Enable(wxID_STOP, true);
-  m_sound->StartAudioStream();
+    toolBar->EnableTool(START_PLAYBACK, false);
+    toolBar->EnableTool(wxID_STOP, true);
+    transportMenu->Enable(START_PLAYBACK, false);
+    transportMenu->Enable(wxID_STOP, true);
+    m_sound->StartAudioStream();
+  } else {
+    toolBar->EnableTool(START_PLAYBACK, false);
+    toolBar->EnableTool(wxID_STOP, false);
+    transportMenu->Enable(START_PLAYBACK, false);
+    transportMenu->Enable(wxID_STOP, false);
+    wxMessageDialog *dialog = new wxMessageDialog(
+      NULL,
+      m_sound->GetLastError(),
+      wxT("Please check audio settings!"),
+      wxOK | wxICON_ERROR
+    );
+    dialog->ShowModal();
+  }
 }
 
 void MyFrame::OnStopPlay(wxCommandEvent& WXUNUSED(event)) {
@@ -1828,13 +1842,13 @@ void MyFrame::OnListInfo(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void MyFrame::OnAudioSettings(wxCommandEvent& WXUNUSED(event)) {
+  if (m_sound->IsStreamActive()) {
+    // if audio is playing we must reset things
+    DoStopPlay();
+  }
   AudioSettingsDialog audioDlg(m_sound, this);
 
   if (audioDlg.ShowModal() == wxID_OK) {
-    if (m_sound->IsStreamActive()) {
-      // if audio is playing we must reset things
-      DoStopPlay();
-    }
     audioDlg.TransferDataFromWindow();
     m_sound->SetApiToUse(RtAudio::getCompiledApiByName(std::string(audioDlg.GetSoundApi().mb_str())));
     m_sound->SetAudioDevice(audioDlg.GetSoundDeviceId());

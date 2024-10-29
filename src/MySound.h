@@ -36,6 +36,7 @@ public:
   unsigned int GetDevice();
   unsigned int GetSampleRateToUse();
   unsigned int GetChannelsUsed();
+  wxString GetLastError();
   void SetSampleRate(int sampleRate);
   void SetAudioFormat(int audioFormat);
   void SetChannels(int channels);
@@ -46,6 +47,8 @@ public:
   void SetLoopPosition(unsigned int currentPos, unsigned int lStart, unsigned int lEnd, int n_channels);
   void SetStartPosition(unsigned int startPos, int n_channels);
   bool IsStreamActive();
+  bool IsStreamAvailable();
+  bool IsJackUsed();
   bool StreamNeedsResampling();
   unsigned int pos[3]; // Used to keep track of position. [0] = current position, [1] = loop start, [2] = loop end
   std::vector< RtAudio::Api > m_availableApis;
@@ -63,6 +66,7 @@ private:
   wxString m_api;
   bool m_needsResampling;
   wxString m_lastError;
+  bool m_isJackUsed;
 };
 
 #endif

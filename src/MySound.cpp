@@ -24,11 +24,19 @@
 #include <algorithm>
 #include <climits>
 
-MySound::MySound(wxString apiName, unsigned int deviceID) : m_audio(NULL), fmt(RTAUDIO_FLOAT32), bufferFrames(1024), sampleRateToUse(0) {
+MySound::MySound(wxString apiName, unsigned int deviceID) : m_audio(NULL), fmt(RTAUDIO_FLOAT32), bufferFrames(1024), sampleRateToUse(0), m_lastError(wxEmptyString) {
   for (int i = 0; i < 3; i++)
     pos[i] = 0;
 
   RtAudio::getCompiledApi(m_availableApis);
+
+  m_isJackUsed = false;
+  if (std::find(m_availableApis.begin(), m_availableApis.end(), RtAudio::Api::UNIX_JACK) != m_availableApis.end()) {
+    RtAudio testForJack(RtAudio::Api::UNIX_JACK);
+    if (testForJack.getDeviceCount() > 0)
+      m_isJackUsed = true;
+  }
+
   SetApiToUse(RtAudio::getCompiledApiByName(std::string(apiName.mb_str())));
   SetAudioDevice(deviceID);
   m_needsResampling = false;
@@ -45,15 +53,22 @@ void MySound::SetApiToUse(RtAudio::Api api) {
     delete m_audio;
     m_audio = 0;
   }
-  if (std::find(m_availableApis.begin(), m_availableApis.end(), api) != m_availableApis.end()) {
-    // the api should be valid
-    m_audio = new RtAudio(api);
+
+  if (!m_isJackUsed) {
+    if (std::find(m_availableApis.begin(), m_availableApis.end(), api) != m_availableApis.end() && api != RtAudio::Api::UNIX_JACK) {
+      // the api should be valid
+      m_audio = new RtAudio(api);
+    } else {
+      // use default api UNSPECIFIED as the asked api isn't currently valid
+      m_audio = new RtAudio();
+    }
   } else {
-    // use default api UNSPECIFIED
-    m_audio = new RtAudio();
+    // since Jack obviously anyway is available and used we just set that api
+    m_audio = new RtAudio(RtAudio::Api::UNIX_JACK);
   }
   std::string api_str = RtAudio::getApiName(m_audio->getCurrentApi());
   m_api = wxString(api_str);
+
 }
 
 void MySound::SetAudioDevice(unsigned int devID) {
@@ -66,13 +81,15 @@ void MySound::SetAudioDevice(unsigned int devID) {
       // just use the default device
       m_deviceID = m_audio->getDefaultOutputDevice();
     }
-    parameters.deviceId = m_deviceID;
-    info = m_audio->getDeviceInfo(m_deviceID);
   } else {
-    // we must try using default Api and device instead
+    // we must try using default Api and device instead which might be invalid
     SetApiToUse(RtAudio::UNSPECIFIED);
-    SetAudioDevice(m_audio->getDefaultOutputDevice());
+    m_deviceID = m_audio->getDefaultOutputDevice();
   }
+
+  parameters.deviceId = m_deviceID;
+  info = m_audio->getDeviceInfo(m_deviceID);
+  options.streamName = "LoopAuditioneer";
 }
 
 void MySound::SetSampleRate(int sampleRate) {
@@ -109,6 +126,7 @@ void MySound::OpenAudioStream() {
   } else {
     // Some kind of error has happened
     m_lastError = wxString(m_audio->getErrorText());
+    m_audio->abortStream();
   }
 }
 
@@ -119,6 +137,7 @@ void MySound::StartAudioStream() {
   } else {
     // Some kind of error has happened
     m_lastError = wxString(m_audio->getErrorText());
+    m_audio->abortStream();
   }
 }
 
@@ -130,6 +149,7 @@ void MySound::StopAudioStream() {
     } else {
       // Some kind of error has happened
       m_lastError = wxString(m_audio->getErrorText());
+      m_audio->abortStream();
     }
   }
 }
@@ -170,6 +190,10 @@ bool MySound::IsStreamActive() {
   }
 }
 
+bool MySound::IsStreamAvailable() {
+  return m_audio->isStreamOpen();
+}
+
 wxString MySound::GetApi() {
   return m_api;
 }
@@ -190,3 +214,10 @@ unsigned int MySound::GetChannelsUsed() {
   return m_channelsUsed;
 }
 
+wxString MySound::GetLastError() {
+  return m_lastError;
+}
+
+bool MySound::IsJackUsed() {
+  return m_isJackUsed;
+}
