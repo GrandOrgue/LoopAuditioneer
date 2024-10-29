@@ -355,9 +355,9 @@ bool FileHandling::GetSpectrum(double *outInDb, unsigned fftSize, int windowType
       window[i] = 1.0f;
     }
 
-    // Apply a window to the in data
+    // Create a window that will be applied to the in data later
     if (windowType > 0)
-      WindowFunc(windowType, fftSize, input);
+      WindowFunc(windowType, fftSize, window);
 
     // Scale window so an amplitude of 1.0 equals to 0 dB
     double winScale = 0;

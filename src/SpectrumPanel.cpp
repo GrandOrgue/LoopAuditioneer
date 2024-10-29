@@ -228,12 +228,26 @@ double SpectrumPanel::InterpolateHz(unsigned centerBinIndex) {
 
   double pitchToReturn;
 
-  double centerPeakBin;
+  if (centerBinIndex > 2 && centerBinIndex < m_fftSize / 2 - 4) {
+    // Estimate frequency as weighted average
+    double fS = (double) m_sampleRate / m_fftSize;
+    double pNumenator = 0;
+    double pDenominator = 0;
+    for (int i = -3; i < 4; i++) {
+      pNumenator += (m_fftData[centerBinIndex + i] * (centerBinIndex + i) * fS);
+      pDenominator += m_fftData[centerBinIndex + i];
+    }
+    pitchToReturn = pNumenator / pDenominator;
 
-  centerPeakBin = (m_fftData[centerBinIndex + 1] - m_fftData[centerBinIndex - 1]) / (2 * ( 2 * m_fftData[centerBinIndex] - m_fftData[centerBinIndex - 1] - m_fftData[centerBinIndex + 1]));
-  pitchToReturn = (centerBinIndex + centerPeakBin) * m_sampleRate / (double) m_fftSize;
+    return pitchToReturn;
+  } else {
+    // Use cubic interpolation
+    double centerPeakBin;
+    centerPeakBin = (m_fftData[centerBinIndex + 1] - m_fftData[centerBinIndex - 1]) / (2 * ( 2 * m_fftData[centerBinIndex] - m_fftData[centerBinIndex - 1] - m_fftData[centerBinIndex + 1]));
+    pitchToReturn = (centerBinIndex + centerPeakBin) * m_sampleRate / (double) m_fftSize;
 
-  return pitchToReturn;
+    return pitchToReturn;
+  }
 }
 
 void SpectrumPanel::OnPaintEvent(wxPaintEvent& WXUNUSED(event)) {
