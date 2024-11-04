@@ -42,6 +42,21 @@ typedef struct {
   wxDateTime creation_date;
 } WAV_LIST_INFO;
 
+class SpectrumPeak {
+public:
+  SpectrumPeak() {
+    m_binNbr = 0;
+    m_dB = -200;
+    m_pitch = 0;
+    m_harmonicQuality = 0;
+  }
+  unsigned m_binNbr;
+  double m_dB;
+  double m_pitch;
+  std::vector<unsigned> m_matchingHarmonics;
+  double m_harmonicQuality;
+};
+
 class FileHandling {
 public:
   FileHandling(wxString fileName, wxString path);

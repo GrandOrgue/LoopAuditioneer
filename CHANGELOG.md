@@ -16,11 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
 
+## [0.11.1] - 2024-11-04
+
+### Changed
+
+- FFT pitch detection algorithms to take both individaul peaks and their harmonic relations into account.
+- Pitch detection in time domain to exclude values that are wildly off when finally averaging the detected pitch.
+
 ### Fixed
 
 - Bug that could cause a crash when trying to auto detect sustain section.
 - Regression in LoopOverlay dialog that didn't take size changes into account for adjusting max number of samples to display.
 - Bug that could cause a crash when adjusting sustain section on waveform manually.
+- Bug in the GetSpectrum function in FileHandling.cpp that could cause a crash.
 
 ## [0.11.0] - 2024-06-19
 

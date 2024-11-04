@@ -370,7 +370,7 @@ bool FileHandling::GetSpectrum(double *outInDb, unsigned fftSize, int windowType
 
     for (unsigned i = 0; i < waveTracks.size(); i++) {
       unsigned currentStartIdx = 0;
-      while (currentStartIdx < (waveTracks[i].waveData.size() - (fftSize + halfFFTsize))) {
+      while (currentStartIdx + fftSize < waveTracks[i].waveData.size()) {
         // Fill this input window with audio data from current channel
         for (unsigned j = 0; j < fftSize; j++) {
           input[j] = window[j] * waveTracks[i].waveData[currentStartIdx + j];
@@ -409,259 +409,218 @@ bool FileHandling::GetSpectrum(double *outInDb, unsigned fftSize, int windowType
 }
 
 bool FileHandling::DetectPitchByFFT() {
-  std::vector<double> detectedPitches;
-  std::vector<double> harmonicProductPitches;
-  unsigned numberOfSamples = ArrayLength / m_channels;
-  std::pair <unsigned, unsigned> sustainStartAndEnd;
-  sustainStartAndEnd.first = 0;
-  sustainStartAndEnd.second = 0;
-  double *channel_data = new double[numberOfSamples];
-
-  // Get channel data
-  SeparateStrongestChannel(channel_data);
-
-  // Get sustainsection start and end
-  sustainStartAndEnd.first = m_autoSustainStart;
-  sustainStartAndEnd.second = m_autoSustainEnd;
-
-  // Check if sustainsection is not valid and abort if so
-  if (sustainStartAndEnd.first == 0 && sustainStartAndEnd.second == 0) {
-    delete[] channel_data;
+  if (waveTracks[0].waveData.size() < 1024) {
+    // the file doesn't contain enough data...
+    m_fftPitch = 0;
+    m_fftHPS = 0;
     return false;
   }
 
-  // find out how large the analyze window can be
-  unsigned analyzeWindowSize = 2;
-  bool keepIncreasing = true;
-  while (keepIncreasing) {
-    if (analyzeWindowSize * 2 < sustainStartAndEnd.second - sustainStartAndEnd.first) {
-      if (analyzeWindowSize < m_samplerate) {
-        if (analyzeWindowSize < 65536)
-          analyzeWindowSize *= 2;
-        else
-          keepIncreasing = false;
-      } else {
-        keepIncreasing = false;
-      }
+  unsigned fftSize = 131072;
+  bool foundLargestSize = false;
+  while (!foundLargestSize) {
+    if (fftSize < waveTracks[0].waveData.size()) {
+      foundLargestSize = true;
     } else {
-      keepIncreasing = false;
+      fftSize /= 2;
     }
   }
 
-  // if not more than one window will be analyzed put it in the middle
-  if ((sustainStartAndEnd.second - sustainStartAndEnd.first) / analyzeWindowSize < 2) {
-    sustainStartAndEnd.first += (sustainStartAndEnd.second - sustainStartAndEnd.first - analyzeWindowSize) / 2;
-  }
+  unsigned halfSize = fftSize / 2;
+  double *pwrSpec = new double[halfSize];
 
-  double *in = new double[analyzeWindowSize];
-
-  int originalSize = analyzeWindowSize / 2;
-
-  double *out = new double[originalSize];
-  double *hps = new double[originalSize];
-  double *outInDb = new double[originalSize];
-   
-  unsigned current_idx = sustainStartAndEnd.first;
-
-  while (current_idx < sustainStartAndEnd.second - analyzeWindowSize) {
-    // fill in array
-    unsigned index = 0;
-    for (unsigned x = current_idx; x < current_idx + analyzeWindowSize; x++) {
-      in[index] = channel_data[x];
-      index++;
-    }
-
-    // Apply a Gaussian window to the in data
-    WindowFunc(9, analyzeWindowSize, in);
-
-    // Perform the FFT
-    PowerSpectrum(analyzeWindowSize, in, out);
-
-    // copy to hps
-    for (int i = 0; i < originalSize; i++)
-      hps[i] = out[i];
-
-    // Normalize output magnitude between 0 and 1
-    double maxValuePreNorm = 0;
-    for (int i = 0; i < originalSize; i++) {
-      double temp = out[i];
-      if (temp > maxValuePreNorm)
-        maxValuePreNorm = temp;
-    }
-
-    // Convert to decibels (normalized)
-    for (int i = 0; i < originalSize; i++) {
-      double temp = out[i] / maxValuePreNorm;
-      outInDb[i] = 10 * log10(temp);
-    }
-
-    // Find greatest peak
-    double maxPeakValue = -DBL_MAX;
-    int peakIndex = 0;
-
-    for (int x = 0; x < originalSize; x++) {
-      double currentValue = outInDb[x];
-      if (currentValue > maxPeakValue) {
-        maxPeakValue = currentValue;
-        peakIndex = x;
-      }
-    }
-
-    // search if there are earlier peaks that could be the fundamental
-    std::vector<unsigned> allPeaksToConsider;
-    double middleValue = outInDb[1];
-    double lastValue = outInDb[0];
-    for (int x = 2; x < peakIndex; x++) {
-      double currentValue = outInDb[x];
-      if (middleValue > currentValue && middleValue > lastValue) {
-        // it's a peak but should it be considered?
-        if (middleValue > (maxPeakValue - 36)) {
-          // yes, add it to the vector
-          allPeaksToConsider.push_back(x - 1);
-          lastValue = middleValue;
-          middleValue = currentValue;
-        } else {
-          // no, just continue
-          lastValue = middleValue;
-          middleValue = currentValue;
+  if (GetSpectrum(pwrSpec, fftSize, 3)) {
+    // fft data is now available in pwrSpec array already as dB values
+    // so we store all peaks and get largest (greatest) peak in one go
+    std::vector<SpectrumPeak> allPeaks;
+    double peakDb = -200;
+    unsigned peakBin = 0;
+    unsigned peakIdx = 0;
+    double peakPitch = 0;
+    for (unsigned i = 0; i < halfSize; i++) {
+      // only care for storing peaks that are above -90 dB
+      if (pwrSpec[i] > -90.0f && i > 0 && i < halfSize - 1) {
+        if (pwrSpec[i] > pwrSpec[i - 1] && pwrSpec[i] > pwrSpec[i + 1]) {
+          // this bin is a peak
+          SpectrumPeak peak;
+          peak.m_binNbr = i;
+          peak.m_dB = pwrSpec[i];
+          peak.m_pitch = i * (double) m_samplerate / fftSize;
+          allPeaks.push_back(peak);
         }
-      } else {
-        lastValue = middleValue;
-        middleValue = currentValue;
+      }
+      // next comes storing the greatest peak that is expected to be significant
+      if (pwrSpec[i] > peakDb && i > 0 && allPeaks.size() > 0) {
+        peakDb = pwrSpec[i];
+        peakBin = i;
+        peakIdx = allPeaks.size() - 1;
+        peakPitch = allPeaks[peakIdx].m_pitch;
       }
     }
-    if ((allPeaksToConsider.empty() == false) && (allPeaksToConsider.size() > 1)) {
-      // sort the vector so that strongest peak is first
-      for (unsigned i = 0; i < allPeaksToConsider.size() - 1; i++) {
-        unsigned best = i;
-        // find highest peak among i to allPeaksToConsider.size() - 1
-        for (unsigned j = i + 1; j < allPeaksToConsider.size(); j++) {
-          if (outInDb[ allPeaksToConsider[j] ] > outInDb[ allPeaksToConsider[best] ])
-            best = j;
+
+    // initially we set the possible fundamental to the largest peak
+    unsigned possibleF0 = peakIdx;
+
+    if (peakIdx > 0 && allPeaks.size()) {
+      // each peak up to and including max peak should be compared for harmonic quality relative to other peaks
+      for (unsigned i = 0; i <= peakIdx; i++) {
+        allPeaks[i].m_harmonicQuality = pow(10, (allPeaks[i].m_dB / 10.0));
+        std::vector<double> harmonicsPitch;
+        for (unsigned j = 2; j < 10; j++) {
+          harmonicsPitch.push_back(allPeaks[i].m_pitch * j);
         }
 
-        // now we switch content of index i and best
-        unsigned tempIndex = allPeaksToConsider[i];
-        allPeaksToConsider[i] = allPeaksToConsider[best];
-        allPeaksToConsider[best] = tempIndex;
+        std::vector<unsigned> candidateHarmonics;
+        for (unsigned j = 0; j < harmonicsPitch.size(); j++) {
+          for (unsigned k = i + 1; k < allPeaks.size(); k++) {
+            // the pitches might not be exact so we allow for 1% variance per subsequent harmonic
+            if (fabs(allPeaks[k].m_pitch - harmonicsPitch[j]) < harmonicsPitch[j] * 0.01 * (j + 1)) {
+              candidateHarmonics.push_back(k);
+            }
+          }
+          if (candidateHarmonics.size() > 1) {
+            // only select the strongest one
+            unsigned strongestCandidate = 0;
+            double dBvalue = allPeaks[candidateHarmonics[0]].m_dB;
+            for (unsigned k = 1; k < candidateHarmonics.size(); k++) {
+              if (allPeaks[candidateHarmonics[k]].m_dB > dBvalue) {
+                dBvalue = allPeaks[candidateHarmonics[k]].m_dB;
+                strongestCandidate = k;
+              }
+            }
+            allPeaks[i].m_matchingHarmonics.push_back(candidateHarmonics[strongestCandidate]);
+            allPeaks[i].m_harmonicQuality += pow(10, (allPeaks[candidateHarmonics[strongestCandidate]].m_dB / 10.0));
+          } else if (candidateHarmonics.size()) {
+            allPeaks[i].m_matchingHarmonics.push_back(candidateHarmonics[0]);
+            allPeaks[i].m_harmonicQuality += pow(10, (allPeaks[candidateHarmonics[0]].m_dB / 10.0));
+          }
+          if (candidateHarmonics.empty()) {
+            allPeaks[i].m_harmonicQuality *= 0.5;
+          } else {
+            candidateHarmonics.clear();
+          }
+        }
+        harmonicsPitch.clear();
       }
-    }
 
-    // this is the max peak that we add last and compare to
-    allPeaksToConsider.push_back(peakIndex);
+      // now we need to look at peaks earlier than peakIdx and decide if there could be a possible fundamental there
+      // we do this by first just checking the harmonic quality itself against the greatest peak and selecting first better one if it exist
+      for (unsigned i = 0; i < peakIdx; i++) {
+        if (10 * log10(allPeaks[i].m_harmonicQuality) > 10 * log10(allPeaks[possibleF0].m_harmonicQuality)) {
+          possibleF0 = i;
+          break;
+        }
+      }
 
-    if (allPeaksToConsider.size() > 1) {
-      // now see if the maxpeak can be a harmonic of any other peak
-      for (long unsigned x = 0; x < allPeaksToConsider.size() - 1; x++) {
-        if (labs((long)(allPeaksToConsider[x] * 2) - (long)peakIndex) < 3) {
-          // peakIndex could be the first harmonic
-          peakIndex = allPeaksToConsider[x];
-          break;
-        } else if (labs((long)(allPeaksToConsider[x] * 3) - (long)peakIndex) < 5) {
-          // peakIndex could be the second harmonic of this one
-          peakIndex = allPeaksToConsider[x];
-          break;
-        } else if (labs((long)(allPeaksToConsider[x] * 3) / 2 - (long)peakIndex) < 4) {
-          // fundamental could just be a fifth lower 
-          peakIndex = allPeaksToConsider[x];
-          break;
+      // then compare by pure number of peak strength against other peaks together with the harmonic quality
+      for (unsigned i = peakIdx - 1; i > 0; i--) {
+        if (i == possibleF0)
+          continue;
+        if (allPeaks[i].m_dB > allPeaks[possibleF0].m_dB - 12 && 10 * log10(allPeaks[i].m_harmonicQuality) > (10 * log10(allPeaks[possibleF0].m_harmonicQuality) - 3)) {
+          possibleF0 = i;
         }
       }
     }
 
-    // translate peakIndex to a frequency and store it
-    double finalFrequency = TranslateIndexToPitch(
-      peakIndex,
-      out[peakIndex - 1],
-      out[peakIndex],
-      out[peakIndex + 1],
-      analyzeWindowSize
-    );
-    detectedPitches.push_back(finalFrequency);
+    if (possibleF0 != peakIdx) {
+      // the possible peak must include strongest peak as a harmonic to be accepted
+      bool peakContainStrongest = false;
+      for (unsigned j = 0; j < allPeaks[possibleF0].m_matchingHarmonics.size(); j++) {
+        if (allPeaks[possibleF0].m_matchingHarmonics[j] == peakIdx)
+          peakContainStrongest = true;
+      }
+      // otherwise we'll just fall back to greatest peak
+      if (!peakContainStrongest) {
+        possibleF0 = peakIdx;
+      }
+    }
+    m_fftPitch = allPeaks[possibleF0].m_pitch;
 
-    allPeaksToConsider.clear();
+    // now try detecting pitch with HPS using 5 harmonics
+    unsigned maxBin = 0;
+    double *original = new double[halfSize];
+    double *downSampled = new double[halfSize];
+    double *hps = new double[halfSize];
 
-    // now try detecting pitch with HPS using 4 harmonics
-    int maxSearchIndex = originalSize / 4;
-    int maxBin = 0;
+    for (unsigned i = 0; i < halfSize; i++) {
+      original[i] = pow(10, (pwrSpec[i] / 10));
+      hps[i] = original[i];
+    }
 
-    for (int i = 0; i < maxSearchIndex; i++) {
-      for (int j = 2; j <= 4; j++)
-        hps[i] *= hps[i * j];
+    for (unsigned i = 2; i < 6; i++) {
+      for (unsigned j = 0; j < halfSize; j++)
+        downSampled[j] = 0;
+      for (unsigned j = 0; j < halfSize / i; j++)
+        downSampled[j] = original[j * i];
+      for (unsigned j = 0; j < halfSize; j++)
+        hps[j] *= downSampled[j];
+    }
 
+    for (unsigned i = 0; i < halfSize; i++) {
       if (hps[i] > hps[maxBin])
         maxBin = i;
     }
 
-    // try fixing possible lower fundamental errors
-    // get strongest peak below up to ca a fourth below
-    int correctMaxBin = 0;
-    int maxsearch = (maxBin * 3) / 4;
-    for (int i = 1; i < maxsearch; i++) {
-      if ((hps[i] > hps[correctMaxBin]) && (abs(i * 2 - maxBin) < 4)) {
-        // this is likely an octave
-        correctMaxBin = i;
-      } else if ((hps[i] > hps[correctMaxBin]) && (abs((i * 3) / 2 - maxBin) < 4)) {
-        // this is likely a fifth
-        correctMaxBin = i;
-      }
+    double hpsSum = 0;
+	double hpsAverage = 0;
+    for (unsigned i = 0; i < maxBin; i++) {
+      hpsSum += hps[i];
     }
+    hpsAverage = hpsSum / maxBin;
 
-    if ((hps[correctMaxBin] / hps[maxBin]) > 0.001)
-      maxBin = correctMaxBin;
-
-    // translate maxBin to a frequency and store it
-    double hpsFrequency = TranslateIndexToPitch(
-      maxBin,
-      hps[maxBin - 1],
-      hps[maxBin],
-      hps[maxBin + 1],
-      analyzeWindowSize
-    );
-    harmonicProductPitches.push_back(hpsFrequency);
-
-    // proceed to next window
-    current_idx += analyzeWindowSize / 2;
-  }
-
-  delete[] in;
-  delete[] out;
-  delete[] hps;
-  delete[] outInDb;
-  delete[] channel_data;
-
-  // try removing obvious pitch error values if still present for hps
-  if (harmonicProductPitches.empty() == false) {
-    for (unsigned i = 0; i < harmonicProductPitches.size() - 1; i++) {
-      for (unsigned j = i + 1; j < harmonicProductPitches.size(); j++) {
-        if (harmonicProductPitches[j] < harmonicProductPitches[i]) {
-          double tempValue = harmonicProductPitches[i];
-          harmonicProductPitches[i] = harmonicProductPitches[j];
-          harmonicProductPitches[j] = tempValue;
+    // try fixing possible lower fundamental errors
+    // get first peak below that's at least twice above the average value
+    int correctMaxBin = 0;
+    bool alternativeFound = false;
+    for (unsigned i = 1; i < maxBin; i++) {
+      if ((hps[i] > hps[i - 1]) && hps[i] > hps[i + 1]) {
+        if (hps[i] > hpsAverage * 2) {
+          alternativeFound = true;
+          correctMaxBin = i;
+          break;
         }
       }
     }
-    for (int i = harmonicProductPitches.size() - 1; i > 0; i--) {
-      if (harmonicProductPitches[i] / harmonicProductPitches[0] > 1.05)
-        harmonicProductPitches.pop_back();
+
+    if (alternativeFound)
+      maxBin = correctMaxBin;
+
+    m_fftHPS = TranslateIndexToPitch(
+      maxBin,
+      original[maxBin - 1],
+      original[maxBin],
+      original[maxBin + 1],
+      fftSize
+    );
+
+    if (original) {
+      delete[] original;
+      original = NULL;
     }
-  }
 
-  if (detectedPitches.empty() == false) {
-    double pitchSum = 0;
-    for (unsigned i = 0; i < detectedPitches.size(); i++)
-      pitchSum += detectedPitches[i];
+    if (downSampled) {
+      delete[] downSampled;
+      downSampled = NULL;
+    }
 
-    m_fftPitch = pitchSum / (double) detectedPitches.size();
+    if (hps) {
+      delete[] hps;
+      hps = NULL;
+    }
 
-    pitchSum = 0;
-    for (unsigned i = 0; i < harmonicProductPitches.size(); i++)
-      pitchSum += harmonicProductPitches[i];
-
-    m_fftHPS = pitchSum / (double) harmonicProductPitches.size();
+    if (pwrSpec) {
+      delete[] pwrSpec;
+      pwrSpec = NULL;
+    }
 
     return true;
   } else {
+    m_fftPitch = 0;
+    m_fftHPS = 0;
+    if (pwrSpec) {
+      delete[] pwrSpec;
+      pwrSpec = NULL;
+    }
     return false;
   }
 }
@@ -683,7 +642,9 @@ double FileHandling::TranslateIndexToPitch(
 }
 
 bool FileHandling::DetectPitchInTimeDomain() {
-  unsigned numberOfSamples = ArrayLength / m_channels;
+  unsigned numberOfSamples = waveTracks[0].waveData.size();
+  if (!numberOfSamples)
+    return false;
   std::pair <unsigned, unsigned> sustainStartAndEnd;
   sustainStartAndEnd.first = 0;
   sustainStartAndEnd.second = 0;
@@ -696,15 +657,18 @@ bool FileHandling::DetectPitchInTimeDomain() {
   sustainStartAndEnd.first = m_autoSustainStart;
   sustainStartAndEnd.second = m_autoSustainEnd;
   
-  // Check if sustainsection is not valid and abort if so
+  // Check if sustainsection is not valid and if so just set the whole channel as sustain
   if (sustainStartAndEnd.first == 0 && sustainStartAndEnd.second == 0) {
-    delete[] channel_data;
-    return false;
+    sustainStartAndEnd.first = 0;
+    sustainStartAndEnd.second = numberOfSamples - 1;
   }
 
-  if (sustainStartAndEnd.second - sustainStartAndEnd.first < 2)
-    return 0; // cannot calculate pitch
+  int startValue = sustainStartAndEnd.first;
+  int endValue = sustainStartAndEnd.second;
+  if (endValue - startValue < 2)
+    return false; // cannot calculate pitch
 
+  // if sustainsection is longer than 2 seconds we limit it
   if (sustainStartAndEnd.second - sustainStartAndEnd.first > m_samplerate * 2)
     sustainStartAndEnd.second = sustainStartAndEnd.first + m_samplerate * 2;
 
@@ -758,12 +722,39 @@ bool FileHandling::DetectPitchInTimeDomain() {
 
   delete[] channel_data;
 
-  if (allDetectedPitches.empty() == false) {
+  if (!allDetectedPitches.empty() && allDetectedPitches.size() > 1) {
     double pitchSum = 0.0;
     for (unsigned i = 0; i < allDetectedPitches.size(); i++)
       pitchSum += allDetectedPitches[i];
 
-    m_timeDomainPitch = pitchSum / allDetectedPitches.size();
+    double meanTdPitch = pitchSum / allDetectedPitches.size();
+
+    double varianceSum = 0;
+    for (unsigned i = 0; i < allDetectedPitches.size(); i++) {
+      varianceSum += pow(allDetectedPitches[i] - meanTdPitch, 2);
+    }
+    double variance = varianceSum / allDetectedPitches.size();
+    double stdDeviation = sqrt(variance);
+
+    std::vector<double> usableValues;
+    for (unsigned i = 0; i < allDetectedPitches.size(); i++) {
+      if (allDetectedPitches[i] > (meanTdPitch - stdDeviation / 2.0) && allDetectedPitches[i] < (meanTdPitch + stdDeviation / 2.0))
+        usableValues.push_back(allDetectedPitches[i]);
+    }
+
+    if (!usableValues.empty()) {
+      pitchSum = 0;
+      for (unsigned i = 0; i < usableValues.size(); i++)
+        pitchSum += usableValues[i];
+
+      m_timeDomainPitch = pitchSum / usableValues.size();
+      return true;
+    } else {
+      m_timeDomainPitch = meanTdPitch; /* Falling back to mean value */
+      return true;
+    }
+  } else if (allDetectedPitches.size() == 1) {
+    m_timeDomainPitch = allDetectedPitches[0];
     return true;
   } else {
     m_timeDomainPitch = 0; /* Couldn't find out the pitch */
