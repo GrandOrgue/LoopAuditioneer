@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file)
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,8 +93,7 @@ void WaveformDrawer::paintEvent(wxPaintEvent& WXUNUSED(event)) {
  
 // Method to call when one wants to force redrawing for playback
 void WaveformDrawer::paintNow() {
-  wxClientDC dc(this);
-  OnPaintPlayPosition(dc);
+  RefreshRect(wxRect(0, 0, leftMargin + trackWidth + rightMargin, 9));
 }
 
 // Here the actual drawing happens when either the panel is resized or something changes
@@ -309,20 +308,6 @@ void WaveformDrawer::OnPaint(wxDC& dc) {
     // draw the indicator for the playposition 
     dc.DrawIcon(playPositionMarker, playPosition, 1);
   }
-}
-
-void WaveformDrawer::OnPaintPlayPosition(wxDC& dc) {
-  // the playposition should be redrawn during playback
-  dc.SetClippingRegion(0, 0, leftMargin + trackWidth + rightMargin, 9);
-  dc.Clear();
-  dc.SetPen(wxPen(black, 1, wxPENSTYLE_SOLID));
-  dc.SetBrush(wxBrush(white, wxBRUSHSTYLE_SOLID));
-
-  // draw playposition rectangle
-  dc.DrawRectangle(leftMargin, 0, trackWidth, 10);
- 
-  // draw the indicator for the playposition 
-  dc.DrawIcon(playPositionMarker, playPosition, 1);
 }
 
 void WaveformDrawer::SetPlayPosition(unsigned int pPos) {

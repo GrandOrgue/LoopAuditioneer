@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
 
+### Fixed
+
+- Drawing of the playposition marker so ports that doesn't support drawing with wxClientDC also behave correctly.
+- Builds on Github by using ubuntu-22.04 instead of ubuntu-20.04.
+
 ## [0.11.1] - 2024-11-04
 
 ### Changed

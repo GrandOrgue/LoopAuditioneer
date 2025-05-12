@@ -1,6 +1,6 @@
 /* 
  * WaveformDrawer draws the waveform from an audio file
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file) 
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,7 +66,6 @@ public:
   void CalculateSustainIndication();
   void paintNow();
   void OnPaint(wxDC& dc);
-  void OnPaintPlayPosition(wxDC& dc);
   void SetPlayPosition(unsigned int pPos);
   void AddCuePosition(unsigned int cuePos);
   void AddLoopPosition(unsigned int startPos, unsigned int endPos);

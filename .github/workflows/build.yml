@@ -10,7 +10,7 @@ env:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
         path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
 
   build-linux-wx32:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
@@ -66,7 +66,7 @@ jobs:
         path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
 
   build-appimage:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
@@ -108,7 +108,7 @@ jobs:
         path: ${{github.workspace}}/build/LoopAuditioneer*.AppImage
 
   crossbuild-windows:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
