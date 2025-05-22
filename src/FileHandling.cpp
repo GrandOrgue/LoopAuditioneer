@@ -21,6 +21,7 @@
 #include "FileHandling.h"
 #include "FFT.h"
 #include <cfloat>
+#include <algorithm>
 
 FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), floatAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_fftPeakPitch(0), m_timeDomainPitch(0), m_autoSustainStart(0),
 m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
@@ -567,20 +568,7 @@ bool FileHandling::DetectPitchByFFT() {
       if (hps[i] > hps[maxBin])
         maxBin = i;
     }
-/*
-    // Scan from a bit lower to see if there's another earlier/lower peak to consider
-    if (maxBin > 4) {
-      double hpsBinMaxValue = hps[maxBin];
-      unsigned nextStrongestEarlier = 0;
-      for (unsigned i = (maxBin * 0.6) - 1; i < maxBin; i++) {
-        if (hps[i] > hps[nextStrongestEarlier])
-          nextStrongestEarlier = i;
-      }
 
-      if (hps[nextStrongestEarlier] >= hps[maxBin] * 0.001)
-        maxBin = nextStrongestEarlier;
-    }
-*/
     if (!maxBin)
       maxBin = peakBin;
 
