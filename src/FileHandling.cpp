@@ -1,6 +1,6 @@
 /*
  * FileHandling.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file)
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include "FFT.h"
 #include <cfloat>
 
-FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), floatAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_timeDomainPitch(0), m_autoSustainStart(0),
+FileHandling::FileHandling(wxString fileName, wxString path) : m_loops(NULL), m_cues(NULL), shortAudioData(NULL), intAudioData(NULL), floatAudioData(NULL), doubleAudioData(NULL), fileOpenWasSuccessful(false), m_fftPitch(0), m_fftHPS(0), m_fftPeakPitch(0), m_timeDomainPitch(0), m_autoSustainStart(0),
 m_autoSustainEnd(0), m_sliderSustainStart(0), m_sliderSustainEnd(0) {
   m_fileName = fileName;
   m_loops = new LoopMarkers();
@@ -323,6 +323,7 @@ bool FileHandling::GetFFTPitch(double pitches[]) {
   if (gotPitch) {
     pitches[0] = m_fftPitch;
     pitches[1] = m_fftHPS;
+    pitches[2] = m_fftPeakPitch;
 
     return true;
   } else
@@ -413,6 +414,7 @@ bool FileHandling::DetectPitchByFFT() {
     // the file doesn't contain enough data...
     m_fftPitch = 0;
     m_fftHPS = 0;
+    m_fftPeakPitch = 0;
     return false;
   }
 
@@ -460,6 +462,13 @@ bool FileHandling::DetectPitchByFFT() {
 
     // initially we set the possible fundamental to the largest peak
     unsigned possibleF0 = peakIdx;
+    m_fftPeakPitch = TranslateIndexToPitch(
+      peakBin,
+      pow(10, (pwrSpec[peakBin - 1] / 10)),
+      pow(10, (pwrSpec[peakBin] / 10)),
+      pow(10, (pwrSpec[peakBin + 1] / 10)),
+      fftSize
+    );
 
     if (peakIdx > 0 && allPeaks.size()) {
       // each peak up to and including max peak should be compared for harmonic quality relative to other peaks
@@ -536,54 +545,44 @@ bool FileHandling::DetectPitchByFFT() {
     }
     m_fftPitch = allPeaks[possibleF0].m_pitch;
 
-    // now try detecting pitch with HPS using 5 harmonics
+    // now try detecting pitch with HPS
     unsigned maxBin = 0;
     double *original = new double[halfSize];
-    double *downSampled = new double[halfSize];
     double *hps = new double[halfSize];
 
     for (unsigned i = 0; i < halfSize; i++) {
-      original[i] = pow(10, (pwrSpec[i] / 10));
-      hps[i] = original[i];
+      original[i] = sqrt(pow(10, (pwrSpec[i] / 10)));
+      if (i > 0)
+        hps[i] = original[i];
+      else
+        hps[i] = 0;
     }
 
-    for (unsigned i = 2; i < 6; i++) {
-      for (unsigned j = 0; j < halfSize; j++)
-        downSampled[j] = 0;
-      for (unsigned j = 0; j < halfSize / i; j++)
-        downSampled[j] = original[j * i];
-      for (unsigned j = 0; j < halfSize; j++)
-        hps[j] *= downSampled[j];
+    for (unsigned i = 2; i < 5; i++) {
+      for (unsigned j = 1; j < halfSize; j++)
+        hps[j] *= GetDownsampledValue(original, halfSize, i, j);
     }
 
     for (unsigned i = 0; i < halfSize; i++) {
       if (hps[i] > hps[maxBin])
         maxBin = i;
     }
-
-    double hpsSum = 0;
-	double hpsAverage = 0;
-    for (unsigned i = 0; i < maxBin; i++) {
-      hpsSum += hps[i];
-    }
-    hpsAverage = hpsSum / maxBin;
-
-    // try fixing possible lower fundamental errors
-    // get first peak below that's at least twice above the average value
-    int correctMaxBin = 0;
-    bool alternativeFound = false;
-    for (unsigned i = 1; i < maxBin; i++) {
-      if ((hps[i] > hps[i - 1]) && hps[i] > hps[i + 1]) {
-        if (hps[i] > hpsAverage * 2) {
-          alternativeFound = true;
-          correctMaxBin = i;
-          break;
-        }
+/*
+    // Scan from a bit lower to see if there's another earlier/lower peak to consider
+    if (maxBin > 4) {
+      double hpsBinMaxValue = hps[maxBin];
+      unsigned nextStrongestEarlier = 0;
+      for (unsigned i = (maxBin * 0.6) - 1; i < maxBin; i++) {
+        if (hps[i] > hps[nextStrongestEarlier])
+          nextStrongestEarlier = i;
       }
-    }
 
-    if (alternativeFound)
-      maxBin = correctMaxBin;
+      if (hps[nextStrongestEarlier] >= hps[maxBin] * 0.001)
+        maxBin = nextStrongestEarlier;
+    }
+*/
+    if (!maxBin)
+      maxBin = peakBin;
 
     m_fftHPS = TranslateIndexToPitch(
       maxBin,
@@ -596,11 +595,6 @@ bool FileHandling::DetectPitchByFFT() {
     if (original) {
       delete[] original;
       original = NULL;
-    }
-
-    if (downSampled) {
-      delete[] downSampled;
-      downSampled = NULL;
     }
 
     if (hps) {
@@ -617,12 +611,19 @@ bool FileHandling::DetectPitchByFFT() {
   } else {
     m_fftPitch = 0;
     m_fftHPS = 0;
+    m_fftPeakPitch = 0;
     if (pwrSpec) {
       delete[] pwrSpec;
       pwrSpec = NULL;
     }
     return false;
   }
+}
+
+double FileHandling::GetDownsampledValue(double *fft, unsigned length, unsigned factor, unsigned index) {
+  if (index * factor < length)
+    return fft[factor * index];
+  return 0;
 }
 
 double FileHandling::TranslateIndexToPitch(
@@ -632,7 +633,6 @@ double FileHandling::TranslateIndexToPitch(
   double valueAfterPeak,
   unsigned wSize) {
   double pitchToReturn;
-
   double centerPeakBin;
 
   centerPeakBin = (valueAfterPeak - valueBeforePeak) / (2 * ( 2 * valueAtPeak - valueBeforePeak - valueAfterPeak));
@@ -954,15 +954,17 @@ void FileHandling::CalculateSustainStartAndEnd() {
   SeparateStrongestChannel(ch_data);
 
   // now detect sustain section
-  // set a windowsize (mono now!)
-  unsigned windowSize = m_samplerate / 10;
+  // set a window size (mono now!)
+  std::vector<double> rmsWindowValues;
+  unsigned windowSize = m_samplerate / 50;
   if (windowSize > numberOfSamples)
     windowSize = numberOfSamples - 1;
-  
+
   // Find strongest value of any windowSize in file audio
   double maxValue = 0.0;
   double individualMax = 0.0;
   unsigned indexWithMaxValue = 0;
+  double rmsOfWholeFile = 0.0;
   for (unsigned idx = 0; idx < numberOfSamples - windowSize; idx += windowSize) {
     double totalValues = 0.0;
     double rmsInThisWindow = 0.0;
@@ -972,198 +974,89 @@ void FileHandling::CalculateSustainStartAndEnd() {
       if (currentValue > individualMax) {
         individualMax = currentValue;
         indexWithMaxValue = j;
-      }    
+      }
     }
     rmsInThisWindow = sqrt((totalValues / windowSize));
+    rmsWindowValues.push_back(rmsInThisWindow);
+    rmsOfWholeFile += rmsInThisWindow;
 
     if (rmsInThisWindow > maxValue) {
       maxValue = rmsInThisWindow;
     }
   }
 
-  // Find sustainstart by scanning from the beginning
-  double maxRMSvalue = 0.0;
-  
-  for (unsigned idx = 0; idx < numberOfSamples - windowSize; idx += windowSize) {
-    double totalValues = 0.0;
-    double rmsInThisWindow = 0.0;
-    for (unsigned j = idx; j < idx + windowSize; j++) {
-      double currentValue = pow(ch_data[j], 2);
-      totalValues += currentValue;
-    }
-    rmsInThisWindow = sqrt((totalValues / windowSize));
+  // clean up
+  delete[] ch_data;
 
-    // if current max is too much less than max value
-    // we just continue searching
-    double comparedToMax = (maxValue - rmsInThisWindow) / maxValue;
-    if (rmsInThisWindow < maxValue && comparedToMax > 0.55) {
-      maxRMSvalue = rmsInThisWindow;
-      continue;
-    } else if (rmsInThisWindow > maxValue) { 
-      // sustainsection start should be reached
-      if (idx > windowSize)
-        m_autoSustainStart = idx - windowSize;
-      else
-        m_autoSustainStart = idx;
-      break;
-    }
-    double comparedToPrev = (rmsInThisWindow - maxRMSvalue) / maxRMSvalue;
-    if (rmsInThisWindow > maxRMSvalue && comparedToPrev > 0.15)
-      maxRMSvalue = rmsInThisWindow;
-    else {
-      // the max value in the window is not increasing anymore so 
-      // sustainsection start is reached
-      if (idx > windowSize)
-        m_autoSustainStart = idx - windowSize;
-      else
-        m_autoSustainStart = idx;
-      break;
-    }
-  }
-
-  // now find sustain end by scanning from the end of audio data
-  maxRMSvalue = 0.0;
-  for (unsigned idx = numberOfSamples - 1; idx > windowSize; idx -= windowSize) {
-    double totalValues = 0.0;
-    double rmsInThisWindow = 0.0;
-    
-    for (unsigned j = idx; j > idx - windowSize; j--) {
-      double currentValue = pow(ch_data[j], 2);
-      totalValues += currentValue;
-    }
-    rmsInThisWindow = sqrt((totalValues / windowSize));
-    
-    // if current max is too much lower than max value
-    // we just continue searching
-    double comparedToMax = (maxValue - rmsInThisWindow) / maxValue;
-    if (rmsInThisWindow < maxValue && comparedToMax > 0.4) {
-      maxRMSvalue = rmsInThisWindow;
-      continue;
-    } else if (rmsInThisWindow > maxValue) { 
-      // sustainsection end should be reached
-      m_autoSustainEnd = idx;
-      if (m_autoSustainEnd > numberOfSamples - 1)
-        m_autoSustainEnd = numberOfSamples - 1;
-      break;
-    }
-    double comparedToPrev = (rmsInThisWindow - maxRMSvalue) / maxRMSvalue;
-    if (rmsInThisWindow > maxRMSvalue && comparedToPrev > 0.15) {
-      maxRMSvalue = rmsInThisWindow;
-    } else {
-      // the max value in the window is not increasing significantly anymore so 
-      // sustainsection end should have been reached in previous window
-      m_autoSustainEnd = idx + windowSize;
-      if (m_autoSustainEnd > numberOfSamples - 1)
-        m_autoSustainEnd = numberOfSamples - 1;
-      break;
-    }
-  }
-  // check if previous method didn't work
-  if (m_autoSustainEnd < m_autoSustainStart) {
-    // First a sanity check that values can be valid at all
-    if (indexWithMaxValue < 1 || indexWithMaxValue > numberOfSamples - 3) {
-      // in this case we cannot calculate so just set sustain to whole file
+  if (rmsWindowValues.size()) {
+    rmsOfWholeFile /= rmsWindowValues.size();
+    unsigned firstStartIndexAboveAverageRMS = 0;
+    if (rmsWindowValues[0] > rmsOfWholeFile * 1.75) {
+      // This file is likely a separate release so sustain start should be from the very beginning of file
       m_autoSustainStart = 0;
-      // check that the array has a sane length
-      if (numberOfSamples > 0)
-        m_autoSustainEnd = numberOfSamples - 1;
-      else
-        m_autoSustainEnd = 0;
-    
-      // clean up  
-      delete[] ch_data;
-      return;
-    }
-    // this is an error situation where no sustainsection could be found
-    // so we try another approach to detecting the part of sound that we can
-    // analyze. We know where the max value is located so we calculate where the
-    // max values get no larger than one half of maxvalue in both directions
-    // we start searching backwards from max index
-    double lastValue = maxValue;
-    double middleValue = lastValue;
-    if (indexWithMaxValue < numberOfSamples - 2)
-      middleValue = fabs(ch_data[indexWithMaxValue + 1]);
-    std::vector<std::pair<unsigned, double> > absolutePeaks;
-    if (indexWithMaxValue < numberOfSamples - 3) {
-      for (unsigned i = indexWithMaxValue + 2; i < numberOfSamples; i++) {
-        double currentValue = fabs(ch_data[i]);
-        if (middleValue > currentValue && middleValue > lastValue) {
-          // we have a peak
-          absolutePeaks.push_back(std::make_pair(i - 1, middleValue));
-
-          lastValue = middleValue;
-          middleValue = currentValue;
-        } else {
-          lastValue = middleValue;
-          middleValue = currentValue;
-        }
-      }
-    }
-
-    // now we search backwards in the vector for the first peak that is larger
-    // than maxValue / 2
-    if (absolutePeaks.empty() == false) {
-      for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
-        if (absolutePeaks[i].second > (maxValue / 2)) {
-          m_autoSustainEnd = absolutePeaks[i].first;
+    } else {
+      // First index above the average RMS should be a decent starting point
+      for (unsigned i = 0; i < rmsWindowValues.size(); i++) {
+        if (rmsWindowValues[i] > rmsOfWholeFile) {
+          firstStartIndexAboveAverageRMS = i;
           break;
         }
       }
-    } else {
-      // we've really failed to detect a better end, perhaps a better start could be found?
-    }
 
-    // now we search forwards from max index
-    lastValue = maxValue;
-    if (indexWithMaxValue > 0)
-      middleValue = fabs(ch_data[indexWithMaxValue - 1]);
-    absolutePeaks.clear();
-    if (indexWithMaxValue > 2) {
-      for (unsigned i = indexWithMaxValue - 2; i > 0; i--) {
-        double currentValue = fabs(ch_data[i]);
-        if (middleValue > currentValue && middleValue > lastValue) {
-          // we have a peak
-          absolutePeaks.push_back(std::make_pair(i + 1, middleValue));
-
-          lastValue = middleValue;
-          middleValue = currentValue;
-        } else {
-          lastValue = middleValue;
-          middleValue = currentValue;
-        }
+      double startTime = (double) (firstStartIndexAboveAverageRMS * windowSize) / (double) m_samplerate;
+      if (startTime < 0.300 && firstStartIndexAboveAverageRMS < rmsWindowValues.size() - 2) {
+        m_autoSustainStart = (firstStartIndexAboveAverageRMS + 1) * windowSize;
+      } else {
+        m_autoSustainStart = firstStartIndexAboveAverageRMS * windowSize;
       }
     }
 
-    // now we search backwards in the vector for the first peak that is larger
-    // than maxValue / 2
-    if (absolutePeaks.empty() == false) {
-      for (unsigned i = absolutePeaks.size() - 1; i > 0; i--) {
-        if (absolutePeaks[i].second > (maxValue / 2)) {
-          m_autoSustainStart = absolutePeaks[i].first;
-          break;
+    unsigned firstEndIndexAboveAverageRMS = rmsWindowValues.size() - 1;
+    if (rmsWindowValues[firstEndIndexAboveAverageRMS] < rmsOfWholeFile * 0.75) {
+      // This file most likely have some kind of a release in it
+      if (m_autoSustainStart) {
+        // This file will most likely have both an attack and a release in it
+        // Method is to now scan backwards for first occasion greater than average RMS
+        for (unsigned i = rmsWindowValues.size() - 1; i > 0; i--) {
+          if (rmsWindowValues[i] > rmsOfWholeFile) {
+            firstEndIndexAboveAverageRMS = i;
+            break;
+          }
+        }
+        m_autoSustainEnd = firstEndIndexAboveAverageRMS * windowSize;
+      } else {
+        //This should be a release only file then
+        // First step is to scan forwards until an obvious drop in RMS happen
+        firstEndIndexAboveAverageRMS = 0;
+        for (unsigned i = 0; i < rmsWindowValues.size() - 2; i++) {
+          if (rmsWindowValues[i + 1] * 1.2 > rmsWindowValues[i] && rmsWindowValues[i] > rmsOfWholeFile * 2) {
+            firstEndIndexAboveAverageRMS = i;
+          } else {
+            break;
+          }
+        }
+        if (firstEndIndexAboveAverageRMS)
+          m_autoSustainEnd = firstEndIndexAboveAverageRMS * windowSize;
+        else {
+          if (rmsWindowValues.size() > 1)
+            m_autoSustainEnd = (rmsWindowValues[1] / rmsWindowValues[0]) * windowSize;
+          else
+            m_autoSustainEnd = windowSize;
         }
       }
     } else {
-      // we've really failed to find a better start, lets crack on!
-    }
-  }
-
-  // and now a final check to catch possible faults and clean up
-  if (m_autoSustainStart < m_autoSustainEnd) {
-    // all is well just clean up
-    delete[] ch_data;
-  } else {
-    // still there's something wrong with the sustainsection calculation
-    // just set the values to start and end of the channel data array
-    m_autoSustainStart = 0;
-    // check that the array has a sane length
-    if (numberOfSamples > 0)
+      // This file very likely doesn't have any release in it - it is an attack sample only
       m_autoSustainEnd = numberOfSamples - 1;
-    else
+    }
+  } else {
+    // No RMS data is existing in the vector
+    if (numberOfSamples) {
+        m_autoSustainStart = 0;
+        m_autoSustainEnd = numberOfSamples - 1;
+    } else {
+      m_autoSustainStart = 0;
       m_autoSustainEnd = 0;
-    
-    // clean up  
-    delete[] ch_data;
+    }
   }
 }
 
@@ -1823,3 +1716,51 @@ wxString FileHandling::GetFileName() {
   return m_fileName;
 }
 
+double FileHandling::GetLoopQuality(unsigned loopNbr) {
+  if (loopNbr < m_loops->GetNumberOfLoops()) {
+    LOOPDATA loop;
+    m_loops->GetLoopData(loopNbr, loop);
+    unsigned compareStartIndex = loop.dwStart;
+    unsigned compareEndIndex = loop.dwEnd;
+    std::vector<double> loopQualityChannels = CalculateLoopQuality(compareStartIndex, compareEndIndex);
+    double lowestQuality = 11;
+    if (!loopQualityChannels.empty()) {
+      std::vector<double>::iterator worst = std::max_element(loopQualityChannels.begin(), loopQualityChannels.end());
+      lowestQuality = *worst;
+    }
+    return lowestQuality;
+  } else {
+    return 12;
+  }
+}
+
+double FileHandling::GetLoopQuality(unsigned start, unsigned end) {
+    std::vector<double> loopQualityChannels = CalculateLoopQuality(start, end);
+    double lowestQuality = 11;
+    if (!loopQualityChannels.empty()) {
+      std::vector<double>::iterator worst = std::max_element(loopQualityChannels.begin(), loopQualityChannels.end());
+      lowestQuality = *worst;
+    }
+    return lowestQuality;
+}
+
+std::vector<double> FileHandling::CalculateLoopQuality(unsigned startIdx, unsigned endIdx) {
+  std::vector<double> qualityValues;
+  if (startIdx > 4 && endIdx > startIdx && endIdx < waveTracks[0].waveData.size() - 1) {
+    startIdx -= 5;
+    endIdx -= 4;
+  } else {
+    return qualityValues;
+  }
+
+  for (unsigned i = 0; i < waveTracks.size(); i++) {
+    double channelDiff = 0;
+    for (int j = 0; j < 5; j++) {
+      double difference = fabs(waveTracks[i].waveData[startIdx + j] - waveTracks[i].waveData[endIdx + j]);
+      channelDiff += difference;
+    }
+    qualityValues.push_back(channelDiff);
+  }
+
+  return qualityValues;
+}

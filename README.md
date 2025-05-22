@@ -64,11 +64,11 @@ by the author (Lars Palo) except for the macOS adaptation which was done by
 ## Building
 
 Basic compilation instructions are available in the BUILD.md file. At the
-moment the program is developed and mostly tested under Linux (Ubuntu 20.04) 64
+moment the program is developed and mostly tested under Linux (Ubuntu 24.04) 64
 bit. The Windows binaries are produced by cross-compilation with
 x86_64-w64-mingw32. Since june 2024 builds for macOS, both Intel and arm64 are
 also available. All releases of this software here on Github are created on
-action runners on Github.
+action runners on Github, Ubuntu 22.04 except for macOS builds.
 
 LoopAuditioneer requires wxWidgets 3.0+, available at http://www.wxwidgets.org/.
 The repository unicode version of wxWidgets that Ubuntu offer should work as

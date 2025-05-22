@@ -1,6 +1,6 @@
 /*
  * LoopOverlayPanel.h draws the waveforms overlayed at looppoints
- * Copyright (C) 2024 Lars Palo and contributors (see AUTHORS file)
+ * Copyright (C) 2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

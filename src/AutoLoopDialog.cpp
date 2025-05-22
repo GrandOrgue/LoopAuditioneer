@@ -1,6 +1,6 @@
 /* 
  * AutoLoopDialog.cpp provide a GUI for setting parameters for AutoLooping
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file)
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ void AutoLoopDialog::Init() {
   m_threshold = 0.03;
   m_minDuration = 1.0;
   m_betweenLoops = 0.3;
-  m_quality = 6;
+  m_quality = 0.01;
   m_candidates = 50000;
   m_numberOfLoops = 6;
   m_loopMultiple = 10;
@@ -287,7 +287,7 @@ void AutoLoopDialog::CreateControls() {
   wxBoxSizer *fifthRow = new wxBoxSizer(wxHORIZONTAL);
   boxSizer->Add(fifthRow, 0, wxGROW|wxALL, 5);
 
-  // Label for the quality
+  // Label for the quality == maximum difference allowed
   m_qualityLabel = new wxStaticText ( 
     this, 
     wxID_STATIC,
@@ -296,15 +296,15 @@ void AutoLoopDialog::CreateControls() {
     wxSize(220,-1), 
     0 
   );
-  m_qualityLabel->SetLabel(wxString::Format(wxT("Quality factor: %.1f"), m_quality));
+  m_qualityLabel->SetLabel(wxString::Format(wxT("Max difference allowed: %.4f"), m_quality));
   fifthRow->Add(m_qualityLabel, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
-  // A slider for quality factor / 10
+  // A slider for quality factor / 10000
   wxSlider *qualitySlider = new wxSlider ( 
     this, 
     ID_QUALITY,
-    60,
-    5,
+    100,
+    1,
     1000,
     wxDefaultPosition, 
     wxDefaultSize, 
@@ -547,7 +547,7 @@ bool AutoLoopDialog::TransferDataToWindow() {
   durationSl->SetValue(value);
   value = (m_betweenLoops * 100);
   betweenSl->SetValue(value);
-  value = (m_quality * 10);
+  value = (m_quality * 10000);
   qualitySl->SetValue(value);
 
   return true;
@@ -581,7 +581,7 @@ bool AutoLoopDialog::TransferDataFromWindow() {
   m_minDuration = value;
   value = (double) betweenSl->GetValue() / 100.0;
   m_betweenLoops = value;
-  value = (double) qualitySl->GetValue() / 10.0;
+  value = (double) qualitySl->GetValue() / 10000.0;
   m_quality = value;
 
   return true;
@@ -659,10 +659,10 @@ void AutoLoopDialog::OnBetweenSlider(wxCommandEvent& WXUNUSED(event)) {
 void AutoLoopDialog::OnQuality(wxCommandEvent& WXUNUSED(event)) {
   wxSlider *qualitySl = (wxSlider*) FindWindow(ID_QUALITY);
 
-  double value = (double) qualitySl->GetValue() / 10.0;
+  double value = (double) qualitySl->GetValue() / 10000.0;
   m_quality = value;
 
-  m_qualityLabel->SetLabel(wxString::Format(wxT("Quality factor: %.1f"), m_quality));
+  m_qualityLabel->SetLabel(wxString::Format(wxT("Max difference allowed: %.4f"), m_quality));
 }
 
 void AutoLoopDialog::UpdateLabels() {
@@ -671,5 +671,5 @@ void AutoLoopDialog::UpdateLabels() {
   m_thresholdLabel->SetLabel(wxString::Format(wxT("Derivative threshold: %.3f"), m_threshold));
   m_durationLabel->SetLabel(wxString::Format(wxT("Min. loop lenght: %.2f s"), m_minDuration));
   m_distanceLabel->SetLabel(wxString::Format(wxT("Min. time between loops: %.2f s"), m_betweenLoops));
-  m_qualityLabel->SetLabel(wxString::Format(wxT("Quality factor: %.1f"), m_quality));
+  m_qualityLabel->SetLabel(wxString::Format(wxT("Max difference allowed: %.4f"), m_quality));
 }

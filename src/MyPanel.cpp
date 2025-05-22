@@ -1,6 +1,6 @@
 /* 
  * MyPanel.cpp is a part of LoopAuditioneer
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file) 
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefault
   vbox = new wxBoxSizer(wxVERTICAL);
   fileNameLabel = new wxStaticText(this, wxID_STATIC, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
   m_grid = new wxGrid(this, M_GRID, wxDefaultPosition, wxDefaultSize);
-  m_grid->CreateGrid(0, 5);
+  m_grid->CreateGrid(0, 6);
   m_grid->SetRowLabelSize(90);
   m_grid->SetColLabelSize(30);
   m_grid->SetColMinimalAcceptableWidth(90);
@@ -46,9 +46,10 @@ MyPanel::MyPanel(wxFrame *parent) : wxScrolledWindow(parent, wxID_ANY, wxDefault
   m_grid->SetColLabelValue(1, wxT("End"));
   m_grid->SetColLabelValue(2, wxT("Samples"));
   m_grid->SetColLabelValue(3, wxT("Duration"));
-  m_grid->SetColLabelValue(4, wxT("Save"));
+  m_grid->SetColLabelValue(4, wxT("Max <>"));
+  m_grid->SetColLabelValue(5, wxT("Save"));
   m_grid->SetSelectionMode(wxGrid::wxGridSelectRows);
-  m_grid->SetColFormatBool(4);
+  m_grid->SetColFormatBool(5);
   m_grid->SetDefaultCellAlignment(wxALIGN_CENTRE, wxALIGN_CENTRE);
   m_grid->SetCellHighlightPenWidth(0);
   m_cueGrid = new wxGrid(this, CUE_GRID, wxDefaultPosition, wxDefaultSize);
@@ -100,7 +101,7 @@ void MyPanel::SetFileNameLabel(wxFileName fullPath) {
   }
 }
 
-void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bool toSave, int index) {
+void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bool toSave, int index, double quality) {
   m_grid->AppendRows(); // adds a new row at table bottom
 
   // fix values as strings
@@ -115,6 +116,7 @@ void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bo
     boolValue = wxT("1");
   else
     boolValue = wxT("0");
+  wxString qual = wxString::Format(wxT("%.6f"), quality);
 
   // set row label to Loop #
   wxString rowLabel = wxString::Format(wxT("Loop %i"), (index + 1));
@@ -129,8 +131,10 @@ void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bo
   m_grid->SetReadOnly(index, 2);
   m_grid->SetCellValue(index , 3, dur);
   m_grid->SetReadOnly(index, 3);
-  m_grid->SetCellAlignment(index, 4, wxALIGN_CENTRE, wxALIGN_CENTRE);
-  m_grid->SetCellValue(index, 4, boolValue);
+  m_grid->SetCellValue(index , 4, qual);
+  m_grid->SetReadOnly(index, 4);
+  m_grid->SetCellAlignment(index, 5, wxALIGN_CENTRE, wxALIGN_CENTRE);
+  m_grid->SetCellValue(index, 5, boolValue);
 
   m_grid->AutoSizeColumns(false);
   GetSizer()->Layout();
@@ -187,7 +191,7 @@ void MyPanel::ChangeCueData(unsigned int offset, int index) {
   m_cueGrid->AutoSizeColumns(false);
 }
 
-void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int index) {
+void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int index, double quality) {
   // fix values as strings
   wxString start = wxString::Format(wxT("%i"), loopStart);
   wxString end = wxString::Format(wxT("%i"), loopEnd);
@@ -195,6 +199,7 @@ void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int ind
   wxString sampleNr = wxString::Format(wxT("%i"), numbersOfSamples);
   double duration = numbersOfSamples / (sampleRate * 1.0);
   wxString dur = wxString::Format(wxT("%.3f"), duration);
+  wxString qual = wxString::Format(wxT("%.6f"), quality);
 
   // insert values into table row
   m_grid->SetCellValue(index , 0, start);
@@ -205,6 +210,8 @@ void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int ind
   m_grid->SetReadOnly(index, 2);
   m_grid->SetCellValue(index , 3, dur);
   m_grid->SetReadOnly(index, 3);
+  m_grid->SetCellValue(index , 4, qual);
+  m_grid->SetReadOnly(index, 4);
 
   m_grid->AutoSizeColumns(false);
 }
@@ -212,4 +219,11 @@ void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int ind
 void MyPanel::OnKeyDown(wxKeyEvent& event) {
   MyFrame *myParent = (MyFrame *) GetParent();
   myParent->OnKeyboardInput(event);
+}
+
+void MyPanel::UpdateLoopQuality(int index, double quality) {
+  wxString qual = wxString::Format(wxT("%.6f"), quality);
+  m_grid->SetCellValue(index , 4, qual);
+  m_grid->SetReadOnly(index, 4);
+  m_grid->AutoSizeColumns(false);
 }

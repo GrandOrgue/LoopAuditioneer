@@ -43,14 +43,14 @@ fewer candidates will be matched against each other.</p>
 start than this value. Increasing this value will of course increase the distance between loop starts
 and speed up the loop searching, while decreasing the value will allow more loops to be considered and
 also increase the processing time.</p>
-<p>The quality factor will control which loop candidates will actually be considered good enough.
-The value as such is used in the (cross) correlation of the start and end points, and is expressed
-as total number of sample differences in the correlation window (two samples before start or end
-point and two samples after) for 16 bit short data, but since the searching is
-actually done with floating point data instead the value is internally converted to the correct
-scaling no matter what audio format the file uses. Higher values will allow bigger differences
-between start and end, and also increase the numbers of loops that will be found, but then the
-loopstart and end can possibly be less correlated to each other.</p>
+<p>The maximum difference allowed will control which loop candidates will be considered good enough.
+The value is used when the five samples just before the loop start will be compared against
+the four samples before the end loop point plus the end loop sample itself (in accordance with the
+wave file loop standard in contrast to how for instance .aiff loop standard behaves). The unit is
+a double floating point value which would express the difference sum of the five samples compared.
+A high value allows for larger differences between the waveform at start and end which means that
+more loops will be found, but their matching will be worse and the likelyhood of audio glitches in
+at least one channel will be higher.</p>
 <p>The number of candidates value will control the maximum number of candidates to check. A higher
 value will of course mean more points to check and match to each other, which in turn means 
 longer processing time.</p>

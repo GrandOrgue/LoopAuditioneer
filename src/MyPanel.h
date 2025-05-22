@@ -1,6 +1,6 @@
 /* 
  * MyPanel.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file) 
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,11 +37,12 @@ public:
   wxGrid *m_cueGrid;
   void SetFileNameLabel(wxFileName fullPath);
   void EmptyTable();
-  void FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bool toSave, int index);
+  void FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bool toSave, int index, double quality);
   void FillRowWithCueData(unsigned int id, unsigned int position, bool save, int index);
   void ChangeCueData(unsigned int offset, int index);
-  void ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int index);
+  void ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int index, double quality);
   void OnKeyDown(wxKeyEvent& event);
+  void UpdateLoopQuality(int index, double quality);
 
 private:
   DECLARE_EVENT_TABLE()

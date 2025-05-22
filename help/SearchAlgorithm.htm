@@ -22,13 +22,14 @@ be adjusted by the derivative threshold in the search settings and every sample 
 will be added to a pool of candidates. If the number of candidates is greater than the max number of
 candidates in the loopsearch settings the program will select an evenly spaced amount of candidates that
 the search settings allow as maximum number of candidates.</p>
-<p>Next the candidates (actually a window of two samples before and two after each candidate) will be compared against other
-candidates that's at least the minimum loop length away and as soon as a match is at least as good as the
-quality requirement the loop will be added to the loop pool. Then the algorithm will jump to the next
-start candidate that's at least the minimum distance away from the last start and repeat the search.</p>
+<p>Next the candidates will be compared (actually a window of five samples before loop start and four
+before loop end plus the loop end sample itself) against other candidates that's at least the minimum
+loop length away and as soon as the difference is at least as low as the maximum allowed difference the
+loop will be added to the loop pool. Then the algorithm will jump to the next start candidate that's at
+least the minimum distance away from the last start and repeat the search.</p>
 <p>As soon as the loop pool is full the search will abort. Loop pool size is determined by the number
 of loops to return multiplied by the loop pool multiple.</p>
-<p>After the search is done the loops will be sorted according to comparative quality and then the final
+<p>After the search is done the loops will be sorted according to least difference and then the final
 number of loops to return will be presented to the user after having made sure that every loop at least
 overlap another one.</p>
 <h3>If brute force search is enabled</h3>
@@ -41,7 +42,7 @@ distance between loops.</p>
 <p>The same requirement that every loop at least should overlap another one is still in effect even when
 brute force search is enabled.</p>
 <h3>Final notice</h3>
-<p>Even though the found loops will be sorted according to correlation quality and the ones with the best
+<p>Even though the found loops will be sorted according to least difference and the ones with the lowest
 values will be first to be returned, it's not necessarily the best ones nevertheless, only your ears will
 be able to tell if a loop is good enough or not! Therefore it's necessary that you listen to every loop
 that you intend to save in the sample if you want to be sure that they are good!</p>

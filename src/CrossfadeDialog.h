@@ -1,6 +1,6 @@
 /* 
  * CrossfadeDialog.h provide a GUI for setting parameters for Crossfading
- * Copyright (C) 2012-2024 Lars Palo and contributors (see AUTHORS file) 
+ * Copyright (C) 2012-2025 Lars Palo and contributors (see AUTHORS file) 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

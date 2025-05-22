@@ -1,6 +1,6 @@
 /*
  * BatchProcessDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file)
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -655,8 +655,8 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             m_statusProgress->AppendText(wxT("\tFile opened.\n"));
 
             // autosearch pitch and calculate midi note and pitch fraction
-            double fftPitches[2];
-            for (int j = 0; j < 2; j++)
+            double fftPitches[3];
+            for (int j = 0; j < 3; j++)
               fftPitches[j] = 0;
             fh.GetFFTPitch(fftPitches);
             int midi_note = (69 + 12 * (log10(fftPitches[0] / 440.0) / log10(2)));
@@ -698,8 +698,8 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           if (fh.FileCouldBeOpened()) {
 
             // autosearch pitch and calculate midi note and pitch fraction
-            double fftPitches[2];
-            for (int j = 0; j < 2; j++)
+            double fftPitches[3];
+            for (int j = 0; j < 3; j++)
               fftPitches[j] = 0;
             fh.GetFFTPitch(fftPitches);
             int midi_note = (69 + 12 * (log10(fftPitches[0] / 440.0) / log10(2)));
@@ -739,8 +739,8 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             m_statusProgress->AppendText(wxT("\tFile opened.\n"));
 
             // autosearch pitch and calculate midi note and pitch fraction
-            double fftPitches[2];
-            for (int j = 0; j < 2; j++)
+            double fftPitches[3];
+            for (int j = 0; j < 3; j++)
               fftPitches[j] = 0;
             fh.GetFFTPitch(fftPitches);
             int midi_note = (69 + 12 * (log10(fftPitches[1] / 440.0) / log10(2)));
@@ -782,8 +782,8 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           if (fh.FileCouldBeOpened()) {
 
             // autosearch pitch and calculate midi note and pitch fraction
-            double fftPitches[2];
-            for (int j = 0; j < 2; j++)
+            double fftPitches[3];
+            for (int j = 0; j < 3; j++)
               fftPitches[j] = 0;
             fh.GetFFTPitch(fftPitches);
             int midi_note = (69 + 12 * (log10(fftPitches[1] / 440.0) / log10(2)));

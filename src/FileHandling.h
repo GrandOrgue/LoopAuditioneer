@@ -1,6 +1,6 @@
 /*
  * FileHandling.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file)
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,6 +93,9 @@ public:
   void SeparateStrongestChannel(double outData[]);
   bool AutoCreateReleaseCue();
   wxString GetFileName();
+  double GetLoopQuality(unsigned loopNbr);
+  double GetLoopQuality(unsigned start, unsigned end);
+  std::vector<double> CalculateLoopQuality(unsigned startIdx, unsigned endIdx);
 
   short *shortAudioData;
   int *intAudioData;
@@ -117,6 +120,7 @@ private:
   bool fileOpenWasSuccessful;
   double m_fftPitch;
   double m_fftHPS;
+  double m_fftPeakPitch;
   double m_timeDomainPitch;
   unsigned m_autoSustainStart;
   unsigned m_autoSustainEnd;
@@ -134,6 +138,7 @@ private:
     unsigned wSize
   );
   void CalculateSustainStartAndEnd();
+  double GetDownsampledValue(double *fft, unsigned length, unsigned factor, unsigned index);
 
 };
 

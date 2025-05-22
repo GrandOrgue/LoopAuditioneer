@@ -1,6 +1,6 @@
 /* 
  * PitchDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file) 
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file) 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,10 +53,11 @@ void PitchDialog::Init(FileHandling *audioFile) {
 
   double midi_note_pitch;
   double hps_midi_note_pitch;
+  double fft_midi_note_pitch;
   double td_midi_note_pitch;
 
-  double fftPitches[2];
-  for (int i = 0; i < 2; i++)
+  double fftPitches[3];
+  for (int i = 0; i < 3; i++)
     fftPitches[i] = 0;
   bool got_fftpitch = m_audioFile->GetFFTPitch(fftPitches);
   m_TDdetectedPitch = m_audioFile->GetTDPitch();
@@ -76,6 +77,12 @@ void PitchDialog::Init(FileHandling *audioFile) {
     hps_midi_note_pitch = 440.0 * pow(2, ((double)(m_hpsDetectedMIDIUnityNote - 69) / 12.0));
     m_hpsDetectedMIDIPitchFraction = 1200 * (log10(fftPitches[1] / hps_midi_note_pitch) / log10(2));
     m_actualHpsMIDIPitchFraction = ((double)UINT_MAX * (m_hpsDetectedMIDIPitchFraction / 100.0));
+
+    m_fftPeakPitch = fftPitches[2];
+    m_fftPeakMIDIUnityNote = (69 + 12 * (log10(fftPitches[2] / 440.0) / log10(2)));
+    fft_midi_note_pitch = 440.0 * pow(2, ((double)(m_fftPeakMIDIUnityNote - 69) / 12.0));
+    m_fftPeakMIDIPitchFraction = 1200 * (log10(fftPitches[2] / fft_midi_note_pitch) / log10(2));
+    m_actualFftPeakMIDIPitchFraction = ((double)UINT_MAX * (m_fftPeakMIDIPitchFraction / 100.0));
   } else {
     m_detectedMIDIUnityNote = 0;
     midi_note_pitch = 0;
@@ -86,6 +93,11 @@ void PitchDialog::Init(FileHandling *audioFile) {
     hps_midi_note_pitch = 0;
     m_hpsDetectedMIDIPitchFraction = 0;
     m_actualHpsMIDIPitchFraction = 0;
+
+    m_fftPeakMIDIUnityNote = 0;
+    fft_midi_note_pitch = 0;
+    m_fftPeakMIDIPitchFraction = 0;
+    m_actualFftPeakMIDIPitchFraction = 0;
   }
 
   if (m_TDdetectedPitch != 0) {
@@ -104,11 +116,13 @@ void PitchDialog::Init(FileHandling *audioFile) {
   CalculatingResultingPitch();
   m_useFFTDetection = true;
   m_useHpsFFTDetection = false;
+  m_useFftPeakDetection = false;
   m_useTDDetection = false;
   m_useManual = false;
 
   pitchMethods.Add(wxT("FFT pitch"));
   pitchMethods.Add(wxT("HPS pitch"));
+  pitchMethods.Add(wxT("Strongest peak"));
   pitchMethods.Add(wxT("Timedomain pitch"));
   pitchMethods.Add(wxT("Existing/manual pitch"));
 
@@ -262,6 +276,46 @@ void PitchDialog::CreateControls() {
   );
   hpsPitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_hpsDetectedMIDIPitchFraction));
   hpsPitchContainer->Add(hpsPitchFractionLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
+
+  // Vertical sizer for third fft pitch subsections
+  wxBoxSizer *peakPitchContainer = new wxBoxSizer(wxVERTICAL);
+  fftPitchContainer->Add(peakPitchContainer, 1, wxGROW|wxALL, 5);
+
+  // Label for the autodetected pitch frequency
+  wxStaticText *peakPitchLabel = new wxStaticText (
+    this,
+    wxID_STATIC,
+    wxEmptyString,
+    wxDefaultPosition,
+    wxDefaultSize,
+    0
+  );
+  peakPitchLabel->SetLabel(wxString::Format(wxT("Peak pitch: %.2f Hz"), m_fftPeakPitch));
+  peakPitchContainer->Add(peakPitchLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
+
+  // Label for the calculated MIDIUnityNote
+  wxStaticText *peakMidiNoteLabel = new wxStaticText (
+    this,
+    wxID_STATIC,
+    wxEmptyString,
+    wxDefaultPosition,
+    wxDefaultSize,
+    0
+  );
+  peakMidiNoteLabel->SetLabel(wxString::Format(wxT("MIDIUnityNote: %d"), m_fftPeakMIDIUnityNote));
+  peakPitchContainer->Add(peakMidiNoteLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
+
+  // Label for the calculated MIDIPitchFraction
+  wxStaticText *peakPitchFractionLabel = new wxStaticText (
+    this,
+    wxID_STATIC,
+    wxEmptyString,
+    wxDefaultPosition,
+    wxDefaultSize,
+    0
+  );
+  peakPitchFractionLabel->SetLabel(wxString::Format(wxT("PitchFraction: %.2f cent"), m_fftPeakMIDIPitchFraction));
+  peakPitchContainer->Add(peakPitchFractionLabel, 1, wxLEFT|wxRIGHT|wxTOP, 2);
 
   // Grouping of TimeDomain pitch detection information
   wxStaticBox *TDPitchBox = new wxStaticBox(
@@ -526,9 +580,12 @@ void PitchDialog::TransferSelectedPitchToFile() {
       m_audioFile->m_loops->SetMIDIUnityNote((char) m_hpsDetectedMIDIUnityNote);
       m_audioFile->m_loops->SetMIDIPitchFraction(m_actualHpsMIDIPitchFraction);
     } else if (selectedMethod == 2) {
+      m_audioFile->m_loops->SetMIDIUnityNote((char) m_fftPeakMIDIUnityNote);
+      m_audioFile->m_loops->SetMIDIPitchFraction(m_actualFftPeakMIDIPitchFraction);
+    } else if (selectedMethod == 3) {
       m_audioFile->m_loops->SetMIDIUnityNote((char) m_TDdetectedMIDIUnityNote);
       m_audioFile->m_loops->SetMIDIPitchFraction(m_actualTdMIDIPitchFraction);
-    } else if (selectedMethod == 3) {
+    } else if (selectedMethod == 4) {
       m_audioFile->m_loops->SetMIDIUnityNote((char) GetMIDINote());
       m_audioFile->m_loops->SetMIDIPitchFraction((unsigned)((double)UINT_MAX * (GetPitchFraction() / 100.0)));
     }
@@ -539,10 +596,12 @@ int PitchDialog::GetMethodUsed() {
     return 0;
   if (m_useHpsFFTDetection)
     return 1;
-  if (m_useTDDetection)
+  if (m_useFftPeakDetection)
     return 2;
-  if (m_useManual)
+  if (m_useTDDetection)
     return 3;
+  if (m_useManual)
+    return 4;
   else 
     return 0;
 }
@@ -556,22 +615,34 @@ void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& WXUNUSED(event)) {
     // first FFT method chosen
     m_useFFTDetection = true;
     m_useHpsFFTDetection = false;
+    m_useFftPeakDetection = false;
     m_useTDDetection = false;
     m_useManual = false;
     midinote->Enable(false);
     pitchFract->Enable(false);
   } else if (radioBox->GetSelection() == 1) {
-    // third FFT method chosen
+    // second FFT method chosen
     m_useFFTDetection = false;
     m_useHpsFFTDetection = true;
+    m_useFftPeakDetection = false;
     m_useTDDetection = false;
     m_useManual = false;
     midinote->Enable(false);
     pitchFract->Enable(false);
   } else if (radioBox->GetSelection() == 2) {
+    // third FFT method chosen
+    m_useFFTDetection = false;
+    m_useHpsFFTDetection = false;
+    m_useFftPeakDetection = true;
+    m_useTDDetection = false;
+    m_useManual = false;
+    midinote->Enable(false);
+    pitchFract->Enable(false);
+  } else if (radioBox->GetSelection() == 3) {
     // Timedomain method chosen
     m_useFFTDetection = false;
     m_useHpsFFTDetection = false;
+    m_useFftPeakDetection = false;
     m_useTDDetection = true;
     m_useManual = false;
     midinote->Enable(false);
@@ -580,6 +651,7 @@ void PitchDialog::OnAutoDetectionCheck(wxCommandEvent& WXUNUSED(event)) {
     // Existing/manual method chosen
     m_useFFTDetection = false;
     m_useHpsFFTDetection = false;
+    m_useFftPeakDetection = false;
     m_useTDDetection = false;
     m_useManual = true;
     midinote->Enable(true);
@@ -623,7 +695,7 @@ void PitchDialog::OnViewSpectrumButton(wxCommandEvent& WXUNUSED(event)) {
       // There should be a pitch to use for the manual pitch
       double pitch = spectrumDlg.GetSelectedPitch();
       wxRadioBox *radioBox = (wxRadioBox*) FindWindow(ID_PITCH_METHOD);
-      radioBox->SetSelection(3);
+      radioBox->SetSelection(4);
       // then we notify the box that selection has changed
       wxCommandEvent evt(wxEVT_RADIOBOX, ID_PITCH_METHOD);
       wxPostEvent(this, evt);
@@ -659,6 +731,7 @@ void PitchDialog::SetPreferredPitchMethod(int method) {
       radioBox->SetSelection(0);
       m_useFFTDetection = true;
       m_useHpsFFTDetection = false;
+      m_useFftPeakDetection = false;
       m_useTDDetection = false;
       m_useManual = false;
       midinote->Enable(false);
@@ -668,6 +741,7 @@ void PitchDialog::SetPreferredPitchMethod(int method) {
       radioBox->SetSelection(1);
       m_useFFTDetection = false;
       m_useHpsFFTDetection = true;
+      m_useFftPeakDetection = false;
       m_useTDDetection = false;
       m_useManual = false;
       midinote->Enable(false);
@@ -677,7 +751,8 @@ void PitchDialog::SetPreferredPitchMethod(int method) {
       radioBox->SetSelection(2);
       m_useFFTDetection = false;
       m_useHpsFFTDetection = false;
-      m_useTDDetection = true;
+      m_useFftPeakDetection = true;
+      m_useTDDetection = false;
       m_useManual = false;
       midinote->Enable(false);
       pitchFract->Enable(false);
@@ -686,6 +761,17 @@ void PitchDialog::SetPreferredPitchMethod(int method) {
       radioBox->SetSelection(3);
       m_useFFTDetection = false;
       m_useHpsFFTDetection = false;
+      m_useFftPeakDetection = false;
+      m_useTDDetection = true;
+      m_useManual = false;
+      midinote->Enable(false);
+      pitchFract->Enable(false);
+      break;
+    case 4:
+      radioBox->SetSelection(4);
+      m_useFFTDetection = false;
+      m_useHpsFFTDetection = false;
+      m_useFftPeakDetection = false;
       m_useTDDetection = false;
       m_useManual = true;
       midinote->Enable(true);

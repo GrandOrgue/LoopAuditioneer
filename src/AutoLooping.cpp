@@ -1,6 +1,6 @@
 /* 
  * AutoLooping.cpp tries to find natural good loop points in audio
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file) 
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,8 +76,8 @@ bool AutoLooping::AutoFindLoops(
   // waveform will change the most (the opposite of what we're interested in)
   double maxDerivative = 0;
   for (
-    unsigned i = sustainStartIdx; 
-    i < sustainEndIdx - 1; 
+    unsigned i = sustainStartIdx;
+    i < sustainEndIdx - 1;
     i++) {
 
     double currentDerivative = fabs( (data[i + 1] - data[i]) );
@@ -131,7 +131,7 @@ bool AutoLooping::AutoFindLoops(
   // Also note that for both the loopstart and end we compare a "window" of
   // four samples before the candidate plus the candidate which gives
   // five samples per channel to the window. If correlation is sufficiently
-  // good then we'll add the loop but adjust the end index to one sample less
+  // good then we'll add the loop
   std::vector<std::pair<std::pair<unsigned, unsigned>, double > > foundLoops;
   if (loopCandidates.empty() == true) {
     return false;
@@ -139,7 +139,8 @@ bool AutoLooping::AutoFindLoops(
   for (unsigned i = 0; i < loopCandidates.size() - 1; i++) {
     // this is for the start point
     unsigned loopStartIndex = loopCandidates[i];
-    unsigned compareStartIndex = loopStartIndex - 4;
+    if (loopStartIndex < 4)
+      continue;
 
     // if loop start point is too close to already stored loop continue
     if (!foundLoops.empty()) {
@@ -160,31 +161,25 @@ bool AutoLooping::AutoFindLoops(
       if (loopEndIndex - loopStartIndex < samplerate * m_minLoopDuration)
         continue;
 
-      unsigned compareEndIndex = loopEndIndex - 4;
-
+      // the end of a wave file loop should be compared against the sample just before start
       // now comes the actual comparison of the candidates
-      double correlationValue = 0;
-      for (unsigned k = 0; k < audioFile->waveTracks.size(); k++) {
-        double difference = 0;
-        for (int l = 0; l < 5; l++) {
-          difference += fabs(audioFile->waveTracks[k].waveData[compareStartIndex + l] - audioFile->waveTracks[k].waveData[compareEndIndex + l]);
-        }
-        correlationValue += (difference / 5.0);
-      }
-
+      double correlationValue = audioFile->GetLoopQuality(loopStartIndex, loopEndIndex);
       // if the quality of the correlation is better (lower) than threshold add the loop
-      // but remove one sample from end index for a better loop match
-      if (correlationValue < (m_qualityFactor / 32767.0) * audioFile->m_channels) {
+      if (correlationValue <= m_qualityFactor) {
         // make sure the loop doesn't already exist in file, or that it's too close to an existing!
         bool loopAlreadyExist = false;
         for (unsigned k = 0; k < loopsAlreadyInFile.size(); k++) {
-          unsigned startDifference = (loopsAlreadyInFile[k].first < (loopStartIndex)) ? ((loopStartIndex) - loopsAlreadyInFile[k].first) : (loopsAlreadyInFile[k].first - (loopStartIndex));
-          if (loopsAlreadyInFile[k].first == (loopStartIndex) &&
-            loopsAlreadyInFile[k].second == ((loopEndIndex) - 1)
+          unsigned startDifference = std::abs((int) loopStartIndex - (int) loopsAlreadyInFile[k].first);
+          unsigned endDifference = std::abs((int) loopEndIndex - (int) loopsAlreadyInFile[k].second);
+          if (loopsAlreadyInFile[k].first == loopStartIndex &&
+            loopsAlreadyInFile[k].second == loopEndIndex
           ) {
             loopAlreadyExist = true;
             break;
-          } else if (startDifference < (samplerate * m_distanceBetweenLoops)) {
+          } else if (startDifference < (samplerate * m_distanceBetweenLoops) && !m_useBruteForce) {
+            loopAlreadyExist = true;
+            break;
+          } else if (endDifference < (samplerate * m_distanceBetweenLoops) && !m_useBruteForce) {
             loopAlreadyExist = true;
             break;
           }
@@ -193,8 +188,8 @@ bool AutoLooping::AutoFindLoops(
           foundLoops.push_back(
             std::make_pair(
               std::make_pair(
-                (loopStartIndex),
-                ((loopEndIndex) - 1)
+                loopStartIndex,
+                loopEndIndex
               ),
               correlationValue
             )
@@ -273,7 +268,19 @@ bool AutoLooping::AutoFindLoops(
             // also check if using brute force that it's not too close to any already added
             if (m_useBruteForce) {
               for (unsigned k = 0; k < loops.size(); k++) {
-                if (std::abs((int) foundLoops[i].first.first - (int) loops[k].first.first) > samplerate * m_distanceBetweenLoops) {
+                if (std::abs((int) foundLoops[i].first.first - (int) loops[k].first.first) > samplerate * m_distanceBetweenLoops &&
+                  std::abs((int) foundLoops[i].first.second - (int) loops[k].first.second) > samplerate * m_distanceBetweenLoops
+                ) {
+                  tooClose = false;
+                } else {
+                  tooClose = true;
+                  break;
+                }
+              }
+            } else {
+              // the end point must still be examined against already added loops even if not using brute force
+              for (unsigned k = 0; k < loops.size(); k++) {
+                if (std::abs((int) foundLoops[i].first.second - (int) loops[k].first.second) > samplerate * m_distanceBetweenLoops) {
                   tooClose = false;
                 } else {
                   tooClose = true;
@@ -284,24 +291,13 @@ bool AutoLooping::AutoFindLoops(
           }
         }
 
-        if (overlaps) {
-          if (m_useBruteForce) {
-            if (!tooClose) {
-              loops.push_back(foundLoops[i]);
-              addedLoop = true;
-              alreadyStoredLoopIndexes.push_back(i);
+        if (overlaps && !tooClose) {
+          loops.push_back(foundLoops[i]);
+          addedLoop = true;
+          alreadyStoredLoopIndexes.push_back(i);
 
-              // jump out and begin checking again from start
-              break;
-            }
-          } else {
-            loops.push_back(foundLoops[i]);
-            addedLoop = true;
-            alreadyStoredLoopIndexes.push_back(i);
-
-            // jump out and begin checking again from start
-            break;
-          }
+          // jump out and begin checking again from start
+          break;
         }
       }
     }

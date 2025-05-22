@@ -1,6 +1,6 @@
 /* 
  * AutoLooping.h tries to find natural good loop points in audio
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file) 
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file) 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ public:
     double = 0.03,
     double = 1.0,
     double = 0.3,
-    double = 6,
+    double = 0.01,
     unsigned = 50000,
     unsigned = 6,
     unsigned = 10

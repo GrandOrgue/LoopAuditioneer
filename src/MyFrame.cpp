@@ -1,6 +1,6 @@
 /*
  * MyFrame.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file)
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -91,7 +91,7 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event)) {
   info.SetName(appName);
   info.SetVersion(wxT(MY_APP_VERSION));
   info.SetDescription(wxT("This program allows users to view, create, edit and listen to loops and cues embedded in wav files as well as perform other tasks necessary for preparing samples for usage in sample players."));
-  info.SetCopyright(wxT("Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS)\n<larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
+  info.SetCopyright(wxT("Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS)\n<larspalo AT yahoo DOT se>\nReleased under GNU GPLv3 licence"));
   info.SetWebSite(wxT("https://github.com/GrandOrgue/LoopAuditioneer"));
 
   wxAboutBox(info);
@@ -994,8 +994,10 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   }
 
   if (config->Read(wxT("LoopSettings/Quality"), &dbl)) {
-    m_autoloopSettings->SetQuality(dbl);
-    m_autoloop->SetQuality(dbl);
+    if (dbl <= 0.1 && dbl >= 0.0001) {
+      m_autoloopSettings->SetQuality(dbl);
+      m_autoloop->SetQuality(dbl);
+    }
   }
 
   if (config->Read(wxT("LoopSettings/Candidates"), &readInt)) {
@@ -1210,7 +1212,7 @@ void MyFrame::SetLoopPlayback(bool looping) {
 }
 
 void MyFrame::SetPitchMethod(int method) {
-  if (method >= 0 && method < 4)
+  if (method >= 0 && method < 5)
     m_pitchMethod = method;
   else
     m_pitchMethod = 0;
@@ -1332,7 +1334,7 @@ void MyFrame::OnAddLoop(wxCommandEvent& WXUNUSED(event)) {
 
     // Add the new loop to the grid
     int sRate = m_audiofile->GetSampleRate();
-    m_panel->FillRowWithLoopData(newLoop.dwStart, newLoop.dwEnd, sRate, newLoop.shouldBeSaved, m_audiofile->m_loops->GetNumberOfLoops() - 1);
+    m_panel->FillRowWithLoopData(newLoop.dwStart, newLoop.dwEnd, sRate, newLoop.shouldBeSaved, m_audiofile->m_loops->GetNumberOfLoops() - 1, m_audiofile->GetLoopQuality(m_audiofile->m_loops->GetNumberOfLoops() - 1));
 
     // Add the new loop to waveform drawer
     m_waveform->AddLoopPosition(newLoop.dwStart, newLoop.dwEnd);
@@ -1476,7 +1478,8 @@ void MyFrame::OnAutoLoop(wxCommandEvent& WXUNUSED(event)) {
           newLoop.dwEnd,
           m_audiofile->GetSampleRate(),
           newLoop.shouldBeSaved,
-          m_audiofile->m_loops->GetNumberOfLoops() - 1
+          m_audiofile->m_loops->GetNumberOfLoops() - 1,
+          m_audiofile->GetLoopQuality(m_audiofile->m_loops->GetNumberOfLoops() - 1)
         );
 
         // Add the new loop to waveform drawer
@@ -1611,6 +1614,7 @@ void MyFrame::OnVolumeSlider(wxCommandEvent& WXUNUSED(event)) {
   int value = volumeSl->GetValue();
 
   volumeMultiplier = (int) (pow(2, (double) value));
+  m_panel->SetFocus();
 }
 
 void MyFrame::OnCrossfade(wxCommandEvent& WXUNUSED(event)) {
@@ -1650,6 +1654,9 @@ void MyFrame::OnCrossfade(wxCommandEvent& WXUNUSED(event)) {
     toolBar->EnableTool(wxID_SAVE, true);
     fileMenu->Enable(wxID_SAVE, true);
     fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
+
+    // Update loop quality
+    m_panel->UpdateLoopQuality(firstSelected, m_audiofile->GetLoopQuality(firstSelected));
 
     // then we should make sure to update the views
     UpdateAllViews();
@@ -1692,7 +1699,7 @@ void MyFrame::OnEditLoop(wxCommandEvent& WXUNUSED(event)) {
 
     // Change loop to the grid
     int sRate = m_audiofile->GetSampleRate();
-    m_panel->ChangeLoopData(currentLoop.dwStart, currentLoop.dwEnd, sRate, firstSelected);
+    m_panel->ChangeLoopData(currentLoop.dwStart, currentLoop.dwEnd, sRate, firstSelected, m_audiofile->GetLoopQuality(firstSelected));
 
     // Change loop in waveform drawer
     m_waveform->ChangeLoopPositions(currentLoop.dwStart, currentLoop.dwEnd, firstSelected);
@@ -2143,16 +2150,16 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
       wxArrayInt selection = m_panel->m_grid->GetSelectedRows();
       if (!selection.IsEmpty()) {
         int firstSelected = selection[0];
-        if (m_panel->m_grid->GetCellValue(firstSelected, 4) == wxT("1")) {
+        if (m_panel->m_grid->GetCellValue(firstSelected, 5) == wxT("1")) {
           // Equals to a true value to begin with
-          m_panel->m_grid->SetCellValue(firstSelected, 4, wxT("0"));
+          m_panel->m_grid->SetCellValue(firstSelected, 5, wxT("0"));
           m_audiofile->m_loops->SetSaveOption(false, firstSelected);
           toolBar->EnableTool(wxID_SAVE, true);
           fileMenu->Enable(wxID_SAVE, true);
           fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
         } else {
           // The value was false
-          m_panel->m_grid->SetCellValue(firstSelected, 4, wxT("1"));
+          m_panel->m_grid->SetCellValue(firstSelected, 5, wxT("1"));
           m_audiofile->m_loops->SetSaveOption(true, firstSelected);
           toolBar->EnableTool(wxID_SAVE, true);
           fileMenu->Enable(wxID_SAVE, true);
@@ -2187,13 +2194,13 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
   if (event.GetKeyCode() == 69 && event.GetModifiers() == wxMOD_NONE) {
     if (m_audiofile != NULL) {
       for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
-        if (m_panel->m_grid->GetCellValue(i, 4) == wxT("1")) {
+        if (m_panel->m_grid->GetCellValue(i, 5) == wxT("1")) {
           // Equals to a true value to begin with
-          m_panel->m_grid->SetCellValue(i, 4, wxT("0"));
+          m_panel->m_grid->SetCellValue(i, 5, wxT("0"));
           m_audiofile->m_loops->SetSaveOption(false, i);
         } else {
           // The value was false
-          m_panel->m_grid->SetCellValue(i, 4, wxT("1"));
+          m_panel->m_grid->SetCellValue(i, 5, wxT("1"));
           m_audiofile->m_loops->SetSaveOption(true, i);
         }
       }
@@ -2362,7 +2369,7 @@ void MyFrame::UpdateLoopsAndCuesDisplay() {
   for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
     LOOPDATA tempData;
     m_audiofile->m_loops->GetLoopData(i, tempData);
-    m_panel->FillRowWithLoopData(tempData.dwStart, tempData.dwEnd, sRate, tempData.shouldBeSaved, i);
+    m_panel->FillRowWithLoopData(tempData.dwStart, tempData.dwEnd, sRate, tempData.shouldBeSaved, i, m_audiofile->GetLoopQuality(i));
     m_waveform->AddLoopPosition(tempData.dwStart, tempData.dwEnd);
   }
 

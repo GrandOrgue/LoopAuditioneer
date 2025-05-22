@@ -5,7 +5,7 @@
 </HEAD>
 <BODY>
 <h2>Main panel - Client area</h2>
-<p><img style="width: 90%; height: auto;" src="images/MainPanel.jpg" alt="An image of main panel or client area" /></p>
+<p><img src="images/MainPanel.jpg" alt="An image of main panel or client area" /></p>
 <p>The main panel or client area is actually divided up in three parts. The file list to the left,
 the loop and cue tables to the right and below them the waveform will be displayed.</p>
 <h3>File list</h3>
@@ -22,12 +22,19 @@ keys S for moving up the list and X for moving down the list.</p>
 client area can grow long and if so a scrollbar will be available to the right.</p>
 <h4>Loops table</h4>
 <p>In the loops table all the loops will be displayed in the order they appear. The start sample, end sample,
-lenght of loop in samples and duration in seconds can all be seen. The last column holds a checkbox that
-decides if a loop should be saved when the file is saved.</p>
+lenght of loop in samples, duration in seconds and highest total loop point differences can all be seen. The
+last column holds a checkbox that decides if a loop should be saved when the file is saved.</p>
 <p>Right clicking on a row of the loop table results in a pop-up menu that gives the choices to edit the
 loop in question, crossfade the loop or view the loop points overlayed in a new window.</p>
 <p>If many loops are present and a loop selected it's possible to navigate and change the selection of loop
 in the loop table with the keyboard keys D for up and C for down.</p>
+<p>The Max <> value is a sum of how much the five closest samples to the loop points differ in the worst
+channel. The unity used for this floating point value is actual double audio data. Do note that there's no
+guarantee that the loop will sound perfect to the human ear even if the Max <> is low due to other possible
+factors like changes in background noise or other issues. On the other hand, if the differences are high
+(higher than 0.01) it's likely that there will be an audible audio glitch in one channel. In other words,
+this value is a measurement of how well the waveforms would match at the loop points where a lower value
+means a better match.</p>
 <p>It's also possible to toggle the save option for the selected loop with keyboard key W. To toggle all
 loops on/off the keyboard key E can be used, for this to work no loop needs to be selected.</p>
 <h4>Cues table</h4>

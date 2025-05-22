@@ -1,6 +1,6 @@
 /* 
  * PitchDialog.h is a part of LoopAuditioneer software
- * Copyright (C) 2011-2024 Lars Palo and contributors (see AUTHORS file) 
+ * Copyright (C) 2011-2025 Lars Palo and contributors (see AUTHORS file) 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,10 +101,17 @@ private:
   int m_hpsDetectedMIDIUnityNote;
   double m_hpsDetectedMIDIPitchFraction;
   unsigned m_actualHpsMIDIPitchFraction;
+
+  double m_fftPeakPitch;
+  int m_fftPeakMIDIUnityNote;
+  double m_fftPeakMIDIPitchFraction;
+  unsigned m_actualFftPeakMIDIPitchFraction;
+
   int m_fileMIDIUnityNote;
   double m_fileMIDIPitchFraction;
   bool m_useFFTDetection;
   bool m_useHpsFFTDetection;
+  bool m_useFftPeakDetection;
   bool m_useTDDetection;
   bool m_useManual;
   double m_resultingPitch;

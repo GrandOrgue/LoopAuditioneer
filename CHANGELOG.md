@@ -11,15 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Possibility to inspect and adjust cue position similar to looppoint overlay. (TODO)
 - Possibility to adjust cue position on sample level detail. (TODO)
+- Option to auto zoom waveform to at least 50% height when opening a new sample. (TODO)
 
 ### Changed
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
 
+## [0.12.0] - 2025-05-22
+
+### Added
+
+- Sum of sample differences at loop points of worst matching channel in the loop table.
+- FFT pitch detection option from the highest peak.
+
+### Changed
+
+- The loop search algorithm to process each channel separately and make comparison against the worst.
+- Loop search algorithm comarison "window" to not use samples after loop end.
+- The "Quality factor" to become "Maximum difference allowed" which better align with the internal workings.
+- Automatic detection of sustain section to better handle special cases.
+- Distance between loops setting to be respected both for start and end points.
+
 ### Fixed
 
 - Drawing of the playposition marker so ports that doesn't support drawing with wxClientDC also behave correctly.
 - Builds on Github by using ubuntu-22.04 instead of ubuntu-20.04.
+- Possible division by zero in HPS pitch detection algorithm.
 
 ## [0.11.1] - 2024-11-04
 
