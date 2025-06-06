@@ -395,7 +395,7 @@ void MyFrame::OnGridCellClick(wxGridEvent& event) {
       }
     }
 
-    if (event.GetCol() == 4) {
+    if (event.GetCol() == 5) {
       // User clicked in the save column
       if (m_panel->m_grid->GetCellValue(event.GetRow(), event.GetCol()) == wxT("1")) {
         // Equals to a true value to begin with
