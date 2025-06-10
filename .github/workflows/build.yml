@@ -229,7 +229,7 @@ jobs:
         echo "release_version=${TAG#v}" >> $GITHUB_ENV
 
     - name: Populate Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v2.2.2
       with:
         draft: false
         prerelease: false
