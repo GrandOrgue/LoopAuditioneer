@@ -556,28 +556,10 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
             int nbLoops = fh.m_loops->GetNumberOfLoops();
             m_statusProgress->AppendText(wxString::Format(wxT("\tFile opened, it already contains %i loop(s)\n"), nbLoops));
             if (nbLoops < 16) {
-              // first get all loops already in file
-              std::vector<std::pair<unsigned, unsigned> > loopsAlreadyInFile;
-              for (int j = 0; j < nbLoops; j++) {
-                LOOPDATA aLoop;
-                fh.m_loops->GetLoopData(j, aLoop);
-                loopsAlreadyInFile.push_back(std::make_pair(aLoop.dwStart, aLoop.dwEnd));
-              }
-
-              // now we need to search for loops
-              // retrieve the used sustainsection
-              std::pair <unsigned, unsigned> sustainSection = fh.GetSustainsection();
               // vector to receive found loops
               std::vector<std::pair<std::pair<unsigned, unsigned>, double> > addLoops;
               // call to search for loops
-              bool foundLoops = autoloop->AutoFindLoops(
-                &fh,
-                fh.GetSampleRate(),
-                addLoops,
-                sustainSection.first,
-                sustainSection.second,
-                loopsAlreadyInFile
-              );
+              bool foundLoops = autoloop->AutoFindLoops(&fh, addLoops);
 
               if (foundLoops) {
                 for (unsigned i = 0; i < addLoops.size(); i++) {

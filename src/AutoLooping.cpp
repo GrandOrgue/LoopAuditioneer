@@ -44,16 +44,15 @@ AutoLooping::~AutoLooping() {
 
 bool AutoLooping::AutoFindLoops(
   FileHandling *audioFile,
-  unsigned samplerate,
-  std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops, 
-  unsigned sustainStart,
-  unsigned sustainEnd,
-  std::vector<std::pair<unsigned, unsigned> > &loopsAlreadyInFile) {
+  std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops) {
 
+  unsigned samplerate = audioFile->GetSampleRate();
+  // retrieve the used sustainsection
+  std::pair <unsigned, unsigned> sustainSection = audioFile->GetSustainsection();
   // another sustain section sanity check!
   // a pipe would normally need around 50 - 150 ms to settle after attack
-  unsigned sustainStartIdx = sustainStart;
-  unsigned sustainEndIdx = sustainEnd;
+  unsigned sustainStartIdx = sustainSection.first;
+  unsigned sustainEndIdx = sustainSection.second;
   unsigned hundredMsSamples = samplerate / 10;
   if (sustainStartIdx < hundredMsSamples) {
     sustainStartIdx = hundredMsSamples;
@@ -104,6 +103,14 @@ bool AutoLooping::AutoFindLoops(
 
   // we're done with the single channel data
   delete[] data;
+
+  // first get all loops already in file
+  std::vector<std::pair<unsigned, unsigned> > loopsAlreadyInFile;
+  for (int i = 0; i < audioFile->m_loops->GetNumberOfLoops(); i++) {
+    LOOPDATA aLoop;
+    audioFile->m_loops->GetLoopData(i, aLoop);
+    loopsAlreadyInFile.push_back(std::make_pair(aLoop.dwStart, aLoop.dwEnd));
+  }
 
   std::vector<unsigned> loopCandidates;
   // to ensure even distribution of the candidates over sustainsection and

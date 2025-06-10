@@ -1428,99 +1428,80 @@ void MyFrame::OnAutoLoop(wxCommandEvent& WXUNUSED(event)) {
   // prepare a vector to receive the loops
   std::vector<std::pair<std::pair<unsigned, unsigned>, double> > loops;
 
-  // retrieve the used sustainsection
-  std::pair <unsigned, unsigned> sustainSection = m_audiofile->GetSustainsection();
-  
-    bool foundSomeLoops = false;
+  bool foundSomeLoops = false;
 
-    if (!foundSomeLoops) {
-      // first get all loops already in file
-      std::vector<std::pair<unsigned, unsigned> > loopsAlreadyInFile;
-      for (int i = 0; i < m_audiofile->m_loops->GetNumberOfLoops(); i++) {
-        LOOPDATA aLoop;
-        m_audiofile->m_loops->GetLoopData(i, aLoop);
-        loopsAlreadyInFile.push_back(std::make_pair(aLoop.dwStart, aLoop.dwEnd));
-      }
+  if (!foundSomeLoops) {
+    // stop other windows and set a busyinfo to calm user if it takes some time
+    wxWindowDisabler disableAll;
+    wxBusyInfo searchInfo(wxT("Searching for loops, please wait..."), this);
+    wxSafeYield();
 
-      // stop other windows and set a busyinfo to calm user if it takes some time
-      wxWindowDisabler disableAll;
+    // time to search for loops
+    foundSomeLoops = m_autoloop->AutoFindLoops(m_audiofile, loops);
+  }
 
-      wxBusyInfo searchInfo(wxT("Searching for loops, please wait..."), this);
-      wxSafeYield();
+  if (foundSomeLoops) {
+    for (unsigned i = 0; i < loops.size(); i++) {
+      // Prepare loop data for insertion into loop vector
+      LOOPDATA newLoop;
+      newLoop.dwType = SF_LOOP_FORWARD;
+      newLoop.dwStart = loops[i].first.first;
+      newLoop.dwEnd = loops[i].first.second;
+      newLoop.dwPlayCount = 0;
+      newLoop.shouldBeSaved = true;
 
-      // this is the call to search for loops
-      foundSomeLoops = m_autoloop->AutoFindLoops(
-        m_audiofile,
+      // Add the loop to the audio files loop vector
+      m_audiofile->m_loops->AddLoop(newLoop);
+
+      // Add the new loop to the grid
+      m_panel->FillRowWithLoopData(
+        newLoop.dwStart,
+        newLoop.dwEnd,
         m_audiofile->GetSampleRate(),
-        loops,
-        sustainSection.first,
-        sustainSection.second,
-        loopsAlreadyInFile
+        newLoop.shouldBeSaved,
+        m_audiofile->m_loops->GetNumberOfLoops() - 1,
+        m_audiofile->GetLoopQuality(m_audiofile->m_loops->GetNumberOfLoops() - 1)
       );
+
+      // Add the new loop to waveform drawer
+      m_waveform->AddLoopPosition(newLoop.dwStart, newLoop.dwEnd);
     }
 
-    if (foundSomeLoops) {
-      for (unsigned i = 0; i < loops.size(); i++) {
-        // Prepare loop data for insertion into loop vector
-        LOOPDATA newLoop;
-        newLoop.dwType = SF_LOOP_FORWARD;
-        newLoop.dwStart = loops[i].first.first;
-        newLoop.dwEnd = loops[i].first.second;
-        newLoop.dwPlayCount = 0;
-        newLoop.shouldBeSaved = true;
+    // Enable save icon and menu
+    toolBar->EnableTool(wxID_SAVE, true);
+    fileMenu->Enable(wxID_SAVE, true);
+    fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
 
-        // Add the loop to the audio files loop vector
-        m_audiofile->m_loops->AddLoop(newLoop);
-
-        // Add the new loop to the grid
-        m_panel->FillRowWithLoopData(
-          newLoop.dwStart,
-          newLoop.dwEnd,
-          m_audiofile->GetSampleRate(),
-          newLoop.shouldBeSaved,
-          m_audiofile->m_loops->GetNumberOfLoops() - 1,
-          m_audiofile->GetLoopQuality(m_audiofile->m_loops->GetNumberOfLoops() - 1)
-        );
-
-        // Add the new loop to waveform drawer
-        m_waveform->AddLoopPosition(newLoop.dwStart, newLoop.dwEnd);
+    // Make sure a loop in the grid is selected if no selection exist
+    if (!m_panel->m_grid->IsSelection() || !m_panel->m_cueGrid->IsSelection()) {
+      if (m_panel->m_grid->GetNumberRows() > 0) {
+        m_panel->m_grid->SelectRow(0, false);
+        toolBar->EnableTool(wxID_STOP, false);
+        toolBar->EnableTool(START_PLAYBACK, true);
+        transportMenu->Enable(START_PLAYBACK, true);
+        transportMenu->Enable(wxID_STOP, false);
+        toolBar->EnableTool(X_FADE, true);
+        toolMenu->Enable(X_FADE, true);
+        toolBar->EnableTool(VIEW_LOOPPOINTS, true);
+        toolMenu->Enable(VIEW_LOOPPOINTS, true);
+        m_panel->m_grid->SetGridCursor(0, 4);
+        SetLoopPlayback(true);
+        // notify waveform drawer of selected loop
+        m_waveform->SetLoopSelection(0);
       }
-
-      // Enable save icon and menu
-      toolBar->EnableTool(wxID_SAVE, true);
-      fileMenu->Enable(wxID_SAVE, true);
-      fileMenu->Enable(SAVE_AND_OPEN_NEXT, true);
-
-      // Make sure a loop in the grid is selected if no selection exist
-      if (!m_panel->m_grid->IsSelection() || !m_panel->m_cueGrid->IsSelection()) {
-        if (m_panel->m_grid->GetNumberRows() > 0) {
-          m_panel->m_grid->SelectRow(0, false);
-          toolBar->EnableTool(wxID_STOP, false);
-          toolBar->EnableTool(START_PLAYBACK, true);
-          transportMenu->Enable(START_PLAYBACK, true);
-          transportMenu->Enable(wxID_STOP, false);
-          toolBar->EnableTool(X_FADE, true);
-          toolMenu->Enable(X_FADE, true);
-          toolBar->EnableTool(VIEW_LOOPPOINTS, true);
-          toolMenu->Enable(VIEW_LOOPPOINTS, true);
-          m_panel->m_grid->SetGridCursor(0, 4);
-          SetLoopPlayback(true);
-          // notify waveform drawer of selected loop
-          m_waveform->SetLoopSelection(0);
-        }
-      }
-      UpdateAllViews();
-    } else {
-      // no loops found!
-      wxString message = wxT("Sorry, didn't find any loops!");
-      wxMessageDialog *dialog = new wxMessageDialog(
-        NULL,
-        message,
-        wxT("No loops found!"),
-        wxOK | wxICON_ERROR
-      );
-      dialog->ShowModal();
     }
+    UpdateAllViews();
+  } else {
+    // no loops found!
+    wxString message = wxT("Sorry, didn't find any loops!");
+    wxMessageDialog *dialog = new wxMessageDialog(
+      NULL,
+      message,
+      wxT("No loops found!"),
+      wxOK | wxICON_ERROR
+    );
+    dialog->ShowModal();
+  }
 }
 
 void MyFrame::OnAutoLoopSettings(wxCommandEvent& WXUNUSED(event)) {

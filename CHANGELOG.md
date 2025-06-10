@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
 
+## [0.12.1] - 2025-06-10
+
 ### Fixed
 
 - Clicking on the column for loop save option to actually toggle the save option.

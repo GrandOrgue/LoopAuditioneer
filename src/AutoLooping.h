@@ -43,12 +43,8 @@ public:
   // this is the function that analyze the audio data for loops and will store
   // the best loops found in the vector sent by reference
   bool AutoFindLoops(
-    FileHandling *audioFile, // an array of audio data from the strongest channel in file
-    unsigned samplerate,
-    std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops,
-    unsigned sustainStart,
-    unsigned sustainEnd,
-    std::vector<std::pair<unsigned, unsigned> > &loopsAlreadyInFile
+    FileHandling *audioFile,
+    std::vector<std::pair<std::pair<unsigned, unsigned>, double> > &loops
   );
 
   // Functions for setting private variables
@@ -74,7 +70,7 @@ private:
   double m_derivativeThreshold;  // 0.03 (3 %)
   double m_minLoopDuration;      // 1.0 seconds
   double m_distanceBetweenLoops; // 0.3 seconds
-  double m_qualityFactor;        // value (6) /32767 (0.00006) for float)
+  double m_qualityFactor;        // maximum allowed difference of five samples (frames)
   unsigned m_maxCandidates;      // 50000
   unsigned m_loopsToReturn;      // 6
   unsigned m_maxLoopsMultiple;   // 10
