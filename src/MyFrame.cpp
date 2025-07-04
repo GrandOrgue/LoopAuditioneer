@@ -2031,6 +2031,11 @@ void MyFrame::OnKeyboardInput(wxKeyEvent& event) {
       }
     }
     return;
+  } else if (event.GetKeyCode() == 67 && event.GetModifiers() == wxMOD_CONTROL) {
+    // workaround for wxGrid catching
+    wxCommandEvent evt(wxEVT_MENU, CUT_N_FADE);
+    wxPostEvent(this, evt);
+    return;
   }
 
   // F moves selection up the cuelist
