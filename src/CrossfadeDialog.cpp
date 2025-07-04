@@ -164,6 +164,10 @@ void CrossfadeDialog::CreateControls() {
     0
   );
   lastRow->Add(cancelButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+
+  // Set OK button as default
+  okButton->SetDefault();
+  okButton->SetFocus();
 }
 
 double CrossfadeDialog::GetFadeduration() {

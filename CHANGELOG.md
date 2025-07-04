@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Keyboard shortcut (Ctrl+C) to cut and fade to be handled correctly on Linux.
+- OK button to have default focus in some dialogs.
 
 ## [0.12.1] - 2025-06-10
 

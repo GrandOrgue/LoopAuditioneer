@@ -431,6 +431,10 @@ void AutoLoopDialog::CreateControls() {
     0
   );
   lastRow->Add(cancelButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+
+  // Set OK button as default
+  okButton->SetFocus();
+  okButton->SetDefault();
 }
 
 void AutoLoopDialog::SetThreshold(double th) {

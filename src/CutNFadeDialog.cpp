@@ -247,6 +247,10 @@ void CutNFadeDialog::CreateControls() {
     0
   );
   fifthRow->Add(cancelButton, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
+
+  // Set OK button as default
+  okButton->SetDefault();
+  okButton->SetFocus();
 }
 
 void CutNFadeDialog::SetCutStart(unsigned cutStart) {
