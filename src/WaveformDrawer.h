@@ -80,6 +80,7 @@ public:
   int GetAmplitudeZoomLevel();
   void ZoomInAmplitude();
   void ZoomOutAmplitude();
+  void AutoCalculateZoomLevel();
 
 private:
   std::vector<unsigned int> cueSampleOffset;

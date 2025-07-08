@@ -891,7 +891,7 @@ int WaveformDrawer::GetAmplitudeZoomLevel() {
 }
 
 void WaveformDrawer::ZoomInAmplitude() {
-  if (m_amplitudeZoomLevel < 64)
+  if (m_amplitudeZoomLevel < 1024)
     m_amplitudeZoomLevel *= 2;
 
   somethingHasChanged = true;
@@ -902,6 +902,17 @@ void WaveformDrawer::ZoomOutAmplitude() {
     m_amplitudeZoomLevel /= 2;
 
   somethingHasChanged = true;
+}
+
+void WaveformDrawer::AutoCalculateZoomLevel() {
+  double strongestSampleValue = m_fileReference->GetStrongestSampleValue();
+  if (strongestSampleValue < 0.5 && strongestSampleValue > 0) {
+    double zoomLvl = 0.5 / strongestSampleValue;
+    int roundedUpZoom = ceil(zoomLvl);
+    while (m_amplitudeZoomLevel < roundedUpZoom) {
+      m_amplitudeZoomLevel *= 2;
+    }
+  }
 }
 
 void WaveformDrawer::OnKeyDown(wxKeyEvent& event) {

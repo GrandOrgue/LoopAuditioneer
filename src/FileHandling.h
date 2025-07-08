@@ -96,6 +96,7 @@ public:
   double GetLoopQuality(unsigned loopNbr);
   double GetLoopQuality(unsigned start, unsigned end);
   std::vector<double> CalculateLoopQuality(unsigned startIdx, unsigned endIdx);
+  double GetStrongestSampleValue();
 
   short *shortAudioData;
   int *intAudioData;

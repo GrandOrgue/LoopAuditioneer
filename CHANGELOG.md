@@ -11,11 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Possibility to inspect and adjust cue position similar to looppoint overlay. (TODO)
 - Possibility to adjust cue position on sample level detail. (TODO)
-- Option to auto zoom waveform to at least 50% height when opening a new sample. (TODO)
+- Option to auto zoom waveform to at least 50% height when opening a new file.
 
 ### Changed
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
+- Keyboard shortcut to open previous file of the currently selected to Ctrl + Alt + P.
 
 ### Fixed
 

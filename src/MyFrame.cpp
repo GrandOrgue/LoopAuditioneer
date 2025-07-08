@@ -76,6 +76,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
   EVT_TOOL(PITCH_SETTINGS, MyFrame::OnPitchSettings)
   EVT_TOOL(ZOOM_IN_AMP, MyFrame::OnZoomInAmplitude)
   EVT_TOOL(ZOOM_OUT_AMP, MyFrame::OnZoomOutAmplitude)
+  EVT_TOOL(AUTO_ZOOM_WAVEFORM, MyFrame::OnAutoZoomOption)
   EVT_TIMER(TIMER_ID, MyFrame::UpdatePlayPosition)
   EVT_SLIDER(ID_VOLUME_SLIDER, MyFrame::OnVolumeSlider)
   EVT_TOOL(X_FADE, MyFrame::OnCrossfade)
@@ -124,6 +125,7 @@ void MyFrame::OnClose(wxCloseEvent& WXUNUSED(event)) {
   int vol = volumeSl->GetValue();
   config->Write(wxT("General/LastVolume"), vol);
   config->Write(wxT("General/LoopOnlyPlayback"), m_loopOnly);
+  config->Write(wxT("General/AutoZoomWaveform"), m_autoZoomWaveform);
   GetCurrentFrameSizes();
   config->Write(wxT("General/FrameXPosition"), m_xPosition);
   config->Write(wxT("General/FrameYPosition"), m_yPosition);
@@ -210,12 +212,15 @@ void MyFrame::OpenAudioFile() {
     m_audiofile->SetSliderSustainsection(m_autoloopSettings->GetStart(), m_autoloopSettings->GetEnd());
     // adjust choice of sustainsection
     m_audiofile->SetAutoSustainSearch(m_autoloopSettings->GetAutosearch());
-    
+
     wxString filePath;
     filePath = workingDir;
     filePath += wxFILE_SEP_PATH;
     filePath += fileToOpen;
     m_waveform = new WaveformDrawer(this, m_audiofile);
+    if (m_autoZoomWaveform) {
+      m_waveform->AutoCalculateZoomLevel();
+    }
     lowerBox->Clear();
     lowerBox->Add(m_waveform, 1, wxEXPAND, 0);
     vbox->Layout();
@@ -688,6 +693,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   m_frameWidth = 1000;
   m_frameHeight = 560;
   m_frameMaximized = false;
+  m_autoZoomWaveform = false;
   SetBackgroundStyle(wxBG_STYLE_SYSTEM);
 
   // Create a file menu
@@ -696,7 +702,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   // Add file menu items
   fileMenu->Append(FILE_SELECT, wxT("&Choose folder\tCtrl+O"), wxT("Select working folder"));
   fileMenu->Append(OPEN_SELECTED, wxT("&Open file\tCtrl+F"), wxT("Open selected file"));
-  fileMenu->Append(CLOSE_OPEN_PREV, wxT("Open previous file\tCtrl+Alt+U"), wxT("Open next upper file in filelist"));
+  fileMenu->Append(CLOSE_OPEN_PREV, wxT("Open previous file\tCtrl+Alt+P"), wxT("Open next upper file in filelist"));
   fileMenu->Append(CLOSE_OPEN_NEXT, wxT("Open next file\tCtrl+Alt+N"), wxT("Open next lower file in filelist"));
   fileMenu->Append(wxID_SAVE, wxT("&Save\tCtrl+S"), wxT("Save current file"));
   fileMenu->Append(wxID_SAVEAS, wxT("Save &as...\tShift+Ctrl+S"), wxT("Save current file with new name"));
@@ -720,6 +726,7 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
   // Add view menu items
   viewMenu->Append(ZOOM_IN_AMP, wxT("Zoom &in\tCtrl++"), wxT("Zoom in on amplitude"));
   viewMenu->Append(ZOOM_OUT_AMP, wxT("Zoom &out\tCtrl+-"), wxT("Zoom out on amplitude"));
+  viewMenu->AppendCheckItem(AUTO_ZOOM_WAVEFORM, wxT("Auto zoom 50%+"), wxT("Auto zoom waveform to at least 50%"));
 
   viewMenu->Enable(ZOOM_IN_AMP, false);
   viewMenu->Enable(ZOOM_OUT_AMP, false);
@@ -939,6 +946,14 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
       transportMenu->Check(LOOP_ONLY, true);
     else
       transportMenu->Check(LOOP_ONLY, false);
+  }
+
+  if (config->Read(wxT("General/AutoZoomWaveform"), & b)) {
+    m_autoZoomWaveform = b;
+    if (m_autoZoomWaveform)
+      viewMenu->Check(AUTO_ZOOM_WAVEFORM, true);
+    else
+      viewMenu->Check(AUTO_ZOOM_WAVEFORM, false);
   }
 
   if (config->Read(wxT("General/FrameXPosition"), &readInt))
@@ -2330,6 +2345,13 @@ void MyFrame::PopulateListCtrl() {
 
 void MyFrame::OnHelp(wxCommandEvent& WXUNUSED(event)) {
   ::wxGetApp().m_helpController->DisplayContents();
+}
+
+void MyFrame::OnAutoZoomOption(wxCommandEvent& event) {
+  if (event.IsChecked())
+    m_autoZoomWaveform = true;
+  else
+    m_autoZoomWaveform = false;
 }
 
 void MyFrame::GetCurrentFrameSizes() {

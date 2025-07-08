@@ -1752,3 +1752,15 @@ std::vector<double> FileHandling::CalculateLoopQuality(unsigned startIdx, unsign
 
   return qualityValues;
 }
+
+double FileHandling::GetStrongestSampleValue() {
+  double strongestValue = 0;
+  for (unsigned i = 0; i < waveTracks.size(); i++) {
+    for (unsigned j = 0; j < waveTracks[i].waveData.size(); j++) {
+      double currentValue = sqrt(pow(waveTracks[i].waveData[j], 2));
+      if (currentValue > strongestValue)
+        strongestValue = currentValue;
+    }
+  }
+  return strongestValue;
+}

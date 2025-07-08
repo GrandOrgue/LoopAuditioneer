@@ -143,7 +143,9 @@ private:
   int m_spectrumFftSize;
   int m_spectrumWindow;
   bool m_spectrumInterpolatePitch;
+  bool m_autoZoomWaveform;
 
+  void OnAutoZoomOption(wxCommandEvent& event);
   void PopulateListOfFileNames();
   void PopulateListCtrl();
   void UpdateAllViews();
