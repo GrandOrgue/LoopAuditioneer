@@ -1,6 +1,6 @@
 /* 
  * CutNFadeDialog.cpp is a part of LoopAuditioneer software
- * Copyright (C) 2014-2025 Lars Palo and contributors (see AUTHORS file) 
+ * Copyright (C) 2014-2026 Lars Palo and contributors (see AUTHORS file) 
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
