@@ -228,7 +228,7 @@ void MyFrame::OpenAudioFile() {
     m_sound->SetSampleRate(m_audiofile->GetSampleRate());
     m_sound->SetChannels(m_audiofile->m_channels);
     wxFileName fullFilePath(filePath);
-    m_panel->SetFileNameLabel(fullFilePath);
+    m_panel->SetFileNameLabel(fullFilePath, m_audiofile->GetInfoString());
 
     SetStatusText(wxString::Format(wxT("Zoom level: x %i"), m_waveform->GetAmplitudeZoomLevel()), 1);
 
@@ -301,7 +301,7 @@ void MyFrame::OpenAudioFile() {
     delete m_audiofile;
     m_audiofile = 0;
     wxFileName fullFileName(wxEmptyString, wxEmptyString);
-    m_panel->SetFileNameLabel(fullFileName);
+    m_panel->SetFileNameLabel(fullFileName, wxEmptyString);
 
     SetStatusText(wxEmptyString, 1);
 

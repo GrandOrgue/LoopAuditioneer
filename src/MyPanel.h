@@ -35,7 +35,7 @@ public:
   wxBoxSizer *vbox;
   wxGrid *m_grid;
   wxGrid *m_cueGrid;
-  void SetFileNameLabel(wxFileName fullPath);
+  void SetFileNameLabel(wxFileName fullPath, wxString info);
   void EmptyTable();
   void FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bool toSave, int index, double quality);
   void FillRowWithCueData(unsigned int id, unsigned int position, bool save, int index);

@@ -70,6 +70,7 @@ public:
   void SetSampleRate(unsigned s_rate);
   int GetAudioFormat();
   int GetWholeFormat();
+  wxString GetInfoString();
   bool FileCouldBeOpened();
   bool GetFFTPitch(double pitches[]);
   bool GetSpectrum(double *output, unsigned fftSize, int windowType);

@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
 - Keyboard shortcut to open previous file of the currently selected to Ctrl + Alt + P.
+- Information about currently open file to also include basic file format data.
 
 ### Fixed
 

@@ -311,6 +311,40 @@ int FileHandling::GetWholeFormat() {
   return m_format;
 }
 
+wxString FileHandling::GetInfoString() {
+  wxString info = wxEmptyString;
+  switch (m_minorFormat) {
+    case SF_FORMAT_PCM_S8:
+      info = wxT("8 bit (signed)");
+      break;
+    case SF_FORMAT_PCM_16:
+      info = wxT("16 bit");
+      break;
+    case SF_FORMAT_PCM_24:
+      info = wxT("24 bit");
+      break;
+    case SF_FORMAT_PCM_32:
+      info = wxT("32 bit");
+      break;
+    case SF_FORMAT_PCM_U8:
+      info = wxT("8 bit (unsigned)");
+      break;
+    case SF_FORMAT_FLOAT:
+      info = wxT("32 bit float");
+      break;
+    case SF_FORMAT_DOUBLE:
+      info = wxT("64 bit float");
+      break;
+    default:
+      SndfileHandle sndfile;
+      SF_FORMAT_INFO format_info;
+      format_info.format = m_minorFormat;
+      sndfile.command(SFC_GET_FORMAT_INFO, &format_info, sizeof (format_info));
+      info = wxString(format_info.name);
+      break;
+  }
+  return wxString::Format(wxT("%s %u Hz"), info, m_samplerate);
+}
 
 bool FileHandling::FileCouldBeOpened() {
   if (fileOpenWasSuccessful)

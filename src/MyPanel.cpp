@@ -84,7 +84,7 @@ MyPanel::~MyPanel() {
 
 }
 
-void MyPanel::SetFileNameLabel(wxFileName fullPath) {
+void MyPanel::SetFileNameLabel(wxFileName fullPath, wxString info) {
   if (fullPath.IsOk() && fullPath.FileExists()) {
     wxString theFileName = fullPath.GetFullName();
     if (fullPath.GetDirCount()) {
@@ -92,9 +92,9 @@ void MyPanel::SetFileNameLabel(wxFileName fullPath) {
       wxString partToDisplay = dirStrings.Last();
       partToDisplay += wxFILE_SEP_PATH;
       partToDisplay += theFileName;
-      fileNameLabel->SetLabel(wxT("Current open file: ") + partToDisplay);
+      fileNameLabel->SetLabel(wxT("Current open file: ") + partToDisplay + wxT(" (") + info + wxT(")"));
     } else {
-      fileNameLabel->SetLabel(wxT("Current open file: ") + theFileName);
+      fileNameLabel->SetLabel(wxT("Current open file: ") + theFileName + wxT(" (") + info + wxT(")"));
     }
   } else {
     fileNameLabel->SetLabel(wxT("Current open file: "));
