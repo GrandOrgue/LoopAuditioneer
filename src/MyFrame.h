@@ -144,6 +144,7 @@ private:
   int m_spectrumWindow;
   bool m_spectrumInterpolatePitch;
   bool m_autoZoomWaveform;
+  bool m_isModified;
 
   void OnAutoZoomOption(wxCommandEvent& event);
   void PopulateListOfFileNames();
@@ -151,6 +152,7 @@ private:
   void UpdateAllViews();
   void UpdateCurrentFileInfo();
   void GetCurrentFrameSizes();
+  void SetModified();
 
   static bool loopPlay;
   static int volumeMultiplier;

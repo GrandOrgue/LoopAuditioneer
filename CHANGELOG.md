@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch process to export whole attack up to the release cue. (TODO)
 - Batch process to create tremulant samples with flexible pitch/amplitude modulation. (TODO)
 - Option to auto zoom waveform to at least 50% height when opening a new file.
+- Info in the frame title bar about currently opened file and if it's modified.
 
 ### Changed
 
