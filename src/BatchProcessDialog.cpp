@@ -84,6 +84,7 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Remove sound between last loop and cue"));
   m_batchProcessesAvailable.Add(wxT("Export sound from last cue as release"));
   m_batchProcessesAvailable.Add(wxT("Export sound to after last loop as attack"));
+  m_batchProcessesAvailable.Add(wxT("Export loop audio data to new file(s)"));
   m_batchProcessesAvailable.Add(wxT("Cut & Fade in/out"));
   m_batchProcessesAvailable.Add(wxT("Crossfade all loops"));
   m_batchProcessesAvailable.Add(wxT("Set LIST INFO strings"));
@@ -1179,6 +1180,43 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     break;
 
     case 20:
+      // This is for exporting audio data of loop(s) to new file(s)
+      if (!filesToProcess.IsEmpty()) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          m_statusProgress->AppendText(wxT("Processing "));
+          m_statusProgress->AppendText(filesToProcess.Item(i));
+          m_statusProgress->AppendText(wxT("\n"));
+          if (fh.FileCouldBeOpened()) {
+            // try exporting each loop
+            for (int j = 0; j < fh.m_loops->GetNumberOfLoops(); j++) {
+              wxFileName theFile(filesToProcess.Item(i));
+              wxString newName = theFile.GetPathWithSep() + theFile.GetName() + wxString::Format(wxT("_Loop%d."), j + 1) + theFile.GetExt();
+              if (fh.ExportLoopAsNewFile(newName, m_targetField->GetValue(), j)) {
+                m_statusProgress->AppendText(wxT("\tSuccessfully exported loop "));
+                m_statusProgress->AppendText(wxString::Format(wxT("%d"), j + 1));
+                m_statusProgress->AppendText(wxT(" to "));
+                m_statusProgress->AppendText(newName);
+                m_statusProgress->AppendText(wxT("\n"));
+              } else {
+                m_statusProgress->AppendText(wxT("\tFailed to export loop "));
+                m_statusProgress->AppendText(wxString::Format(wxT("%d"), j + 1));
+                m_statusProgress->AppendText(wxT("\n"));
+              }
+            }
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+          wxSafeYield();
+        }
+        m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 21:
       // This is for cutting and fading in/out
       if (!filesToProcess.IsEmpty()) {
 
@@ -1236,7 +1274,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 21:
+    case 22:
       // This is for crossfading all existing loops
       if (!filesToProcess.IsEmpty()) {
 
@@ -1340,7 +1378,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
     
-    case 22:
+    case 23:
       // This is for setting LIST INFO strings
       if (!filesToProcess.IsEmpty()) {
 
@@ -1444,7 +1482,13 @@ wxString BatchProcessDialog::MyDoubleToString(double dbl, int precision) {
 
 void BatchProcessDialog::DecideRecursiveOption() {
   int selectedProcess = m_processChoiceBox->GetSelection();
-  if (selectedProcess == wxNOT_FOUND|| selectedProcess == 0 || selectedProcess == 14 || selectedProcess == 18 || selectedProcess == 19) {
+  // The excluded processes for recursive option are:
+  // - no selected process (0)
+  // - setting pitch info from file name (14 - as the harmonic number needs to be set individually for each stop/rank folder)
+  // - exporting cues as releases (18 - as files could be overwritten in a rather confusing manner)
+  // - exporting up to after last loop as attack (19 - same reason as above)
+  // - exporting audio data of loops to new file(s) (20 - same reason as above)
+  if (selectedProcess == wxNOT_FOUND || selectedProcess == 0 || selectedProcess == 14 || selectedProcess == 18 || selectedProcess == 19 || selectedProcess == 20) {
     m_recursiveCheck->SetValue(false);
     m_recursiveOption = false;
     m_recursiveCheck->Disable();

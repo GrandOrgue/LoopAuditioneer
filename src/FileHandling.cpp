@@ -1579,6 +1579,79 @@ bool FileHandling::TrimAsAttack() {
 
 }
 
+/*
+ * ExportLoopAsNewFile is used in batch mode to export the audio data in
+ * loop(s) to individual new file(s).
+ */
+bool FileHandling::ExportLoopAsNewFile(wxString fileName, wxString path, int loopIdx) {
+  // There must be at least one loop existing to use this function
+  if (!m_loops->GetNumberOfLoops() || loopIdx >= m_loops->GetNumberOfLoops())
+    return false;
+
+  LOOPDATA loopToExport;
+  m_loops->GetLoopData(loopIdx, loopToExport);
+  if (loopToExport.dwEnd <= loopToExport.dwStart)
+    return false;
+
+  unsigned arrayLength = (loopToExport.dwEnd - loopToExport.dwStart + 1) * m_channels;
+  unsigned loopStartIdx = loopToExport.dwStart * m_channels;
+  wxString filePath = path + wxFILE_SEP_PATH + fileName;
+
+  // Open the file to write
+  SndfileHandle sf = SndfileHandle(std::string(filePath.mb_str()), SFM_WRITE, m_format, m_channels, m_samplerate);
+
+  // Write LIST INFO strings if they are set in the original file
+  if (m_info.artist != wxEmptyString)
+    sf.setString(SF_STR_ARTIST, (const char*)m_info.artist.mb_str());
+
+  if (m_info.copyright != wxEmptyString)
+    sf.setString(SF_STR_COPYRIGHT, (const char*)m_info.copyright.mb_str());
+
+  // Remember to set the software string of the used software!
+  m_info.software = wxT("LoopAuditioneer");
+  if (m_info.software != wxEmptyString)
+    sf.setString(SF_STR_SOFTWARE, (const char*)m_info.software.mb_str());
+
+  if (m_info.comment != wxEmptyString)
+    sf.setString(SF_STR_COMMENT, (const char*)m_info.comment.mb_str());
+
+  // the creation date must be formatted as YYYY-MM-DD and nothing else
+  if (m_info.creation_date.IsValid()) {
+    wxString dateString = m_info.creation_date.FormatISODate();
+    sf.setString(SF_STR_DATE, (const char*)dateString.mb_str());
+  }
+
+  // Copy/write the audio data
+  if (m_minorFormat == SF_FORMAT_DOUBLE) {
+    double *audioData = new double[arrayLength];
+    for (unsigned i = 0; i < arrayLength; i++)
+      audioData[i] = doubleAudioData[loopStartIdx + i];
+    sf.write(audioData, arrayLength);
+    delete[] audioData;
+  } else if (m_minorFormat == SF_FORMAT_FLOAT) {
+    float *audioData = new float[arrayLength];
+    for (unsigned i = 0; i < arrayLength; i++)
+      audioData[i] = floatAudioData[loopStartIdx + i];
+    sf.write(audioData, arrayLength);
+    delete[] audioData;
+  } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
+    short *audioData = new short[arrayLength];
+    for (unsigned i = 0; i < arrayLength; i++)
+      audioData[i] = shortAudioData[loopStartIdx + i];
+    sf.write(audioData, arrayLength);
+    delete[] audioData;
+  } else {
+    int *audioData = new int[arrayLength];
+    for (unsigned i = 0; i < arrayLength; i++)
+      audioData[i] = intAudioData[loopStartIdx + i];
+    sf.write(audioData, arrayLength);
+    delete[] audioData;
+  }
+
+  // The new file will be finally closed when the instance of sf is deleted!
+  return true;
+}
+
 void FileHandling::PerformFade(unsigned fadeLength, int fadeType) {
   double *audioData = new double[ArrayLength];
   bool gotData = GetDoubleAudioData(audioData);

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Possibility to inspect and adjust cue position similar to looppoint overlay. (TODO)
 - Possibility to adjust cue position on sample level detail. (TODO)
-- Batch process to export (each) loop (and loop only) to separate file. (TODO)
+- Batch process to export (each) loop (and loop only) to separate file.
 - Batch process to export existing loop data in a .tsv file format. (TODO)
 - Batch process to export existing pitch data in a .tsv file format. (TODO)
 - Batch process to export whole attack up to the release cue. (TODO)

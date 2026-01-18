@@ -81,6 +81,7 @@ public:
   bool TrimEnd(unsigned timeToTrim);
   bool TrimAsRelease();
   bool TrimAsAttack();
+  bool ExportLoopAsNewFile(wxString fileName, wxString path, int loopIdx);
   void PerformFade(unsigned fadeLength, int fadeType);
   // Get audio data as doubles
   bool GetDoubleAudioData(double audio[]);
