@@ -16,12 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch process to export existing pitch data in a .tsv file format. (TODO)
 - Batch process to export whole attack up to the release cue. (TODO)
 - Batch process to create tremulant samples with flexible pitch/amplitude modulation. (TODO)
+
+### Changed
+
+- Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
+
+## [0.13.0] - 2026-01-18
+
+### Added
+
 - Option to auto zoom waveform to at least 50% height when opening a new file.
 - Info in the frame title bar about currently opened file and if it's modified.
 
 ### Changed
 
-- Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
 - Keyboard shortcut to open previous file of the currently selected to Ctrl + Alt + P.
 - Information about currently open file to also include basic file format data.
 
