@@ -1757,8 +1757,8 @@ std::pair<unsigned, unsigned> FileHandling::GetSustainsection() {
 }
 
 void FileHandling::SetSliderSustainsection(int start, int end) {
-  m_sliderSustainStart = ((double) start / 100.0) * ArrayLength / m_channels;
-  m_sliderSustainEnd = ((double) end / 100.0) * ArrayLength / m_channels;
+  m_sliderSustainStart = ((double) start / 1000.0) * ArrayLength / m_channels;
+  m_sliderSustainEnd = ((double) end / 1000.0) * ArrayLength / m_channels;
 }
 
 void FileHandling::SetAutoSustainSearch(bool choice) {

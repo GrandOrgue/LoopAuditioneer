@@ -136,8 +136,8 @@ void MyFrame::OnClose(wxCloseEvent& WXUNUSED(event)) {
   config->Write(wxT("BatchProcess/LastTarget"), m_batchProcess->GetLastTarget());
   config->Write(wxT("LoopSettings/AutoSearchSustain"), m_autoloopSettings->GetAutosearch());
   config->Write(wxT("LoopSettings/BruteForce"), m_autoloopSettings->GetBruteForce());
-  config->Write(wxT("LoopSettings/SustainStart"), m_autoloopSettings->GetStart());
-  config->Write(wxT("LoopSettings/SustainEnd"), m_autoloopSettings->GetEnd());
+  config->Write(wxT("LoopSettings/SustainStart"), (float) m_autoloopSettings->GetStart() / 10.0);
+  config->Write(wxT("LoopSettings/SustainEnd"), (float) m_autoloopSettings->GetEnd() / 10.0);
   config->Write(wxT("LoopSettings/Threshold"), m_autoloopSettings->GetThreshold());
   config->Write(wxT("LoopSettings/MinDuration"), m_autoloopSettings->GetDuration());
   config->Write(wxT("LoopSettings/MinDistance"), m_autoloopSettings->GetBetween());
@@ -982,13 +982,13 @@ MyFrame::MyFrame(const wxString& title) : wxFrame(NULL, wxID_ANY, title), m_time
     m_autoloop->SetBruteForce(b);
   }
 
-  if (config->Read(wxT("LoopSettings/SustainStart"), &readInt))
-    m_autoloopSettings->SetStart(readInt);
-
-  if (config->Read(wxT("LoopSettings/SustainEnd"), &readInt))
-    m_autoloopSettings->SetEnd(readInt);
-
   double dbl;
+  if (config->Read(wxT("LoopSettings/SustainStart"), &dbl))
+    m_autoloopSettings->SetStart(dbl * 10);
+
+  if (config->Read(wxT("LoopSettings/SustainEnd"), &dbl))
+    m_autoloopSettings->SetEnd(dbl * 10);
+
   if (config->Read(wxT("LoopSettings/Threshold"), &dbl)) {
     m_autoloopSettings->SetThreshold(dbl);
     m_autoloop->SetThreshold(dbl);
@@ -1511,8 +1511,8 @@ void MyFrame::OnAutoLoopSettings(wxCommandEvent& WXUNUSED(event)) {
   if (m_audiofile && (!m_audiofile->GetAutoSustainSearch())) {
     // update dialog with settings from file if they are changed there
     std::pair<unsigned, unsigned> currentSustain = m_audiofile->GetSustainsection();
-    int start = ((double) currentSustain.first / (double) (m_audiofile->ArrayLength / m_audiofile->m_channels)) * 100 + 0.5;
-    int end = ((double) currentSustain.second / (double) (m_audiofile->ArrayLength / m_audiofile->m_channels)) * 100 + 0.5;
+    int start = ((double) currentSustain.first / (double) (m_audiofile->ArrayLength / m_audiofile->m_channels)) * 1000 + 0.5;
+    int end = ((double) currentSustain.second / (double) (m_audiofile->ArrayLength / m_audiofile->m_channels)) * 1000 + 0.5;
     m_autoloopSettings->SetStart(start);
     m_autoloopSettings->SetEnd(end);
   }

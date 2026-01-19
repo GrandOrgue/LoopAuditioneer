@@ -59,8 +59,8 @@ void AutoLoopDialog::Init() {
   m_numberOfLoops = 6;
   m_loopMultiple = 10;
   m_autoSearchSustain = true;
-  m_startPercentage = 20;
-  m_endPercentage = 70;
+  m_startPercentage = 200;
+  m_endPercentage = 700;
   m_searchBruteForce = false;
 }
 
@@ -149,16 +149,16 @@ void AutoLoopDialog::CreateControls() {
     wxSize(220,-1), 
     0 
   );
-  m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %i %%"), m_startPercentage));
+  m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %.1f %%"), (float) m_startPercentage / 10.0));
   secondSubRow->Add(m_startLabel, 1, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
   // Slider for sustainsection start percentage 0 - 99
   wxSlider *startSlider = new wxSlider ( 
     this, 
     ID_SUSTAINSTART,
-    20,
+    200,
     0,
-    99,
+    999,
     wxDefaultPosition, 
     wxDefaultSize, 
     wxSL_HORIZONTAL
@@ -179,16 +179,16 @@ void AutoLoopDialog::CreateControls() {
     wxSize(220,-1), 
     0 
   );
-  m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %i %%"), m_endPercentage));
+  m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %.1f %%"), (float) m_endPercentage / 10.0));
   thirdSubRow->Add(m_endLabel, 1, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 
   // Slider for sustainsection end percentage
   wxSlider *endSlider = new wxSlider ( 
     this, 
     ID_SUSTAINEND,
-    70,
+    700,
     1,
-    100,
+    1000,
     wxDefaultPosition, 
     wxDefaultSize, 
     wxSL_HORIZONTAL
@@ -538,9 +538,9 @@ bool AutoLoopDialog::TransferDataToWindow() {
   autoCheck->SetValue(m_autoSearchSustain);
   bruteCheck->SetValue(m_searchBruteForce);
   startSl->SetValue(m_startPercentage);
-  m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %i %%"), m_startPercentage));
+  m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %.1f %%"), (float) m_startPercentage / 10.0));
   endSl->SetValue(m_endPercentage);
-  m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %i %%"), m_endPercentage));
+  m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %.1f %%"), (float) m_endPercentage / 10.0));
   candidatesSl->SetValue(m_candidates);
   loopsSl->SetValue(m_numberOfLoops);
   multipleSl->SetValue(m_loopMultiple);
@@ -617,7 +617,7 @@ void AutoLoopDialog::OnStartSliderMove(wxCommandEvent& WXUNUSED(event)) {
 
   if (value < m_endPercentage) {
     m_startPercentage = value;
-    m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %i %%"), m_startPercentage));
+    m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %.1f %%"), (float) m_startPercentage / 10.0));
   } else
     startSl->SetValue(m_startPercentage);
 }
@@ -628,7 +628,7 @@ void AutoLoopDialog::OnEndSliderMove(wxCommandEvent& WXUNUSED(event)) {
 
   if (value > m_startPercentage) {
     m_endPercentage = value;
-    m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %i %%"), m_endPercentage));
+    m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %.1f %%"), (float) m_endPercentage / 10.0));
   } else
     endSl->SetValue(m_endPercentage);
 }
@@ -670,8 +670,8 @@ void AutoLoopDialog::OnQuality(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void AutoLoopDialog::UpdateLabels() {
-  m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %i %%"), m_startPercentage));
-  m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %i %%"), m_endPercentage));
+  m_startLabel->SetLabel(wxString::Format(wxT("Sustain start at: %.1f %%"), (float) m_startPercentage / 10.0));
+  m_endLabel->SetLabel(wxString::Format(wxT("Sustain end at: %.1f %%"), (float) m_endPercentage / 10.0));
   m_thresholdLabel->SetLabel(wxString::Format(wxT("Derivative threshold: %.3f"), m_threshold));
   m_durationLabel->SetLabel(wxString::Format(wxT("Min. loop lenght: %.2f s"), m_minDuration));
   m_distanceLabel->SetLabel(wxString::Format(wxT("Min. time between loops: %.2f s"), m_betweenLoops));

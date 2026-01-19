@@ -120,8 +120,8 @@ private:
   int m_numberOfLoops;           // 6
   int m_loopMultiple;        // 10
   bool m_autoSearchSustain; // true
-  int m_startPercentage; // 20
-  int m_endPercentage; // 70
+  int m_startPercentage; // 20% but value at a factor of 10 to get higher precision
+  int m_endPercentage; // 70% but value at a factor of 10 to get higher precision
   bool m_searchBruteForce;
 
   // GUI controls

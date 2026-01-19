@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Re-worked the dialog showing waveform overlay at looppoints to be independent (modeless). (TODO)
+- Manual sustain section start/end percentage setting precision to be increased by a factor of ten.
+
+### Fixed
+
+- Bug that caused manually set sustain section on waveform to be unstable.
 
 ## [0.13.0] - 2026-01-18
 

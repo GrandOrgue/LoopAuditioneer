@@ -518,7 +518,6 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
       samplesPerPixel = (nrOfSamples / trackWidth) + 1;
 
     if (mouseWithinSustainSection) {
-      
       if (!isChangingSustainSection) {
         m_prev_x = m_x;
         m_prev_y = m_y;
@@ -535,7 +534,6 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
 
     if (cueIsSelected) {
       // a cue was selected so we'll change it's dwSampleOffset to a new position
-      
       // first check that the pixels are valid
       if (m_x < leftMargin)
         m_x = leftMargin;
@@ -611,12 +609,12 @@ void WaveformDrawer::OnLeftClick(wxMouseEvent& event) {
 void WaveformDrawer::OnLeftRelease(wxMouseEvent& WXUNUSED(event)) {
   if (!m_fileReference->GetAutoSustainSearch()) {
     if (isChangingSustainSection) {
-      // we must update the sustainsection in the file reference as it could have changed
+      // we must update the sustain section in the file reference as it could have changed
       // the values to send is in percentage of track size
       isChangingSustainSection = false;
       CalculateSustainRectZones();
-      int start = ((double) (m_sustainsection_rect.xPosLeft - leftMargin) / trackWidth) * 100 + 0.5;
-      int end = ((double) (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - leftMargin) / trackWidth) * 100 + 0.5;
+      int start = ((double) (m_sustainsection_rect.xPosLeft - leftMargin + 1) / trackWidth) * 1000 + 0.5;
+      int end = ((double) (m_sustainsection_rect.xPosLeft + m_sustainsection_rect.xExtent - leftMargin + 2) / trackWidth) * 1000 + 0.5;
       m_fileReference->SetSliderSustainsection(start, end);
 
       // also the auto loopsearch parameters must be updated
@@ -833,7 +831,7 @@ void WaveformDrawer::CalculateSustainIndication() {
   int yPosHigh = topMargin + 1;
   int yExtent = topMargin + trackHeight * m_fileReference->waveTracks.size() + (marginBetweenTracks * (m_fileReference->waveTracks.size() - 1) - 1) - yPosHigh;
   int xPosLeft = currentSustain.first / samplesPerPixel + leftMargin;
-  int xExtent = (currentSustain.second - currentSustain.first) / samplesPerPixel;
+  int xExtent = ((currentSustain.second - currentSustain.first + 1) / samplesPerPixel) + 1.5;
   m_sustainsection_rect.yPosHigh = yPosHigh;
   m_sustainsection_rect.yExtent = yExtent;
   m_sustainsection_rect.xPosLeft = xPosLeft;
