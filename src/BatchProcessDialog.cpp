@@ -31,6 +31,7 @@
 #include <wx/dir.h>
 #include <wx/datetime.h>
 #include <wx/app.h>
+#include <wx/textfile.h>
 #include <vector>
 #include <climits>
 #include <cmath>
@@ -88,6 +89,7 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Cut & Fade in/out"));
   m_batchProcessesAvailable.Add(wxT("Crossfade all loops"));
   m_batchProcessesAvailable.Add(wxT("Set LIST INFO strings"));
+  m_batchProcessesAvailable.Add(wxT("Export existing pitch info to .tsv file"));
 
   m_lastSource = wxEmptyString;
   m_lastTarget = wxEmptyString;
@@ -1444,6 +1446,52 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
           wxSafeYield();
         }
         m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+
+    case 24:
+      // This is for exporting existing pitch information to a .tsv file
+      if (!filesToProcess.IsEmpty()) {
+        // Create the .tsv file
+        wxString fileName = m_targetField->GetValue() + wxFILE_SEP_PATH + wxT("PitchInfo.tsv");
+        m_statusProgress->AppendText(wxString::Format(wxT("Writing pitch info to: %s\n"), fileName));
+        wxTextFile tsvFile(fileName);
+        if (tsvFile.Exists()) {
+          tsvFile.Open();
+          if (tsvFile.IsOpened())
+            tsvFile.Clear();
+        } else {
+          tsvFile.Create(fileName);
+        }
+        if (tsvFile.Exists()) {
+          tsvFile.AddLine(wxT("File name\tMIDI Note\tFraction (cents)\tFrequency (Hz)\tTo Raise\tTo Lower"));
+          for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+
+            FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+            if (fh.FileCouldBeOpened()) {
+              // get pitch info and calculate resulting pitch frequency
+              double cents = (double) fh.m_loops->GetMIDIPitchFraction() / (double)UINT_MAX * 100.0;
+              int midiNote = (int) fh.m_loops->GetMIDIUnityNote();
+              double midi_note_pitch = 440.0 * pow(2, ((double)(midiNote - 69) / 12.0));
+              double resultingPitch = midi_note_pitch * pow(2, (cents / 1200.0));
+              double deviationToRaise = 100 - cents;
+              double deviationToLower = -cents;
+
+              tsvFile.AddLine(wxString::Format(wxT("%s\t%i\t%.2f\t%.2f\t%.6f\t%.6f"), filesToProcess.Item(i), midiNote, cents, resultingPitch, deviationToRaise, deviationToLower));
+            } else {
+              m_statusProgress->AppendText(wxString::Format(wxT("\tCouldn't open audio file: %s!\n"), filesToProcess.Item(i)));
+            }
+            wxSafeYield();
+          }
+          tsvFile.Write(wxTextFileType_Dos, wxCSConv("ISO-8859-1"));
+          m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
+        } else {
+          m_statusProgress->AppendText(wxT("Couldn't create/open the .tsv file!\n"));
+        }
       } else {
         m_statusProgress->AppendText(wxT("No wav files to process!\n"));
       }
