@@ -90,6 +90,7 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Crossfade all loops"));
   m_batchProcessesAvailable.Add(wxT("Set LIST INFO strings"));
   m_batchProcessesAvailable.Add(wxT("Export existing pitch info to .tsv file"));
+  m_batchProcessesAvailable.Add(wxT("Export loop information to .tsv file"));
 
   m_lastSource = wxEmptyString;
   m_lastTarget = wxEmptyString;
@@ -1452,7 +1453,6 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-
     case 24:
       // This is for exporting existing pitch information to a .tsv file
       if (!filesToProcess.IsEmpty()) {
@@ -1484,6 +1484,47 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
               tsvFile.AddLine(wxString::Format(wxT("%s\t%i\t%.2f\t%.2f\t%.6f\t%.6f"), filesToProcess.Item(i), midiNote, cents, resultingPitch, deviationToRaise, deviationToLower));
             } else {
               m_statusProgress->AppendText(wxString::Format(wxT("\tCouldn't open audio file: %s!\n"), filesToProcess.Item(i)));
+            }
+            wxSafeYield();
+          }
+          tsvFile.Write(wxTextFileType_Dos, wxCSConv("ISO-8859-1"));
+          m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
+        } else {
+          m_statusProgress->AppendText(wxT("Couldn't create/open the .tsv file!\n"));
+        }
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 25:
+      // This is for exporting loop information to a .tsv file
+      if (!filesToProcess.IsEmpty()) {
+        // Create the .tsv file
+        wxString fileName = m_targetField->GetValue() + wxFILE_SEP_PATH + wxT("LoopInfo.tsv");
+        m_statusProgress->AppendText(wxString::Format(wxT("Writing loop info to: %s\n"), fileName));
+        wxTextFile tsvFile(fileName);
+        if (tsvFile.Exists()) {
+          tsvFile.Open();
+          if (tsvFile.IsOpened())
+            tsvFile.Clear();
+        } else {
+          tsvFile.Create(fileName);
+        }
+        if (tsvFile.Exists()) {
+          tsvFile.AddLine(wxT("File name\tLoop Number\tStart\tEnd\tDuration\tMax <>"));
+          for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+
+            FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+            if (fh.FileCouldBeOpened() && fh.m_loops->GetNumberOfLoops() > 0) {
+              for (int j = 0; j < fh.m_loops->GetNumberOfLoops(); j++) {
+                LOOPDATA loop;
+                fh.m_loops->GetLoopData(j, loop);
+                tsvFile.AddLine(wxString::Format(wxT("%s\t%i\t%u\t%u\t%.3f\t%.6f"), filesToProcess.Item(i), j + 1, loop.dwStart, loop.dwEnd, (float) (loop.dwEnd - loop.dwStart + 1) / (float) fh.GetSampleRate(), fh.GetLoopQuality(j)));
+              }
+            } else {
+              m_statusProgress->AppendText(wxString::Format(wxT("\tCouldn't open file or it contains no loop: %s\n"), filesToProcess.Item(i)));
             }
             wxSafeYield();
           }

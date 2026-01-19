@@ -107,7 +107,7 @@ void MyPanel::FillRowWithLoopData(int loopStart, int loopEnd, int sampleRate, bo
   // fix values as strings
   wxString start = wxString::Format(wxT("%i"), loopStart);
   wxString end = wxString::Format(wxT("%i"), loopEnd);
-  int numbersOfSamples = loopEnd - loopStart;
+  int numbersOfSamples = loopEnd - loopStart + 1;
   wxString sampleNr = wxString::Format(wxT("%i"), numbersOfSamples);
   double duration = numbersOfSamples / (sampleRate * 1.0);
   wxString dur = wxString::Format(wxT("%.3f"), duration);
@@ -195,7 +195,7 @@ void MyPanel::ChangeLoopData(int loopStart, int loopEnd, int sampleRate, int ind
   // fix values as strings
   wxString start = wxString::Format(wxT("%i"), loopStart);
   wxString end = wxString::Format(wxT("%i"), loopEnd);
-  int numbersOfSamples = loopEnd - loopStart;
+  int numbersOfSamples = loopEnd - loopStart + 1;
   wxString sampleNr = wxString::Format(wxT("%i"), numbersOfSamples);
   double duration = numbersOfSamples / (sampleRate * 1.0);
   wxString dur = wxString::Format(wxT("%.3f"), duration);
