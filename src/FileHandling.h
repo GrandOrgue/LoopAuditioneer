@@ -81,6 +81,7 @@ public:
   bool TrimEnd(unsigned timeToTrim);
   bool TrimAsRelease();
   bool TrimAsAttack();
+  bool TrimAudioToLastCue();
   bool ExportLoopAsNewFile(wxString fileName, wxString path, int loopIdx);
   void PerformFade(unsigned fadeLength, int fadeType);
   // Get audio data as doubles
@@ -107,7 +108,7 @@ public:
   std::vector<WAVETRACK> waveTracks;
   WAV_LIST_INFO m_info;
 
-  long unsigned int ArrayLength;
+  unsigned long int ArrayLength;
 
   int m_channels;
 
@@ -142,6 +143,7 @@ private:
   );
   void CalculateSustainStartAndEnd();
   double GetDownsampledValue(double *fft, unsigned length, unsigned factor, unsigned index);
+  void TrimAudioData(unsigned startIdx, unsigned long int newLength);
 
 };
 

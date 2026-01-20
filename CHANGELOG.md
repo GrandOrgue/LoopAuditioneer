@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch process to export (each) loop (and loop only) to separate file.
 - Batch process to export existing loop data in a .tsv file format.
 - Batch process to export existing pitch data in a .tsv file format.
-- Batch process to export whole attack up to the release cue. (TODO)
+- Batch process to export whole attack up to the release cue as clean file.
 - Batch process to create tremulant samples with flexible pitch/amplitude modulation. (TODO)
 
 ### Changed

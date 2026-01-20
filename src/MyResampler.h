@@ -40,7 +40,7 @@ public:
   void SimpleResample(int channels);
   
   float *resampledAudioData;
-  long unsigned int m_resampledDataLength;
+  unsigned long int m_resampledDataLength;
 
 private:
   SRC_STATE *src_state;

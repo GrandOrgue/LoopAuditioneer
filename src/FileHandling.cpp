@@ -1421,66 +1421,9 @@ bool FileHandling::TrimAsRelease() {
   }
 
   unsigned cuePositionInData = lastCuePos * m_channels;
-  long unsigned int newArrayLength = ArrayLength - (cuePositionInData);
+  unsigned long int newArrayLength = ArrayLength - (cuePositionInData);
 
-  if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
-    double *audioData = new double[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      audioData[i] = doubleAudioData[cuePositionInData + i];
-
-    delete[] doubleAudioData;
-    doubleAudioData = new double[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      doubleAudioData[i] = audioData[i];
-
-    delete[] audioData;
-
-  } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
-    short *audioData = new short[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      audioData[i] = shortAudioData[cuePositionInData + i];
-
-    delete[] shortAudioData;
-    shortAudioData = new short[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      shortAudioData[i] = audioData[i];
-
-    delete[] audioData;
-
-  } else if ((m_minorFormat == SF_FORMAT_PCM_24) || (m_minorFormat == SF_FORMAT_PCM_32)) {
-    int *audioData = new int[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      audioData[i] = intAudioData[cuePositionInData + i];
-
-    delete[] intAudioData;
-    intAudioData = new int[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      intAudioData[i] = audioData[i];
-
-    delete[] audioData;
-  }
-
-  // also update float data as it always exist
-  float *audioData = new float[newArrayLength];
-
-  for (unsigned i = 0; i < newArrayLength; i++)
-    audioData[i] = floatAudioData[cuePositionInData + i];
-
-  delete[] floatAudioData;
-  floatAudioData = new float[newArrayLength];
-
-  for (unsigned i = 0; i < newArrayLength; i++)
-    floatAudioData[i] = audioData[i];
-
-  ArrayLength = newArrayLength;
-
-  delete[] audioData;
+  TrimAudioData(cuePositionInData, newArrayLength);
 
   // if loops and/or cues exist they must now be removed!
   for (unsigned i = 0; i < (unsigned) m_loops->GetNumberOfLoops(); i++)
@@ -1512,64 +1455,7 @@ bool FileHandling::TrimAsAttack() {
 
   long unsigned newArrayLength = (lastEndSample + 3) * m_channels;
 
-  if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
-    double *audioData = new double[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      audioData[i] = doubleAudioData[i];
-
-    delete[] doubleAudioData;
-    doubleAudioData = new double[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      doubleAudioData[i] = audioData[i];
-
-    delete[] audioData;
-
-  } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
-    short *audioData = new short[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      audioData[i] = shortAudioData[i];
-
-    delete[] shortAudioData;
-    shortAudioData = new short[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      shortAudioData[i] = audioData[i];
-
-    delete[] audioData;
-
-  } else if ((m_minorFormat == SF_FORMAT_PCM_24) || (m_minorFormat == SF_FORMAT_PCM_32)) {
-    int *audioData = new int[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      audioData[i] = intAudioData[i];
-
-    delete[] intAudioData;
-    intAudioData = new int[newArrayLength];
-
-    for (unsigned i = 0; i < newArrayLength; i++)
-      intAudioData[i] = audioData[i];
-
-    delete[] audioData;
-  }
-
-  // also update float data as it always exist
-  float *audioData = new float[newArrayLength];
-
-  for (unsigned i = 0; i < newArrayLength; i++)
-    audioData[i] = floatAudioData[i];
-
-  delete[] floatAudioData;
-  floatAudioData = new float[newArrayLength];
-
-  for (unsigned i = 0; i < newArrayLength; i++)
-    floatAudioData[i] = audioData[i];
-
-  ArrayLength = newArrayLength;
-
-  delete[] audioData;
+  TrimAudioData(0, newArrayLength);
 
   // if cues exist they must now be removed!
   for (unsigned i = 0; i < m_cues->GetNumberOfCues(); i++)
@@ -1577,6 +1463,101 @@ bool FileHandling::TrimAsAttack() {
 
   return true;
 
+}
+
+/*
+ * TrimAudioToLastCue is used in batch mode to only get the audio data from the
+ * start of the file to where the release cue is placed. This can then be
+ * exported to a (new) file and processed further.
+ */
+bool FileHandling::TrimAudioToLastCue() {
+  // There must be at least one cue point existing to use this function
+  if (!m_cues->GetNumberOfCues())
+    return false;
+
+  // Get the last cue position in data
+  unsigned lastCuePos = 0;
+  for (unsigned i = 0; i < m_cues->GetNumberOfCues(); i++) {
+    CUEPOINT currentCue;
+    m_cues->GetCuePoint(i, currentCue);
+    if (currentCue.dwSampleOffset > lastCuePos) {
+      lastCuePos = currentCue.dwSampleOffset;
+    }
+  }
+
+  unsigned long int newArrayLength = lastCuePos * m_channels;
+
+  TrimAudioData(0, newArrayLength);
+
+  // if loops and/or cues exist they will now be removed!
+  for (unsigned i = 0; i < (unsigned) m_loops->GetNumberOfLoops(); i++)
+    m_loops->SetSaveOption(false, i);
+
+  for (unsigned i = 0; i < m_cues->GetNumberOfCues(); i++)
+    m_cues->SetSaveOption(false, i);
+
+  return true;
+}
+
+void FileHandling::TrimAudioData(unsigned startIdx, unsigned long int newLength) {
+  if ((m_minorFormat == SF_FORMAT_DOUBLE) || (m_minorFormat == SF_FORMAT_FLOAT)) {
+    double *audioData = new double[newLength];
+
+    for (unsigned i = 0; i < newLength; i++)
+      audioData[i] = doubleAudioData[startIdx + i];
+
+    delete[] doubleAudioData;
+    doubleAudioData = new double[newLength];
+
+    for (unsigned i = 0; i < newLength; i++)
+      doubleAudioData[i] = audioData[i];
+
+    delete[] audioData;
+
+  } else if ((m_minorFormat == SF_FORMAT_PCM_16) || (m_minorFormat == SF_FORMAT_PCM_S8) || (m_minorFormat == SF_FORMAT_PCM_U8)) {
+    short *audioData = new short[newLength];
+
+    for (unsigned i = 0; i < newLength; i++)
+      audioData[i] = shortAudioData[startIdx + i];
+
+    delete[] shortAudioData;
+    shortAudioData = new short[newLength];
+
+    for (unsigned i = 0; i < newLength; i++)
+      shortAudioData[i] = audioData[i];
+
+    delete[] audioData;
+
+  } else if ((m_minorFormat == SF_FORMAT_PCM_24) || (m_minorFormat == SF_FORMAT_PCM_32)) {
+    int *audioData = new int[newLength];
+
+    for (unsigned i = 0; i < newLength; i++)
+      audioData[i] = intAudioData[startIdx + i];
+
+    delete[] intAudioData;
+    intAudioData = new int[newLength];
+
+    for (unsigned i = 0; i < newLength; i++)
+      intAudioData[i] = audioData[i];
+
+    delete[] audioData;
+  }
+
+  // also update float data as it always exist
+  float *audioData = new float[newLength];
+
+  for (unsigned i = 0; i < newLength; i++)
+    audioData[i] = floatAudioData[startIdx + i];
+
+  delete[] floatAudioData;
+  floatAudioData = new float[newLength];
+
+  for (unsigned i = 0; i < newLength; i++)
+    floatAudioData[i] = audioData[i];
+
+  ArrayLength = newLength;
+
+  delete[] audioData;
 }
 
 /*

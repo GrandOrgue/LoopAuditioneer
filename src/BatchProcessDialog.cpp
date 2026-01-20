@@ -85,6 +85,7 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Remove sound between last loop and cue"));
   m_batchProcessesAvailable.Add(wxT("Export sound from last cue as release"));
   m_batchProcessesAvailable.Add(wxT("Export sound to after last loop as attack"));
+  m_batchProcessesAvailable.Add(wxT("Export sound to last cue as clean file"));
   m_batchProcessesAvailable.Add(wxT("Export loop audio data to new file(s)"));
   m_batchProcessesAvailable.Add(wxT("Cut & Fade in/out"));
   m_batchProcessesAvailable.Add(wxT("Crossfade all loops"));
@@ -1183,6 +1184,35 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
     break;
 
     case 20:
+      // This is for exporting sound to release cue (if existing) as a clean file
+      if (!filesToProcess.IsEmpty()) {
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (fh.FileCouldBeOpened()) {
+            if (fh.TrimAudioToLastCue()) {
+              // save file
+              fh.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+              m_statusProgress->AppendText(wxT("\tSuccessfully exported "));
+              m_statusProgress->AppendText(filesToProcess.Item(i));
+              m_statusProgress->AppendText(wxT(" as clean file.\n"));
+            } else {
+              m_statusProgress->AppendText(wxT("\tNo release cue found in "));
+              m_statusProgress->AppendText(filesToProcess.Item(i));
+              m_statusProgress->AppendText(wxT("\n"));
+            }
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open file!\n"));
+          }
+          wxSafeYield();
+        }
+        m_statusProgress->AppendText(wxT("\nBatch process complete!\n\n"));
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 21:
       // This is for exporting audio data of loop(s) to new file(s)
       if (!filesToProcess.IsEmpty()) {
         for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
@@ -1219,7 +1249,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 21:
+    case 22:
       // This is for cutting and fading in/out
       if (!filesToProcess.IsEmpty()) {
 
@@ -1277,7 +1307,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 22:
+    case 23:
       // This is for crossfading all existing loops
       if (!filesToProcess.IsEmpty()) {
 
@@ -1381,7 +1411,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
     
-    case 23:
+    case 24:
       // This is for setting LIST INFO strings
       if (!filesToProcess.IsEmpty()) {
 
@@ -1453,7 +1483,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 24:
+    case 25:
       // This is for exporting existing pitch information to a .tsv file
       if (!filesToProcess.IsEmpty()) {
         // Create the .tsv file
@@ -1498,7 +1528,7 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
 
     break;
 
-    case 25:
+    case 26:
       // This is for exporting loop information to a .tsv file
       if (!filesToProcess.IsEmpty()) {
         // Create the .tsv file
@@ -1574,10 +1604,11 @@ void BatchProcessDialog::DecideRecursiveOption() {
   // The excluded processes for recursive option are:
   // - no selected process (0)
   // - setting pitch info from file name (14 - as the harmonic number needs to be set individually for each stop/rank folder)
-  // - exporting cues as releases (18 - as files could be overwritten in a rather confusing manner)
-  // - exporting up to after last loop as attack (19 - same reason as above)
-  // - exporting audio data of loops to new file(s) (20 - same reason as above)
-  if (selectedProcess == wxNOT_FOUND || selectedProcess == 0 || selectedProcess == 14 || selectedProcess == 18 || selectedProcess == 19 || selectedProcess == 20) {
+  // - exporting cues as releases (18 - as files could be overwritten or not written in a rather confusing manner)
+  // - exporting audio data up to after last loop as attack (19 - same reason as above)
+  // - exporting audio data to release cue as clean file (20 - same reason as above)
+  // - exporting audio data of loops to new file(s) (21 - same reason as above)
+  if (selectedProcess == wxNOT_FOUND || selectedProcess == 0 || selectedProcess == 14 || selectedProcess == 18 || selectedProcess == 19 || selectedProcess == 20|| selectedProcess == 21) {
     m_recursiveCheck->SetValue(false);
     m_recursiveOption = false;
     m_recursiveCheck->Disable();

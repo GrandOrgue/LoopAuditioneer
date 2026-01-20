@@ -21,7 +21,7 @@
 #include "MyResampler.h"
 #include <vector>
 
-MyResampler::MyResampler(int channels) : resampledAudioData(NULL) {
+MyResampler::MyResampler(int channels) : resampledAudioData(NULL), m_resampledDataLength(0) {
   // initialize samplerate converter
   src_state = src_new(SRC_SINC_MEDIUM_QUALITY, channels, &src_error);
 }
@@ -96,7 +96,7 @@ void MyResampler::SimpleResample(int channels) {
   
   m_resampledDataLength = tempData.size();
   resampledAudioData = new float[m_resampledDataLength];
-  for (long unsigned int i = 0; i < m_resampledDataLength; i++)
+  for (unsigned long int i = 0; i < m_resampledDataLength; i++)
     resampledAudioData[i] = tempData[i];
 }
 
