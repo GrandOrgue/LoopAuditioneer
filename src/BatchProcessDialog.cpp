@@ -92,6 +92,7 @@ void BatchProcessDialog::Init(AutoLoopDialog* autoloopSettings) {
   m_batchProcessesAvailable.Add(wxT("Set LIST INFO strings"));
   m_batchProcessesAvailable.Add(wxT("Export existing pitch info to .tsv file"));
   m_batchProcessesAvailable.Add(wxT("Export loop information to .tsv file"));
+  m_batchProcessesAvailable.Add(wxT("Copy loop(s) from corresponding file(s)"));
 
   m_lastSource = wxEmptyString;
   m_lastTarget = wxEmptyString;
@@ -1563,6 +1564,54 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
         } else {
           m_statusProgress->AppendText(wxT("Couldn't create/open the .tsv file!\n"));
         }
+      } else {
+        m_statusProgress->AppendText(wxT("No wav files to process!\n"));
+      }
+
+    break;
+
+    case 27:
+      // This is for copying loop(s) from corresponding file(s)
+      if (!filesToProcess.IsEmpty()) {
+        m_statusProgress->AppendText(wxT("Reading source from "));
+        m_statusProgress->AppendText(m_sourceField->GetValue());
+        m_statusProgress->AppendText(wxT("\n"));
+        m_statusProgress->AppendText(wxT("\n"));
+        for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
+          m_statusProgress->AppendText(filesToProcess.Item(i));
+          m_statusProgress->AppendText(wxT("\n"));
+          FileHandling sourceFile(filesToProcess.Item(i), m_sourceField->GetValue());
+          if (sourceFile.FileCouldBeOpened() && sourceFile.m_loops->GetNumberOfLoops() > 0) {
+            // try to open a corresponding target file
+            FileHandling targetFile(filesToProcess.Item(i), m_targetField->GetValue());
+            if (targetFile.FileCouldBeOpened()) {
+              // copy loop(s) to target file if they would be valid
+              unsigned nbrLoopsCopied = 0;
+              for (unsigned j = 0; j < sourceFile.m_loops->GetNumberOfLoops(); j++) {
+                LOOPDATA loop;
+                sourceFile.m_loops->GetLoopData(j, loop);
+                unsigned targetFrames = targetFile.ArrayLength / targetFile.m_channels;
+                if (loop.dwStart < targetFrames && loop.dwEnd < targetFrames) {
+                  targetFile.m_loops->AddLoop(loop);
+                  nbrLoopsCopied++;
+                }
+              }
+              // save target file
+              if (nbrLoopsCopied) {
+                targetFile.SaveAudioFile(filesToProcess.Item(i), m_targetField->GetValue());
+                m_statusProgress->AppendText(wxString::Format(wxT("\tCopied %u loop(s) to %s in %s\n"), nbrLoopsCopied, filesToProcess.Item(i), m_targetField->GetValue()));
+              } else {
+                m_statusProgress->AppendText(wxString::Format(wxT("\tNo loop could be copied to %s in %s!\n"), filesToProcess.Item(i), m_targetField->GetValue()));
+              }
+            } else {
+              m_statusProgress->AppendText(wxT("\tCouldn't open a target file!\n"));
+            }
+          } else {
+            m_statusProgress->AppendText(wxT("\tCouldn't open source file or no loop(s) exist in it!\n"));
+          }
+          wxSafeYield();
+        }
+        m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
       } else {
         m_statusProgress->AppendText(wxT("No wav files to process!\n"));
       }
