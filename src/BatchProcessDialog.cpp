@@ -32,6 +32,7 @@
 #include <wx/datetime.h>
 #include <wx/app.h>
 #include <wx/textfile.h>
+#include <wx/file.h>
 #include <vector>
 #include <climits>
 #include <cmath>
@@ -1490,16 +1491,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
         // Create the .tsv file
         wxString fileName = m_targetField->GetValue() + wxFILE_SEP_PATH + wxT("PitchInfo.tsv");
         m_statusProgress->AppendText(wxString::Format(wxT("Writing pitch info to: %s\n"), fileName));
-        wxTextFile tsvFile(fileName);
-        if (tsvFile.Exists()) {
-          tsvFile.Open();
-          if (tsvFile.IsOpened())
-            tsvFile.Clear();
-        } else {
-          tsvFile.Create(fileName);
-        }
-        if (tsvFile.Exists()) {
-          tsvFile.AddLine(wxT("File name\tMIDI Note\tFraction (cents)\tFrequency (Hz)\tTo Raise\tTo Lower"));
+        wxCSConv conv = wxCSConv("UTF-8");
+        wxFile *tsvFile = new wxFile(fileName, wxFile::write);
+        if (tsvFile->IsOpened() && conv.IsOk()) {
+          tsvFile->Write("\xef\xbb\xbf", 3);
+          tsvFile->Write(wxT("File name\tMIDI Note\tFraction (cents)\tFrequency (Hz)\tTo Raise\tTo Lower"), conv);
+          tsvFile->Write(wxTextFile::GetEOL(wxTextFileType_Dos));
           for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
 
             FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -1512,13 +1509,15 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
               double deviationToRaise = 100 - cents;
               double deviationToLower = -cents;
 
-              tsvFile.AddLine(wxString::Format(wxT("%s\t%i\t%.2f\t%.2f\t%.6f\t%.6f"), filesToProcess.Item(i), midiNote, cents, resultingPitch, deviationToRaise, deviationToLower));
+              tsvFile->Write(wxString::Format(wxT("%s\t%i\t%.2f\t%.2f\t%.6f\t%.6f"), filesToProcess.Item(i), midiNote, cents, resultingPitch, deviationToRaise, deviationToLower), conv);
+              tsvFile->Write(wxTextFile::GetEOL(wxTextFileType_Dos));
             } else {
               m_statusProgress->AppendText(wxString::Format(wxT("\tCouldn't open audio file: %s!\n"), filesToProcess.Item(i)));
             }
             wxSafeYield();
           }
-          tsvFile.Write(wxTextFileType_Dos, wxCSConv("ISO-8859-1"));
+          tsvFile->Flush();
+          delete tsvFile;
           m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
         } else {
           m_statusProgress->AppendText(wxT("Couldn't create/open the .tsv file!\n"));
@@ -1535,16 +1534,12 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
         // Create the .tsv file
         wxString fileName = m_targetField->GetValue() + wxFILE_SEP_PATH + wxT("LoopInfo.tsv");
         m_statusProgress->AppendText(wxString::Format(wxT("Writing loop info to: %s\n"), fileName));
-        wxTextFile tsvFile(fileName);
-        if (tsvFile.Exists()) {
-          tsvFile.Open();
-          if (tsvFile.IsOpened())
-            tsvFile.Clear();
-        } else {
-          tsvFile.Create(fileName);
-        }
-        if (tsvFile.Exists()) {
-          tsvFile.AddLine(wxT("File name\tLoop Number\tStart\tEnd\tDuration\tMax <>"));
+        wxCSConv conv = wxCSConv("UTF-8");
+        wxFile *tsvFile = new wxFile(fileName, wxFile::write);
+        if (tsvFile->IsOpened() && conv.IsOk()) {
+          tsvFile->Write("\xef\xbb\xbf", 3);
+          tsvFile->Write(wxT("File name\tLoop Number\tStart\tEnd\tDuration\tMax <>"), conv);
+          tsvFile->Write(wxTextFile::GetEOL(wxTextFileType_Dos));
           for (unsigned i = 0; i < filesToProcess.GetCount(); i++) {
 
             FileHandling fh(filesToProcess.Item(i), m_sourceField->GetValue());
@@ -1552,14 +1547,16 @@ void BatchProcessDialog::OnRunBatch(wxCommandEvent& WXUNUSED(event)) {
               for (int j = 0; j < fh.m_loops->GetNumberOfLoops(); j++) {
                 LOOPDATA loop;
                 fh.m_loops->GetLoopData(j, loop);
-                tsvFile.AddLine(wxString::Format(wxT("%s\t%i\t%u\t%u\t%.3f\t%.6f"), filesToProcess.Item(i), j + 1, loop.dwStart, loop.dwEnd, (float) (loop.dwEnd - loop.dwStart + 1) / (float) fh.GetSampleRate(), fh.GetLoopQuality(j)));
+                tsvFile->Write(wxString::Format(wxT("%s\t%i\t%u\t%u\t%.3f\t%.6f"), filesToProcess.Item(i), j + 1, loop.dwStart, loop.dwEnd, (float) (loop.dwEnd - loop.dwStart + 1) / (float) fh.GetSampleRate(), fh.GetLoopQuality(j)), conv);
+                tsvFile->Write(wxTextFile::GetEOL(wxTextFileType_Dos));
               }
             } else {
               m_statusProgress->AppendText(wxString::Format(wxT("\tCouldn't open file or it contains no loop: %s\n"), filesToProcess.Item(i)));
             }
             wxSafeYield();
           }
-          tsvFile.Write(wxTextFileType_Dos, wxCSConv("ISO-8859-1"));
+          tsvFile->Flush();
+          delete tsvFile;
           m_statusProgress->AppendText(wxT("Batch process complete!\n\n"));
         } else {
           m_statusProgress->AppendText(wxT("Couldn't create/open the .tsv file!\n"));
