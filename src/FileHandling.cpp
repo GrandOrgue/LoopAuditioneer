@@ -1574,12 +1574,23 @@ bool FileHandling::ExportLoopAsNewFile(wxString fileName, wxString path, int loo
   if (loopToExport.dwEnd <= loopToExport.dwStart)
     return false;
 
-  unsigned arrayLength = (loopToExport.dwEnd - loopToExport.dwStart + 1) * m_channels;
+  unsigned arrayLength = (loopToExport.dwEnd - loopToExport.dwStart + 2) * m_channels;
   unsigned loopStartIdx = loopToExport.dwStart * m_channels;
   wxString filePath = path + wxFILE_SEP_PATH + fileName;
 
   // Open the file to write
   SndfileHandle sf = SndfileHandle(std::string(filePath.mb_str()), SFM_WRITE, m_format, m_channels, m_samplerate);
+
+  // Export also the current loop metadata into the new file but with adjusted values
+  SF_INSTRUMENT inst;
+  inst.basenote = m_loops->GetMIDIUnityNote();
+  inst.dwMIDIPitchFraction = m_loops->GetMIDIPitchFraction();
+  inst.loop_count = 1;
+  inst.loops[0].mode = loopToExport.dwType;
+  inst.loops[0].start = 0;
+  inst.loops[0].end = (arrayLength / m_channels) - 1;
+  inst.loops[0].count = loopToExport.dwPlayCount;
+  sf.command(SFC_SET_INSTRUMENT, &inst, sizeof(inst)); // this writes the loops metadata
 
   // Write LIST INFO strings if they are set in the original file
   if (m_info.artist != wxEmptyString)
