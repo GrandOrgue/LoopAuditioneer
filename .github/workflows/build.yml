@@ -30,7 +30,7 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: cpack
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: LoopAuditioneer-${{github.ref_name}}-linux
         path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
@@ -60,7 +60,7 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: for file in LoopAuditioneer*.tar.gz ; do mv $file ${file//LoopAuditioneer/LoopAuditioneer-wx32} ; done
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: LoopAuditioneer-${{github.ref_name}}-linux-wx32
         path: ${{github.workspace}}/build/LoopAuditioneer*.tar.gz
@@ -102,7 +102,7 @@ jobs:
         linuxdeploy-x86_64.AppImage --appdir AppDir -e ./bin/LoopAuditioneer -d ./share/LoopAuditioneer/applications/LoopAuditioneer.desktop -i ./share/icons/hicolor/256x256/apps/LoopAuditioneer.png --plugin gtk
         appimagetool-x86_64.AppImage --no-appstream AppDir LoopAuditioneer-${{env.app_version}}.x86_64.AppImage
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: LoopAuditioneer-${{github.ref_name}}-AppImage
         path: ${{github.workspace}}/build/LoopAuditioneer*.AppImage
@@ -133,14 +133,13 @@ jobs:
       working-directory: ${{github.workspace}}/crossbuild
       run: cpack
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: LoopAuditioneer-${{github.ref_name}}-windows
         path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
 
   build-macos-x86:
     runs-on: macos-26-intel
-
     steps:
       - uses: actions/checkout@v7
         with:
@@ -150,18 +149,18 @@ jobs:
         run: ${{github.workspace}}/scripts/prepare-osx.sh
 
       - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-
-      - name: Configure CMake
         env:
           ac_cv_prog_cc_c23: "no"
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+      - name: Build with CMake
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
       - name: Package with CPack
         working-directory: ${{github.workspace}}/build
         run: cpack
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: LoopAuditioneer-${{github.ref_name}}-macos-x86
           path: ${{ github.workspace }}/build/LoopAuditioneer*.dmg
@@ -189,7 +188,7 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: cpack
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: LoopAuditioneer-${{github.ref_name}}-macos-arm
           path: ${{ github.workspace }}/build/LoopAuditioneer*.dmg
@@ -233,7 +232,7 @@ jobs:
         echo "release_version=${TAG#v}" >> $GITHUB_ENV
 
     - name: Populate Release
-      uses: softprops/action-gh-release@v2.2.2
+      uses: softprops/action-gh-release@v3
       with:
         draft: false
         prerelease: false
