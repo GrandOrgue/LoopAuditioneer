@@ -139,7 +139,7 @@ jobs:
         path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
 
   build-macos-x86:
-    runs-on: macos-15-intel
+    runs-on: macos-26-intel
 
     steps:
       - uses: actions/checkout@v4
@@ -165,7 +165,7 @@ jobs:
           path: ${{ github.workspace }}/build/LoopAuditioneer*.dmg
 
   build-macos-arm:
-    runs-on: macos-14
+    runs-on: macos-26
 
     steps:
       - uses: actions/checkout@v4
