@@ -138,6 +138,42 @@ jobs:
         name: LoopAuditioneer-${{github.ref_name}}-windows
         path: ${{github.workspace}}/crossbuild/LoopAuditioneer*.zip
 
+  build-windows-msys2:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+
+    - name: Cache static wxWidgets
+      uses: actions/cache@v4
+      with:
+        path: ${{runner.temp}}/wx-static
+        key: msys2-ucrt64-wx-${{hashFiles('scripts/prepare-msys2.sh')}}
+
+    - name: Get dependencies
+      run: WX_PREFIX="$(cygpath -u "$RUNNER_TEMP")/wx-static" bash scripts/prepare-msys2.sh
+
+    - name: Build
+      run: |
+        git config --global --add safe.directory '*'
+        WX_PREFIX="$(cygpath -u "$RUNNER_TEMP")/wx-static" bash scripts/build-msys2.sh
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: LoopAuditioneer-${{github.ref_name}}-windows-msys2
+        path: ${{github.workspace}}/build-msys2/LoopAuditioneer*.zip
+
   build-macos-x86:
     runs-on: macos-15-intel
 
