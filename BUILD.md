@@ -99,6 +99,82 @@ directory:
 cpack
 ```
 
+## Native compilation on Windows with MSYS2
+
+LoopAuditioneer can also be built natively on Windows with
+[MSYS2](https://www.msys2.org/). The result is a statically linked executable
+that only depends on Windows system DLLs, like the cross compiled Windows
+release.
+
+### Setup (once)
+
+Install MSYS2 and open the "MSYS2 UCRT64" shell from the Start menu. All the
+commands below are entered in that shell, where a Windows path such as
+C:\LoopAuditioneer is written /c/LoopAuditioneer. First update MSYS2 (repeat
+the command if the window closes during the update):
+
+```
+pacman -Syu
+```
+
+The source code must be in a path without spaces, since autotools cannot
+handle them. Get the source code as described at the top of this file, then
+issue the following command in its root directory:
+
+```
+bash scripts/prepare-msys2.sh
+```
+
+prepare-msys2.sh installs the needed MSYS2 packages and builds a static
+wxWidgets into /opt, which takes a while. When run again, it only checks the
+packages and keeps the existing wxWidgets.
+
+### Building
+
+In the root directory of the source code, issue:
+
+```
+bash scripts/build-msys2.sh
+```
+
+build-msys2.sh builds libsndfile, libsamplerate and RtAudio from the
+submodules as static libraries, then LoopAuditioneer itself, in the
+build-msys2/ directory. The binary is created in build-msys2/bin/, a ZIP
+package in build-msys2/, and the output of the script is saved in
+build-msys2/build-msys2.log.
+
+The script can simply be run again after each change: it only rebuilds what
+is needed. A library is rebuilt when the commit of its submodule has changed,
+for example after `git submodule update`. The committed state of a submodule
+is used; uncommitted changes inside a submodule are ignored. To rebuild the
+three libraries anyway:
+
+```
+FORCE_DEPS=1 bash scripts/build-msys2.sh
+```
+
+Close LoopAuditioneer before building again, since Windows does not allow a
+running executable to be replaced. A slightly quicker rebuild, which skips the
+ZIP package, is:
+
+```
+cmake --build build-msys2 -j
+```
+
+### Options
+
+The MINGW64 shell can be used instead of the UCRT64 shell. The scripts accept
+the following optional environment variables, given before the command (for
+example `JOBS=4 bash scripts/build-msys2.sh`):
+
+* WX_PREFIX: wxWidgets directory, for both scripts (default:
+  /opt/wx-VERSION-ucrt64-static, or -mingw64- in the MINGW64 shell)
+* JOBS: number of parallel compile jobs, for both scripts (default: number of
+  processors)
+* SKIP_PACMAN=1: prepare-msys2.sh does not install packages
+* BUILD_DIR: build directory of build-msys2.sh (default: build-msys2)
+* FORCE_DEPS=1: build-msys2.sh rebuilds the three libraries
+
 ## Compiling LoopAuditioneer for macOS
 
 Install [XCode](https://developer.apple.com/xcode) and the [XCode Command Line Tools](https://developer.apple.com/xcode/resources).

@@ -2,6 +2,7 @@
 .project
 .cproject
 build/
+build-msys2/
 /_build/
 **/.DS_Store
 **/.lib/

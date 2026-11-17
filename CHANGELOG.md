@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch process to export whole attack up to the release cue as clean file.
 - Batch process to copy valid loop(s) from corresponding file(s).
 - Batch process to create tremulant samples with flexible pitch/amplitude modulation. (TODO)
+- Native compilation on Windows with MSYS2 (scripts/prepare-msys2.sh and scripts/build-msys2.sh).
 
 ### Changed
 
